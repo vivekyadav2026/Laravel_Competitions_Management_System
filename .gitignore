@@ -1,14 +1,27 @@
-/.phpunit.cache
 /node_modules
 /public/build
 /public/hot
 /public/storage
 /storage/*.key
+/storage/chrome-temp
+/storage/framework/cache/*
+!/storage/framework/cache/.gitignore
+/storage/framework/sessions/*
+!/storage/framework/sessions/.gitignore
+/storage/framework/views/*
+!/storage/framework/views/.gitignore
+/storage/logs/*
+!/storage/logs/.gitignore
+
+# Test / Benchmark screenshots in public
+/public/*.png
+
 /vendor
 .env
 .env.backup
 .env.production
 .phpunit.result.cache
+/.phpunit.cache
 Homestead.json
 Homestead.yaml
 auth.json
@@ -17,3 +30,5 @@ yarn-error.log
 /.fleet
 /.idea
 /.vscode
+.DS_Store
+Thumbs.db

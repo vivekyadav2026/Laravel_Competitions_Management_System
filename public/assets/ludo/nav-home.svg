@@ -1,0 +1,23 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 48 48" width="48" height="48">
+  <defs>
+    <linearGradient id="roofGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#F43F5E"/>
+      <stop offset="100%" stop-color="#E11D48"/>
+    </linearGradient>
+    <linearGradient id="wallGrad" x1="0%" y1="0%" x2="0%" y2="100%">
+      <stop offset="0%" stop-color="#E0F2FE"/>
+      <stop offset="100%" stop-color="#BAE6FD"/>
+    </linearGradient>
+  </defs>
+  <!-- Chimney -->
+  <rect x="30" y="10" width="5" height="10" fill="#BE123C"/>
+  <!-- Roof -->
+  <polygon points="24,6 6,22 10,24 24,11 38,24 42,22" fill="url(#roofGrad)" stroke="#FFE4E6" stroke-width="0.8"/>
+  <!-- House Walls -->
+  <rect x="11" y="21" width="26" height="20" rx="3" fill="url(#wallGrad)" stroke="#38BDF8" stroke-width="1.2"/>
+  <!-- Windows -->
+  <rect x="14" y="24" width="7" height="7" rx="1.5" fill="#0284C7"/>
+  <rect x="27" y="24" width="7" height="7" rx="1.5" fill="#0284C7"/>
+  <!-- Door -->
+  <path d="M 20,41 L 20,33 A 4 4 0 0 1 28,33 L 28,41 Z" fill="#2563EB"/>
+</svg>

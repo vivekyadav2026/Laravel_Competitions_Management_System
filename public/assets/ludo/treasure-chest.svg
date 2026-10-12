@@ -1,0 +1,63 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 400 240" width="400" height="240">
+  <defs>
+    <radialGradient id="chestGlow" cx="50%" cy="50%" r="50%">
+      <stop offset="0%" stop-color="#FFD700" stop-opacity="0.7"/>
+      <stop offset="60%" stop-color="#FF9100" stop-opacity="0.3"/>
+      <stop offset="100%" stop-color="#000000" stop-opacity="0"/>
+    </radialGradient>
+    <linearGradient id="woodGrad" x1="0%" y1="0%" x2="0%" y2="100%">
+      <stop offset="0%" stop-color="#8B4513"/>
+      <stop offset="50%" stop-color="#5C2E0B"/>
+      <stop offset="100%" stop-color="#3B1E05"/>
+    </linearGradient>
+    <linearGradient id="goldTrim" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#FFF2A3"/>
+      <stop offset="50%" stop-color="#FFD700"/>
+      <stop offset="100%" stop-color="#B8860B"/>
+    </linearGradient>
+    <filter id="cShadow">
+      <feDropShadow dx="0" dy="6" stdDeviation="5" flood-color="#000" flood-opacity="0.7"/>
+    </filter>
+  </defs>
+
+  <!-- Golden Ray Halo -->
+  <circle cx="200" cy="130" r="110" fill="url(#chestGlow)"/>
+
+  <!-- Overflowing Gold Coins & Gems behind lid -->
+  <g transform="translate(100, 80)">
+    <!-- Cyan Diamond -->
+    <polygon points="40,20 55,0 70,20 55,40" fill="#00E5FF" stroke="#E0F7FA" stroke-width="1.5"/>
+    <!-- Gold coins pile -->
+    <ellipse cx="90" cy="30" rx="16" ry="10" fill="url(#goldTrim)"/>
+    <ellipse cx="110" cy="25" rx="16" ry="10" fill="url(#goldTrim)"/>
+    <ellipse cx="130" cy="32" rx="16" ry="10" fill="url(#goldTrim)"/>
+    <ellipse cx="70" cy="35" rx="16" ry="10" fill="url(#goldTrim)"/>
+    <!-- Rupee notes -->
+    <rect x="140" y="15" width="35" height="20" rx="2" fill="#22C55E" transform="rotate(25 140 15)"/>
+  </g>
+
+  <!-- Open Chest Lid -->
+  <g transform="translate(200, 85)" filter="url(#cShadow)">
+    <path d="M -110,-20 Q 0,-65 110,-20 L 100,10 Q 0,-30 -100,10 Z" fill="url(#woodGrad)" stroke="url(#goldTrim)" stroke-width="3"/>
+  </g>
+
+  <!-- Chest Body -->
+  <g transform="translate(200, 155)" filter="url(#cShadow)">
+    <path d="M -100,-40 L 100,-40 L 85,50 L -85,50 Z" fill="url(#woodGrad)" stroke="url(#goldTrim)" stroke-width="3.5"/>
+    <!-- Gold Straps -->
+    <path d="M -70,-40 L -60,50 M 70,-40 L 60,50" stroke="url(#goldTrim)" stroke-width="8"/>
+    <!-- Center Keyhole Lock -->
+    <rect x="-14" y="-20" width="28" height="32" rx="4" fill="url(#goldTrim)" stroke="#451A03" stroke-width="1.5"/>
+    <circle cx="0" cy="-6" r="4.5" fill="#1C1917"/>
+    <polygon points="-2.5,-3 2.5,-3 1.5,6 -1.5,6" fill="#1C1917"/>
+  </g>
+
+  <!-- Foreground Fallen Coins & Gems -->
+  <g transform="translate(200, 205)">
+    <ellipse cx="-60" cy="0" rx="14" ry="8" fill="url(#goldTrim)"/>
+    <ellipse cx="-40" cy="8" rx="14" ry="8" fill="url(#goldTrim)"/>
+    <ellipse cx="50" cy="2" rx="14" ry="8" fill="url(#goldTrim)"/>
+    <ellipse cx="70" cy="7" rx="14" ry="8" fill="url(#goldTrim)"/>
+    <polygon points="0,5 12,-10 24,5 12,18" fill="#38BDF8"/>
+  </g>
+</svg>

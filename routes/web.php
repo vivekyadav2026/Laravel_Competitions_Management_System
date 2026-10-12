@@ -11,19 +11,34 @@ use App\Http\Controllers\TeamCompetitionScoreController;
 use App\Http\Controllers\TeamController;
 use App\Http\Controllers\TeamEventScoreController;
 use App\Http\Controllers\UserController;
+use App\Http\Controllers\LudoController;
 use Illuminate\Support\Facades\Route;
+
+// Ludo Tournament Platform Routes
+Route::get('/', [LudoController::class, 'home'])->name('ludo.home');
+Route::get('/play', [LudoController::class, 'battles'])->name('ludo.play');
+Route::get('/battles', [LudoController::class, 'battles'])->name('ludo.battles');
+Route::post('/battles/create', [LudoController::class, 'createBattle'])->name('ludo.battles.create');
+Route::post('/battles/join/{id}', [LudoController::class, 'joinBattle'])->name('ludo.battles.join');
+Route::post('/battles/cancel/{id}', [LudoController::class, 'cancelBattle'])->name('ludo.battles.cancel');
+Route::get('/refer', [LudoController::class, 'refer'])->name('ludo.refer');
+Route::get('/support', [LudoController::class, 'support'])->name('ludo.support');
+Route::get('/wallet', [LudoController::class, 'wallet'])->name('ludo.wallet');
+Route::get('/profile', [LudoController::class, 'profile'])->name('ludo.profile');
+Route::post('/profile/update', [LudoController::class, 'updateProfile'])->name('ludo.profile.update');
+Route::post('/profile/password', [LudoController::class, 'updatePassword'])->name('ludo.profile.password');
+Route::get('/history', [LudoController::class, 'history'])->name('ludo.history');
+Route::get('/kyc', [LudoController::class, 'kyc'])->name('ludo.kyc');
+
+// Legacy University Competitions home route
+Route::get('/competitions-home', [UserController::class, 'showHome']);
 
 // Authentication routes
 Route::get('/showregister', [AuthController::class, 'showRegister']);
 Route::post('/register', [AuthController::class, 'register']);
-
 Route::get('/showlogin', [AuthController::class, 'showLogin'])->name('login');
 Route::post('/login', [AuthController::class, 'login']);
-
 Route::get('/logout', [AuthController::class, 'logout']);
-
-// Home page
-Route::get('/', [UserController::class, 'showHome']);
 
 // Authorize user for all routes
 Route::middleware('auth')->group(function () {

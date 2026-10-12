@@ -1,0 +1,76 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 600 90" width="100%" height="100%">
+  <defs>
+    <linearGradient id="bgBanner" x1="0%" y1="0%" x2="100%" y2="0%">
+      <stop offset="0%" stop-color="#2D1A00"/>
+      <stop offset="15%" stop-color="#120A00"/>
+      <stop offset="50%" stop-color="#050300"/>
+      <stop offset="85%" stop-color="#120A00"/>
+      <stop offset="100%" stop-color="#2D1A00"/>
+    </linearGradient>
+    <linearGradient id="goldBorder" x1="0%" y1="0%" x2="100%" y2="0%">
+      <stop offset="0%" stop-color="#B8860B"/>
+      <stop offset="25%" stop-color="#FFD700"/>
+      <stop offset="50%" stop-color="#FFF8DC"/>
+      <stop offset="75%" stop-color="#FFD700"/>
+      <stop offset="100%" stop-color="#B8860B"/>
+    </linearGradient>
+    <linearGradient id="goldText" x1="0%" y1="0%" x2="0%" y2="100%">
+      <stop offset="0%" stop-color="#FFFDF0"/>
+      <stop offset="40%" stop-color="#FFE066"/>
+      <stop offset="100%" stop-color="#D49B00"/>
+    </linearGradient>
+    <radialGradient id="starGlow" cx="50%" cy="50%" r="50%">
+      <stop offset="0%" stop-color="#FFD700" stop-opacity="0.8"/>
+      <stop offset="100%" stop-color="#FFD700" stop-opacity="0"/>
+    </radialGradient>
+    <filter id="swordShadow">
+      <feDropShadow dx="0" dy="2" stdDeviation="2" flood-color="#000" flood-opacity="0.8"/>
+    </filter>
+  </defs>
+
+  <!-- Banner Body -->
+  <rect x="4" y="4" width="592" height="82" rx="10" fill="url(#bgBanner)" stroke="url(#goldBorder)" stroke-width="2.5"/>
+  <rect x="10" y="10" width="580" height="70" rx="6" fill="none" stroke="#FFD700" stroke-width="0.8" stroke-dasharray="8 4" opacity="0.6"/>
+
+  <!-- Left Sword Badge -->
+  <g transform="translate(24, 15)" filter="url(#swordShadow)">
+    <!-- Ornate octagonal crest -->
+    <polygon points="30,0 50,10 60,30 50,50 30,60 10,50 0,30 10,10" fill="#1A1208" stroke="url(#goldBorder)" stroke-width="2"/>
+    <!-- Crossed swords -->
+    <path d="M 16,14 L 44,46 M 44,14 L 16,46" stroke="#FFFFFF" stroke-width="3" stroke-linecap="round"/>
+    <path d="M 16,14 L 44,46 M 44,14 L 16,46" stroke="#FFD700" stroke-width="1.5" stroke-linecap="round"/>
+    <!-- Hilts -->
+    <circle cx="16" cy="14" r="3.5" fill="#D49B00"/>
+    <circle cx="44" cy="14" r="3.5" fill="#D49B00"/>
+    <circle cx="16" cy="46" r="3.5" fill="#D49B00"/>
+    <circle cx="44" cy="46" r="3.5" fill="#D49B00"/>
+    <!-- Center gem -->
+    <circle cx="30" cy="30" r="4.5" fill="#E60000" stroke="#FFD700" stroke-width="1"/>
+  </g>
+
+  <!-- Right Sword Badge -->
+  <g transform="translate(516, 15)" filter="url(#swordShadow)">
+    <polygon points="30,0 50,10 60,30 50,50 30,60 10,50 0,30 10,10" fill="#1A1208" stroke="url(#goldBorder)" stroke-width="2"/>
+    <path d="M 16,14 L 44,46 M 44,14 L 16,46" stroke="#FFFFFF" stroke-width="3" stroke-linecap="round"/>
+    <path d="M 16,14 L 44,46 M 44,14 L 16,46" stroke="#FFD700" stroke-width="1.5" stroke-linecap="round"/>
+    <circle cx="16" cy="14" r="3.5" fill="#D49B00"/>
+    <circle cx="44" cy="14" r="3.5" fill="#D49B00"/>
+    <circle cx="16" cy="46" r="3.5" fill="#D49B00"/>
+    <circle cx="44" cy="46" r="3.5" fill="#D49B00"/>
+    <circle cx="30" cy="30" r="4.5" fill="#E60000" stroke="#FFD700" stroke-width="1"/>
+  </g>
+
+  <!-- Sparks -->
+  <circle cx="110" cy="45" r="8" fill="url(#starGlow)"/>
+  <circle cx="490" cy="45" r="8" fill="url(#starGlow)"/>
+
+  <!-- Texts -->
+  <text x="300" y="44" font-family="'Cinzel', 'Trajan Pro', 'Impact', sans-serif" font-weight="900" font-size="24"
+        fill="url(#goldText)" text-anchor="middle" letter-spacing="4">
+    OUR TOURNAMENTS
+  </text>
+  <text x="300" y="66" font-family="'Poppins', 'Segoe UI', sans-serif" font-weight="600" font-size="11"
+        fill="#FFE899" text-anchor="middle" letter-spacing="1">
+    Choose your battle and win big
+  </text>
+</svg>

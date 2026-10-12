@@ -1,0 +1,1601 @@
+/* ==========================================================================
+   ROYAL LUDO TOURNAMENT PLATFORM — CORE DESIGN SYSTEM
+   Pixel-accurate Gaming UI for Mobile & Desktop
+   ========================================================================== */
+
+@import url('https://fonts.googleapis.com/css2?family=Cinzel:wght@700;900&family=Poppins:wght@400;500;600;700;800;900&display=swap');
+
+:root {
+    /* Brand Core Palette */
+    --ludo-navy-950: #040817;
+    --ludo-navy-900: #081026;
+    --ludo-navy-850: #0a1430;
+    --ludo-navy-800: #0d1b3e;
+    --ludo-navy-700: #132554;
+    --ludo-navy-600: #1b3573;
+    
+    /* Neon & Gaming Accents */
+    --ludo-cyan: #00d2ff;
+    --ludo-cyan-rgb: 0, 210, 255;
+    --ludo-cyan-glow: rgba(0, 210, 255, 0.45);
+    
+    --ludo-purple: #9333ea;
+    --ludo-purple-dark: #3b114d;
+    --ludo-purple-border: #a855f7;
+    
+    --ludo-gold: #ffb703;
+    --ludo-gold-bright: #ffd700;
+    --ludo-gold-dark: #d49b00;
+    --ludo-gold-border: #f59e0b;
+    
+    --ludo-green: #00ff87;
+    --ludo-green-dark: #15803d;
+    --ludo-red: #ef4444;
+
+    /* Light Theme Defaults */
+    --ludo-bg: #f1f5f9;
+    --ludo-surface: #ffffff;
+    --ludo-surface-alt: #f8fafc;
+    --ludo-border: #e2e8f0;
+    --ludo-text: #0f172a;
+    --ludo-text-muted: #64748b;
+    --ludo-card-shadow: 0 4px 14px rgba(0, 0, 0, 0.06);
+
+    /* Safe Area & Layout */
+    --ludo-header-height: 64px;
+    --ludo-bottom-nav-height: 66px;
+    --ludo-app-max-width: 412px;
+}
+
+/* Dark Mode Overrides */
+[data-theme="dark"] {
+    --ludo-bg: #030712;
+    --ludo-surface: #0a1224;
+    --ludo-surface-alt: #0e1933;
+    --ludo-border: #1e293b;
+    --ludo-text: #f8fafc;
+    --ludo-text-muted: #94a3b8;
+    --ludo-card-shadow: 0 8px 24px rgba(0, 0, 0, 0.4);
+}
+
+/* Global Typography & Resets */
+body {
+    margin: 0;
+    padding: 0;
+    font-family: 'Poppins', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+    background-color: var(--ludo-navy-950);
+    color: var(--ludo-text);
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+    overflow-x: hidden;
+}
+
+/* ==========================================================================
+   DESKTOP DUAL VIEWPORT WRAPPER
+   (Mimics Reference: Mobile App on left/center, Branding Showcase on right)
+   ========================================================================== */
+.ludo-desktop-wrapper {
+    display: flex;
+    min-height: 100vh;
+    width: 100%;
+    overflow-x: hidden;
+    background: radial-gradient(circle at 75% 30%, #0d1b3e 0%, #040817 70%);
+}
+
+/* Left / Main Mobile App Frame */
+.ludo-mobile-frame {
+    width: 100%;
+    max-width: 100%;
+    min-width: 0;
+    margin: 0 auto;
+    min-height: 100vh;
+    background-color: var(--ludo-bg);
+    position: relative;
+    box-shadow: 0 0 50px rgba(0, 0, 0, 0.85);
+    display: flex;
+    flex-direction: column;
+    overflow-x: hidden;
+    box-sizing: border-box;
+}
+
+/* Right Showcase Side for Desktop Viewports */
+.ludo-desktop-showcase {
+    flex: 1;
+    display: none;
+    align-items: center;
+    justify-content: center;
+    flex-direction: column;
+    padding: 40px;
+    background: radial-gradient(circle at center, #0f1c3f 0%, #02050e 100%);
+    position: relative;
+    border-left: 1px solid rgba(0, 210, 255, 0.15);
+}
+
+@media (min-width: 992px) {
+    .ludo-desktop-wrapper {
+        justify-content: flex-start;
+    }
+    .ludo-mobile-frame {
+        max-width: var(--ludo-app-max-width);
+        margin: 0;
+        border-right: 1px solid rgba(255, 255, 255, 0.1);
+    }
+    .ludo-desktop-showcase {
+        display: flex;
+    }
+}
+
+.ludo-showcase-logo {
+    max-width: 380px;
+    animation: floatLogo 4s ease-in-out infinite;
+    filter: drop-shadow(0 15px 30px rgba(255, 215, 0, 0.3));
+}
+
+@keyframes floatLogo {
+    0%, 100% { transform: translateY(0); }
+    50% { transform: translateY(-12px); }
+}
+
+.ludo-showcase-title {
+    font-family: 'Poppins', sans-serif;
+    font-size: 2.4rem;
+    font-weight: 900;
+    letter-spacing: 2px;
+    color: #ffffff;
+    margin-top: 30px;
+    text-transform: uppercase;
+    text-shadow: 0 4px 15px rgba(0, 0, 0, 0.8);
+}
+
+.ludo-showcase-subtitle {
+    color: #94a3b8;
+    font-size: 1.05rem;
+    margin-top: 25px;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+/* ==========================================================================
+   TOP PLAYER HEADER
+   ========================================================================== */
+.ludo-header {
+    position: sticky;
+    top: 0;
+    left: 0;
+    right: 0;
+    height: var(--ludo-header-height);
+    background: linear-gradient(180deg, var(--ludo-navy-900) 0%, var(--ludo-navy-800) 100%);
+    border-bottom: 1px solid rgba(0, 210, 255, 0.2);
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 0 8px;
+    z-index: 1030;
+    box-shadow: 0 4px 15px rgba(0, 0, 0, 0.5);
+    width: 100%;
+    box-sizing: border-box;
+}
+
+/* Hamburger Trigger */
+.ludo-hamburger-btn {
+    width: 38px;
+    height: 38px;
+    background: #081226;
+    border: 1.5px solid #1a2c56;
+    border-radius: 8px;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    align-items: center;
+    gap: 4px;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    padding: 0;
+    flex-shrink: 0;
+}
+
+.ludo-hamburger-btn span {
+    display: block;
+    width: 18px;
+    height: 2.5px;
+    background: #00d2ff;
+    border-radius: 2px;
+    transition: all 0.2s ease;
+}
+
+.ludo-hamburger-btn:hover,
+.ludo-hamburger-btn:active {
+    background: #0f2048;
+    border-color: #00d2ff;
+    box-shadow: 0 0 12px var(--ludo-cyan-glow);
+}
+
+/* Logo In Header */
+.ludo-header-logo {
+    height: 34px;
+    max-width: 85px;
+    object-fit: contain;
+    cursor: pointer;
+    transition: transform 0.2s ease;
+}
+
+.ludo-header-logo:hover {
+    transform: scale(1.03);
+}
+
+/* Balance Cards Group */
+.ludo-header-balances {
+    display: flex;
+    align-items: center;
+    gap: 4px;
+    flex-shrink: 0;
+}
+
+/* Coins Pill Card */
+.ludo-balance-card {
+    display: flex;
+    align-items: center;
+    gap: 5px;
+    padding: 3px 6px 3px 5px;
+    border-radius: 8px;
+    text-decoration: none;
+    color: inherit;
+    transition: transform 0.2s ease, box-shadow 0.2s ease;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.3);
+}
+
+.ludo-balance-card:hover {
+    transform: translateY(-2px);
+}
+
+.ludo-balance-coins {
+    background: linear-gradient(135deg, #0e2a5c 0%, #0a1c3e 100%);
+    border: 1px solid #1d4ed8;
+}
+
+.ludo-balance-referral {
+    background: linear-gradient(135deg, #431b5c 0%, #2b113d 100%);
+    border: 1px solid #7e22ce;
+}
+
+.ludo-balance-icon {
+    width: 20px;
+    height: 20px;
+    object-fit: contain;
+    flex-shrink: 0;
+}
+
+.ludo-balance-info {
+    display: flex;
+    flex-direction: column;
+    line-height: 1.1;
+    min-width: 28px;
+}
+
+.ludo-balance-amount {
+    font-size: 12px;
+    font-weight: 800;
+    color: #ffffff;
+}
+
+.ludo-balance-label {
+    font-size: 8.5px;
+    font-weight: 600;
+    text-transform: capitalize;
+}
+
+.ludo-balance-coins .ludo-balance-label {
+    color: #93c5fd;
+}
+
+.ludo-balance-referral .ludo-balance-label {
+    color: #d8b4fe;
+}
+
+/* ==========================================================================
+   PAGE CONTENT CONTAINER & SAFE AREAS
+   ========================================================================== */
+.ludo-page-content {
+    flex: 1;
+    padding: 10px 10px calc(var(--ludo-bottom-nav-height) + 16px) 10px;
+    overflow-y: auto;
+    overflow-x: hidden;
+    width: 100%;
+    box-sizing: border-box;
+}
+
+/* Announcement Alert Banner (Yellow / Cream) */
+.ludo-announcement {
+    background-color: #fef9c3;
+    border: 1px solid #fde047;
+    border-radius: 14px;
+    padding: 10px 12px;
+    margin-bottom: 14px;
+    font-size: 11.5px;
+    line-height: 1.45;
+    color: #713f12;
+    display: flex;
+    align-items: flex-start;
+    gap: 8px;
+    box-shadow: 0 2px 6px rgba(0, 0, 0, 0.04);
+    overflow-wrap: anywhere;
+    word-break: break-word;
+    box-sizing: border-box;
+    width: 100%;
+}
+
+[data-theme="dark"] .ludo-announcement {
+    background-color: #272007;
+    border-color: #ca8a04;
+    color: #fef08a;
+}
+
+/* ==========================================================================
+   GAMING BANNERS & ACCENT BORDERS
+   ========================================================================== */
+.ludo-gold-banner {
+    width: 100%;
+    margin-bottom: 14px;
+    border-radius: 10px;
+    overflow: hidden;
+    box-shadow: 0 4px 15px rgba(255, 183, 3, 0.2);
+    display: block;
+    cursor: pointer;
+    transition: transform 0.2s ease;
+    box-sizing: border-box;
+}
+
+.ludo-gold-banner:hover {
+    transform: scale(1.01);
+}
+
+.ludo-gold-banner img {
+    width: 100%;
+    height: auto;
+    display: block;
+}
+
+/* 2-Column Game Grid */
+.ludo-game-grid {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 10px;
+    margin-bottom: 14px;
+    width: 100%;
+    box-sizing: border-box;
+}
+
+.ludo-game-card {
+    position: relative;
+    border-radius: 16px;
+    overflow: hidden;
+    background: #091224;
+    border: 1.5px solid rgba(0, 210, 255, 0.2);
+    box-shadow: 0 6px 18px rgba(0, 0, 0, 0.35);
+    transition: all 0.2s ease;
+    cursor: pointer;
+    text-decoration: none;
+    display: block;
+    min-width: 0;
+    max-width: 100%;
+}
+
+.ludo-game-card:hover {
+    transform: translateY(-4px);
+    border-color: var(--ludo-cyan);
+    box-shadow: 0 8px 24px var(--ludo-cyan-glow);
+}
+
+.ludo-game-card img {
+    width: 100%;
+    height: auto;
+    display: block;
+    object-fit: cover;
+}
+
+/* Live Badge Pill */
+.ludo-badge-live {
+    position: absolute;
+    top: 8px;
+    right: 8px;
+    background: rgba(4, 18, 48, 0.9);
+    border: 1px solid var(--ludo-cyan);
+    color: #ffffff;
+    font-size: 9px;
+    font-weight: 800;
+    padding: 2px 7px;
+    border-radius: 20px;
+    display: flex;
+    align-items: center;
+    gap: 4px;
+    box-shadow: 0 0 10px rgba(0, 210, 255, 0.4);
+    letter-spacing: 0.5px;
+    z-index: 2;
+}
+
+.ludo-badge-live .live-dot {
+    width: 6px;
+    height: 6px;
+    background-color: var(--ludo-green);
+    border-radius: 50%;
+    animation: livePulse 1.4s infinite;
+}
+
+@keyframes livePulse {
+    0% { transform: scale(0.9); opacity: 0.6; box-shadow: 0 0 0 0 rgba(0, 255, 135, 0.7); }
+    70% { transform: scale(1.2); opacity: 1; box-shadow: 0 0 0 6px rgba(0, 255, 135, 0); }
+    100% { transform: scale(0.9); opacity: 0.6; box-shadow: 0 0 0 0 rgba(0, 255, 135, 0); }
+}
+
+/* Horizontal Feature Banner */
+.ludo-feature-banner {
+    width: 100%;
+    margin-bottom: 14px;
+    border-radius: 14px;
+    overflow: hidden;
+    box-shadow: 0 4px 14px rgba(0, 0, 0, 0.25);
+    display: block;
+    box-sizing: border-box;
+}
+
+.ludo-feature-banner img {
+    width: 100%;
+    height: auto;
+    display: block;
+}
+
+/* Quick Action Cards (Install App & Dark Mode) */
+.ludo-quick-actions {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 10px;
+    margin-bottom: 14px;
+    width: 100%;
+    box-sizing: border-box;
+}
+
+.ludo-quick-card {
+    background: var(--ludo-surface);
+    border: 1px solid var(--ludo-border);
+    border-radius: 14px;
+    padding: 10px 12px;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    cursor: pointer;
+    box-shadow: var(--ludo-card-shadow);
+    transition: all 0.2s ease;
+    text-decoration: none;
+    color: var(--ludo-text);
+    min-width: 0;
+}
+
+.ludo-quick-card:hover {
+    transform: translateY(-2px);
+    border-color: var(--ludo-cyan);
+}
+
+.ludo-quick-icon {
+    width: 40px;
+    height: 40px;
+    border-radius: 12px;
+    background: var(--ludo-surface-alt);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 20px;
+    color: var(--ludo-cyan);
+}
+
+.ludo-quick-title {
+    font-size: 13px;
+    font-weight: 700;
+    line-height: 1.2;
+    margin-bottom: 2px;
+}
+
+.ludo-quick-sub {
+    font-size: 11px;
+    color: var(--ludo-text-muted);
+}
+
+/* ==========================================================================
+   BATTLE TOURNAMENT COMPONENTS (Screenshot #5)
+   ========================================================================== */
+
+/* Create Battle Card */
+.ludo-create-battle-card {
+    background: linear-gradient(145deg, #0f1c3a 0%, #081024 100%);
+    border: 1.5px solid rgba(255, 183, 3, 0.4);
+    border-radius: 18px;
+    padding: 16px;
+    margin-bottom: 16px;
+    box-shadow: 0 8px 24px rgba(0, 0, 0, 0.4);
+    position: relative;
+    overflow: hidden;
+}
+
+.ludo-create-battle-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-bottom: 14px;
+}
+
+.ludo-create-battle-title {
+    font-size: 17px;
+    font-weight: 800;
+    color: #ffffff;
+    display: flex;
+    align-items: center;
+    gap: 6px;
+}
+
+.ludo-rules-btn {
+    background: rgba(255, 255, 255, 0.08);
+    border: 1px solid rgba(255, 255, 255, 0.25);
+    color: #e2e8f0;
+    padding: 4px 12px;
+    border-radius: 20px;
+    font-size: 11px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.2s ease;
+}
+
+.ludo-rules-btn:hover {
+    background: rgba(255, 255, 255, 0.18);
+    color: #ffffff;
+}
+
+.ludo-battle-input-group {
+    display: flex;
+    align-items: center;
+    background: #060c1d;
+    border: 1.5px solid #1e3a8a;
+    border-radius: 12px;
+    padding: 4px 6px 4px 12px;
+    gap: 8px;
+}
+
+.ludo-battle-input-group:focus-within {
+    border-color: var(--ludo-gold);
+    box-shadow: 0 0 12px rgba(255, 183, 3, 0.35);
+}
+
+.ludo-battle-input {
+    flex: 1;
+    background: transparent;
+    border: none;
+    color: #ffffff;
+    font-size: 14px;
+    font-weight: 600;
+    outline: none;
+}
+
+.ludo-battle-input::placeholder {
+    color: #64748b;
+}
+
+.ludo-btn-set {
+    background: linear-gradient(135deg, #ffd700 0%, #f59e0b 100%);
+    border: none;
+    color: #1e1b4b;
+    font-size: 13px;
+    font-weight: 800;
+    padding: 8px 18px;
+    border-radius: 8px;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    display: flex;
+    align-items: center;
+    gap: 4px;
+}
+
+.ludo-btn-set:hover {
+    transform: scale(1.03);
+    box-shadow: 0 0 12px rgba(255, 215, 0, 0.5);
+}
+
+/* Open Battle Card */
+.ludo-battle-card {
+    background: linear-gradient(135deg, #09132b 0%, #0c1836 100%);
+    border: 1.5px solid rgba(0, 210, 255, 0.3);
+    border-radius: 18px;
+    padding: 12px 14px;
+    margin-bottom: 10px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    box-shadow: 0 4px 14px rgba(0, 0, 0, 0.3);
+    transition: all 0.2s ease;
+}
+
+.ludo-battle-card:hover {
+    border-color: var(--ludo-cyan);
+    box-shadow: 0 6px 20px var(--ludo-cyan-glow);
+    transform: translateY(-2px);
+}
+
+.ludo-battle-left {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+}
+
+.ludo-battle-trophy {
+    width: 36px;
+    height: 36px;
+    object-fit: contain;
+}
+
+.ludo-battle-details {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+}
+
+.ludo-battle-user-row {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+}
+
+.ludo-battle-username {
+    font-size: 13px;
+    font-weight: 700;
+    color: #ffffff;
+}
+
+.ludo-battle-pricing {
+    display: flex;
+    align-items: center;
+    gap: 14px;
+    font-size: 11px;
+}
+
+.ludo-price-col {
+    display: flex;
+    flex-direction: column;
+}
+
+.ludo-price-label {
+    font-size: 9px;
+    font-weight: 700;
+    color: #94a3b8;
+    letter-spacing: 0.5px;
+}
+
+.ludo-price-fee {
+    font-size: 13px;
+    font-weight: 800;
+    color: #ffffff;
+}
+
+.ludo-price-win {
+    font-size: 13px;
+    font-weight: 800;
+    color: var(--ludo-green);
+}
+
+/* Play Round Button */
+.ludo-btn-play {
+    width: 48px;
+    height: 48px;
+    border-radius: 50%;
+    background: radial-gradient(circle, #0284c7 0%, #0369a1 100%);
+    border: 2px solid var(--ludo-cyan);
+    color: #ffffff;
+    font-size: 11px;
+    font-weight: 900;
+    letter-spacing: 1px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    box-shadow: 0 0 15px var(--ludo-cyan-glow);
+    transition: all 0.2s ease;
+    text-decoration: none;
+}
+
+.ludo-btn-play:hover {
+    transform: scale(1.1);
+    box-shadow: 0 0 22px var(--ludo-cyan-glow);
+    color: #ffffff;
+}
+
+/* Running Battle Card */
+.ludo-running-card {
+    background: linear-gradient(135deg, #16102e 0%, #1c143d 100%);
+    border: 1.5px solid rgba(168, 85, 247, 0.4);
+    border-radius: 18px;
+    padding: 12px 14px;
+    margin-bottom: 10px;
+    box-shadow: 0 6px 18px rgba(0, 0, 0, 0.4);
+}
+
+.ludo-running-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-bottom: 10px;
+}
+
+.ludo-running-label {
+    font-size: 11px;
+    font-weight: 600;
+    color: #cbd5e1;
+}
+
+.ludo-running-players-badge {
+    background: #3b0764;
+    border: 1px solid #9333ea;
+    color: #f3e8ff;
+    padding: 3px 10px;
+    border-radius: 14px;
+    font-size: 11px;
+    font-weight: 700;
+}
+
+.ludo-running-matchup {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 8px;
+}
+
+.ludo-matchup-box {
+    flex: 1;
+    background: rgba(10, 16, 40, 0.7);
+    border: 1px solid rgba(168, 85, 247, 0.3);
+    border-radius: 12px;
+    padding: 8px 10px;
+    text-align: center;
+}
+
+.ludo-matchup-vs {
+    width: 38px;
+    height: 38px;
+    object-fit: contain;
+}
+
+/* ==========================================================================
+   REFER & EARN SCREEN (Screenshot #2)
+   ========================================================================== */
+.ludo-refer-container {
+    background: radial-gradient(circle at 50% 10%, #1e113a 0%, #070919 100%);
+    border-radius: 20px;
+    padding: 16px;
+    margin-bottom: 16px;
+    color: #ffffff;
+    box-shadow: 0 8px 30px rgba(0, 0, 0, 0.5);
+}
+
+.ludo-refer-chest-banner {
+    width: 100%;
+    max-height: 150px;
+    object-fit: contain;
+    margin-bottom: 12px;
+}
+
+.ludo-refer-reward-card {
+    background: linear-gradient(145deg, #241445 0%, #160a30 100%);
+    border: 1.5px solid #a855f7;
+    border-radius: 18px;
+    padding: 16px;
+    margin-bottom: 16px;
+}
+
+.ludo-reward-badge {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    font-size: 12px;
+    color: #fef08a;
+    margin-bottom: 4px;
+}
+
+.ludo-reward-headline {
+    font-size: 20px;
+    font-weight: 900;
+    color: #ffd700;
+    margin-bottom: 14px;
+    letter-spacing: 0.5px;
+}
+
+.ludo-reward-table {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+}
+
+.ludo-reward-row {
+    background: rgba(147, 51, 234, 0.25);
+    border-radius: 10px;
+    padding: 8px 12px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    font-size: 13px;
+    font-weight: 600;
+}
+
+/* Unique Referral Code Box */
+.ludo-code-box {
+    background: linear-gradient(135deg, #a21caf 0%, #7e22ce 100%);
+    border: 2px dashed #00d2ff;
+    border-radius: 18px;
+    padding: 16px;
+    margin-bottom: 16px;
+    text-align: center;
+    box-shadow: 0 0 20px rgba(0, 210, 255, 0.3);
+}
+
+.ludo-code-box-title {
+    font-size: 13px;
+    font-weight: 800;
+    color: #ffffff;
+    margin-bottom: 10px;
+    letter-spacing: 1px;
+}
+
+.ludo-code-display {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    background: #ffffff;
+    border-radius: 12px;
+    padding: 6px 6px 6px 14px;
+    box-shadow: inset 0 2px 4px rgba(0,0,0,0.1);
+}
+
+.ludo-code-text {
+    font-size: 20px;
+    font-weight: 900;
+    color: #0f172a;
+    letter-spacing: 3px;
+    font-family: monospace;
+}
+
+.ludo-btn-copy {
+    background: linear-gradient(135deg, #00d2ff 0%, #0284c7 100%);
+    border: none;
+    color: #ffffff;
+    padding: 8px 16px;
+    border-radius: 8px;
+    font-size: 12px;
+    font-weight: 800;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    transition: all 0.2s ease;
+}
+
+.ludo-btn-copy:hover {
+    box-shadow: 0 0 12px var(--ludo-cyan-glow);
+}
+
+/* Giant Shiny Invite Friends Button */
+.ludo-btn-invite {
+    width: 100%;
+    background: linear-gradient(180deg, #4ade80 0%, #22c55e 50%, #16a34a 100%);
+    border: 2px solid #86efac;
+    color: #ffffff;
+    font-size: 16px;
+    font-weight: 900;
+    padding: 14px;
+    border-radius: 14px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 10px;
+    text-decoration: none;
+    cursor: pointer;
+    box-shadow: 0 6px 20px rgba(34, 197, 94, 0.4);
+    transition: all 0.2s ease;
+}
+
+.ludo-btn-invite:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 8px 25px rgba(34, 197, 94, 0.6);
+    color: #ffffff;
+}
+
+/* ==========================================================================
+   SUPPORT CENTER SCREEN (Screenshot #4)
+   ========================================================================== */
+.ludo-support-header {
+    text-align: center;
+    margin: 14px 0 20px 0;
+}
+
+.ludo-support-title {
+    font-size: 24px;
+    font-weight: 900;
+    color: var(--ludo-text);
+    margin-bottom: 4px;
+}
+
+.ludo-support-title span {
+    color: var(--ludo-cyan);
+}
+
+.ludo-support-subtitle {
+    font-size: 12px;
+    color: var(--ludo-text-muted);
+}
+
+.ludo-support-list {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+    margin-bottom: 24px;
+}
+
+.ludo-support-item {
+    background: var(--ludo-surface);
+    border: 1.5px solid rgba(0, 210, 255, 0.35);
+    border-radius: 16px;
+    padding: 14px 16px;
+    display: flex;
+    align-items: center;
+    gap: 14px;
+    text-decoration: none;
+    color: var(--ludo-text);
+    box-shadow: var(--ludo-card-shadow);
+    transition: all 0.2s ease;
+}
+
+.ludo-support-item:hover {
+    border-color: var(--ludo-cyan);
+    transform: translateY(-2px);
+    color: var(--ludo-text);
+    box-shadow: 0 8px 20px var(--ludo-cyan-glow);
+}
+
+.ludo-support-avatar {
+    width: 48px;
+    height: 48px;
+    object-fit: contain;
+    flex-shrink: 0;
+}
+
+.ludo-support-item-info {
+    flex: 1;
+}
+
+.ludo-support-item-title {
+    font-size: 14px;
+    font-weight: 800;
+    margin-bottom: 2px;
+}
+
+.ludo-support-item-sub {
+    font-size: 11.5px;
+    color: var(--ludo-text-muted);
+}
+
+.ludo-support-verified-tag {
+    text-align: center;
+    font-size: 11px;
+    font-weight: 800;
+    letter-spacing: 2px;
+    color: var(--ludo-cyan);
+    margin-top: 20px;
+    text-transform: uppercase;
+}
+
+/* ==========================================================================
+   BOTTOM NAVIGATION BAR (5 Items)
+   ========================================================================== */
+.ludo-bottom-nav {
+    position: fixed;
+    bottom: 0;
+    left: 0;
+    right: 0;
+    height: var(--ludo-bottom-nav-height);
+    background: linear-gradient(180deg, var(--ludo-navy-900) 0%, var(--ludo-navy-950) 100%);
+    border-top: 1.5px solid rgba(0, 210, 255, 0.25);
+    display: flex;
+    align-items: center;
+    justify-content: space-around;
+    z-index: 1025;
+    box-shadow: 0 -4px 20px rgba(0, 0, 0, 0.6);
+    padding: 0 4px;
+    padding-bottom: env(safe-area-inset-bottom, 0);
+    box-sizing: border-box;
+    width: 100%;
+}
+
+@media (min-width: 992px) {
+    .ludo-bottom-nav {
+        left: 0;
+        right: auto;
+        width: var(--ludo-app-max-width);
+    }
+}
+
+.ludo-nav-item {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 2px;
+    text-decoration: none;
+    color: #94a3b8;
+    transition: all 0.2s ease;
+    padding: 4px 2px;
+    border-radius: 10px;
+    flex: 1;
+    min-width: 0;
+}
+
+.ludo-nav-icon {
+    width: 24px;
+    height: 24px;
+    object-fit: contain;
+    transition: transform 0.2s ease;
+}
+
+.ludo-nav-label {
+    font-size: 9.5px;
+    font-weight: 700;
+    letter-spacing: 0.2px;
+    white-space: nowrap;
+}
+
+.ludo-nav-item.active {
+    color: #ffffff;
+}
+
+.ludo-nav-item.active .ludo-nav-icon {
+    transform: translateY(-3px) scale(1.1);
+    filter: drop-shadow(0 2px 8px var(--ludo-cyan-glow));
+}
+
+.ludo-nav-item.active .ludo-nav-label {
+    color: var(--ludo-cyan);
+    font-weight: 800;
+}
+
+/* ==========================================================================
+   NAVIGATION DRAWER (HAMBURGER SLIDEOUT - Screenshot #3)
+   ========================================================================== */
+.ludo-drawer-backdrop {
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: rgba(0, 0, 0, 0.7);
+    backdrop-filter: blur(4px);
+    z-index: 1040;
+    opacity: 0;
+    visibility: hidden;
+    transition: all 0.3s ease;
+}
+
+.ludo-drawer-backdrop.show {
+    opacity: 1;
+    visibility: visible;
+}
+
+.ludo-drawer {
+    position: fixed;
+    top: 0;
+    bottom: 0;
+    left: -320px;
+    width: 290px;
+    background: #f1f5f9;
+    border-right: 1.5px solid rgba(0, 210, 255, 0.3);
+    z-index: 1050;
+    box-shadow: 10px 0 30px rgba(0, 0, 0, 0.8);
+    transition: left 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    display: flex;
+    flex-direction: column;
+    overflow-y: auto;
+    padding: 12px;
+}
+
+[data-theme="dark"] .ludo-drawer {
+    background: #091024;
+}
+
+.ludo-drawer.open {
+    left: 0;
+}
+
+/* Top Card with Corner Brackets */
+.ludo-drawer-brand-card {
+    background: #ffffff;
+    border-radius: 16px;
+    padding: 18px 14px;
+    position: relative;
+    margin-bottom: 14px;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.05);
+}
+
+[data-theme="dark"] .ludo-drawer-brand-card {
+    background: #0e1936;
+}
+
+.ludo-drawer-close-btn {
+    position: absolute;
+    top: 8px;
+    right: 8px;
+    width: 28px;
+    height: 28px;
+    border-radius: 6px;
+    background: #713f12;
+    border: none;
+    color: #ffffff;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 14px;
+    cursor: pointer;
+    z-index: 5;
+    transition: transform 0.2s ease;
+}
+
+.ludo-drawer-close-btn:hover {
+    transform: scale(1.1);
+}
+
+.ludo-corner-bracket {
+    position: absolute;
+    width: 18px;
+    height: 18px;
+    border: 2px solid #ca8a04;
+    pointer-events: none;
+}
+
+.ludo-corner-bracket.corner-top-left {
+    top: 10px;
+    left: 10px;
+    border-right: none;
+    border-bottom: none;
+}
+
+.ludo-corner-bracket.corner-bottom-right {
+    bottom: 10px;
+    right: 10px;
+    border-left: none;
+    border-top: none;
+}
+
+.ludo-drawer-brand-logo {
+    height: 52px;
+    max-width: 180px;
+    object-fit: contain;
+}
+
+/* Pill Menu Items List */
+.ludo-drawer-menu-list {
+    list-style: none;
+    padding: 0;
+    margin: 0;
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    flex: 1;
+}
+
+.ludo-drawer-pill-item {
+    background: #ffffff;
+    border-radius: 16px;
+    padding: 12px 16px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    text-decoration: none;
+    color: #1e293b;
+    box-shadow: 0 2px 6px rgba(0, 0, 0, 0.04);
+    transition: all 0.2s ease;
+    border: 1px solid transparent;
+}
+
+[data-theme="dark"] .ludo-drawer-pill-item {
+    background: #0e1936;
+    color: #f8fafc;
+    border-color: rgba(255, 255, 255, 0.05);
+}
+
+.ludo-drawer-pill-item:hover,
+.ludo-drawer-pill-item.active {
+    transform: translateX(3px);
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
+    border-color: #00d2ff;
+}
+
+.ludo-drawer-pill-icon {
+    width: 24px;
+    text-align: center;
+}
+
+.ludo-drawer-pill-text {
+    font-size: 13.5px;
+    font-weight: 700;
+}
+
+.ludo-drawer-pill-arrow {
+    color: #16a34a;
+    font-size: 18px;
+    font-weight: 900;
+    line-height: 1;
+}
+
+/* ==========================================================================
+   MODALS, SKELETONS & EMPTY STATES
+   ========================================================================== */
+.ludo-modal-dialog {
+    background: linear-gradient(145deg, var(--ludo-navy-900) 0%, var(--ludo-navy-950) 100%);
+    border: 1.5px solid var(--ludo-cyan);
+    border-radius: 20px;
+    color: #ffffff;
+    box-shadow: 0 10px 40px rgba(0, 0, 0, 0.8);
+}
+
+.ludo-empty-state {
+    text-align: center;
+    padding: 40px 20px;
+    color: var(--ludo-text-muted);
+}
+
+.ludo-empty-icon {
+    width: 80px;
+    height: 80px;
+    margin-bottom: 16px;
+    opacity: 0.6;
+}
+
+/* Skeleton Loading Animation */
+.ludo-skeleton {
+    background: linear-gradient(90deg, rgba(255,255,255,0.06) 25%, rgba(255,255,255,0.12) 50%, rgba(255,255,255,0.06) 75%);
+    background-size: 200% 100%;
+    animation: ludoShimmer 1.5s infinite;
+    border-radius: 8px;
+}
+
+@keyframes ludoShimmer {
+    0% { background-position: 200% 0; }
+    100% { background-position: -200% 0; }
+}
+
+/* Toast Notification */
+.ludo-toast {
+    position: fixed;
+    top: 75px;
+    left: 50%;
+    transform: translateX(-50%) translateY(-20px);
+    background: #0f172a;
+    border: 1px solid var(--ludo-cyan);
+    color: #ffffff;
+    padding: 10px 18px;
+    border-radius: 30px;
+    font-size: 13px;
+    font-weight: 700;
+    box-shadow: 0 6px 20px var(--ludo-cyan-glow);
+    z-index: 1060;
+    opacity: 0;
+    visibility: hidden;
+    transition: all 0.3s ease;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.ludo-toast.show {
+    opacity: 1;
+    visibility: visible;
+    transform: translateX(-50%) translateY(0);
+}
+
+/* ==========================================================================
+   CHOOSE AMOUNT TO ADD (WALLET DEPOSIT) COMPONENT
+   ========================================================================== */
+.ludo-amount-card {
+    background: #081026;
+    border: 1.5px solid #1e3a8a;
+    border-radius: 20px;
+    padding: 22px 18px;
+    box-shadow: 0 12px 30px rgba(0, 0, 0, 0.6);
+}
+
+.ludo-amount-title {
+    text-align: center;
+    color: #ffffff;
+    font-size: 18px;
+    font-weight: 800;
+    margin-bottom: 20px;
+}
+
+.ludo-amount-input-box {
+    background: #0b1a45;
+    border: 1.5px solid #1d4ed8;
+    border-radius: 16px;
+    padding: 12px 16px;
+    display: flex;
+    align-items: center;
+    gap: 14px;
+    margin-bottom: 18px;
+}
+
+.ludo-rupee-circle {
+    width: 44px;
+    height: 44px;
+    min-width: 44px;
+    border-radius: 50%;
+    background: #eab308;
+    color: #0f172a;
+    font-size: 22px;
+    font-weight: 900;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    box-shadow: 0 2px 8px rgba(234, 179, 8, 0.4);
+}
+
+.ludo-amount-input-meta {
+    flex: 1;
+}
+
+.ludo-amount-label {
+    font-size: 10px;
+    font-weight: 700;
+    color: #60a5fa;
+    letter-spacing: 0.5px;
+    text-transform: uppercase;
+    margin-bottom: 2px;
+}
+
+.ludo-amount-input-field {
+    background: transparent;
+    border: none;
+    outline: none;
+    color: #ffffff;
+    font-size: 22px;
+    font-weight: 800;
+    width: 100%;
+    padding: 0;
+}
+
+.ludo-amount-grid {
+    display: grid;
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+    gap: 6px;
+    margin-bottom: 20px;
+}
+
+.ludo-amount-pill {
+    background: linear-gradient(180deg, #3b82f6 0%, #1d4ed8 100%);
+    border: 1px solid #60a5fa;
+    border-radius: 12px;
+    padding: 10px 2px;
+    color: #ffffff;
+    font-size: 12px;
+    font-weight: 800;
+    text-align: center;
+    cursor: pointer;
+    box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.35), 0 4px 10px rgba(0, 0, 0, 0.3);
+    transition: all 0.15s ease-in-out;
+    user-select: none;
+    white-space: nowrap;
+}
+
+.ludo-amount-pill:hover,
+.ludo-amount-pill:active {
+    background: linear-gradient(180deg, #60a5fa 0%, #2563eb 100%);
+    transform: translateY(-2px);
+    box-shadow: 0 0 12px rgba(59, 130, 246, 0.6);
+}
+
+.ludo-btn-gold-next {
+    width: 100%;
+    background: linear-gradient(180deg, #facc15 0%, #eab308 100%);
+    border: none;
+    border-radius: 14px;
+    padding: 14px;
+    color: #0f172a;
+    font-size: 16px;
+    font-weight: 900;
+    letter-spacing: 0.5px;
+    box-shadow: 0 4px 15px rgba(234, 179, 8, 0.4);
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+    transition: all 0.2s ease;
+}
+
+.ludo-btn-gold-next:hover {
+    background: linear-gradient(180deg, #fde047 0%, #f59e0b 100%);
+    box-shadow: 0 6px 20px rgba(234, 179, 8, 0.6);
+    transform: translateY(-1px);
+}
+
+/* ==========================================================================
+   HISTORY TAB & CARD COMPONENT (SCREENSHOT #2 REFERENCE)
+   ========================================================================== */
+.ludo-history-header {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 12px;
+    margin: 10px 0 20px;
+}
+
+.ludo-history-line {
+    flex: 1;
+    height: 2px;
+    background: linear-gradient(90deg, transparent, #00d2ff, transparent);
+}
+
+.ludo-history-title {
+    font-size: 20px;
+    font-weight: 800;
+    color: #ffffff;
+    letter-spacing: 0.5px;
+}
+
+[data-theme="light"] .ludo-history-title {
+    color: #0f172a;
+}
+
+.ludo-history-tabs {
+    display: flex;
+    gap: 8px;
+    margin-bottom: 22px;
+}
+
+.ludo-history-tab-btn {
+    flex: 1;
+    min-width: 0;
+    padding: 9px 4px;
+    border-radius: 25px;
+    background: #ffffff;
+    border: 1px solid #e2e8f0;
+    color: #334155;
+    font-size: 12px;
+    font-weight: 700;
+    cursor: pointer;
+    text-align: center;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 4px;
+    box-shadow: 0 2px 6px rgba(0, 0, 0, 0.05);
+    transition: all 0.2s ease;
+    white-space: nowrap;
+}
+
+.ludo-history-tab-btn.active {
+    background: linear-gradient(135deg, #d946ef 0%, #a855f7 100%);
+    color: #ffffff;
+    border-color: #f0abfc;
+    box-shadow: 0 4px 15px rgba(168, 85, 247, 0.45);
+}
+
+.ludo-history-card {
+    background: #081026;
+    border: 2px solid #a855f7;
+    border-radius: 16px;
+    overflow: hidden;
+    box-shadow: 0 0 15px rgba(168, 85, 247, 0.35);
+    margin-bottom: 16px;
+}
+
+.ludo-history-card-status {
+    padding: 7px;
+    text-align: center;
+    font-size: 12px;
+    font-weight: 800;
+    letter-spacing: 1px;
+    color: #ffffff;
+}
+
+.ludo-history-card-status.status-failed {
+    background: linear-gradient(90deg, #dc2626, #ef4444);
+}
+
+.ludo-history-card-status.status-success {
+    background: linear-gradient(90deg, #16a34a, #22c55e);
+}
+
+.ludo-history-card-body {
+    padding: 14px 16px;
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+}
+
+.ludo-history-info-left {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+}
+
+.ludo-history-info-row {
+    font-size: 13px;
+    font-weight: 600;
+    color: #ffffff;
+}
+
+.ludo-history-info-row .label {
+    color: #94a3b8;
+    margin-right: 4px;
+}
+
+.ludo-history-expiry-text {
+    font-size: 12px;
+    color: #00d2ff;
+    font-weight: 500;
+    margin-top: 4px;
+    line-height: 1.3;
+}
+
+.ludo-history-badge {
+    background: #ffffff;
+    border-radius: 20px;
+    padding: 5px 12px;
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    font-weight: 800;
+    font-size: 14px;
+    color: #0f172a;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.2);
+}
+
+.ludo-history-card-footer {
+    border-top: 1px solid rgba(255, 255, 255, 0.08);
+    padding: 8px 16px;
+    font-size: 11.5px;
+    color: #94a3b8;
+    display: flex;
+    align-items: center;
+    gap: 6px;
+}
+
+/* ==========================================================================
+   LUDO TOURNAMENT PAGINATION STYLES
+   ========================================================================== */
+.ludo-pagination-wrapper .pagination {
+    margin-bottom: 0;
+    gap: 4px;
+}
+
+.ludo-pagination-wrapper .page-link {
+    background: #09132b;
+    border: 1px solid #1e3a8a;
+    color: #94a3b8;
+    font-size: 11.5px;
+    font-weight: 700;
+    border-radius: 8px !important;
+    padding: 5px 10px;
+    transition: all 0.2s ease;
+}
+
+.ludo-pagination-wrapper .page-link:hover {
+    background: #1e3a8a;
+    color: #ffffff;
+    border-color: #00d2ff;
+}
+
+.ludo-pagination-wrapper .page-item.active .page-link {
+    background: linear-gradient(135deg, #0284c7 0%, #0369a1 100%);
+    border-color: #00d2ff;
+    color: #ffffff;
+    box-shadow: 0 0 10px var(--ludo-cyan-glow);
+}
+
+.ludo-pagination-wrapper .page-item.disabled .page-link {
+    background: rgba(9, 19, 43, 0.5);
+    border-color: rgba(30, 58, 138, 0.4);
+    color: #475569;
+}
+
+

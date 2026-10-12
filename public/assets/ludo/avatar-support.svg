@@ -1,0 +1,35 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 80 80" width="80" height="80">
+  <defs>
+    <linearGradient id="supportBg" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#E0F2FE"/>
+      <stop offset="100%" stop-color="#BAE6FD"/>
+    </linearGradient>
+  </defs>
+  <!-- Background Circle -->
+  <circle cx="40" cy="40" r="38" fill="url(#supportBg)" stroke="#38BDF8" stroke-width="2"/>
+
+  <!-- Support Girl Agent Avatar -->
+  <!-- Hair back -->
+  <path d="M 22,35 C 22,20 58,20 58,35 C 62,48 58,58 58,58 L 22,58 C 22,58 18,48 22,35 Z" fill="#78350F"/>
+  <!-- Head -->
+  <circle cx="40" cy="36" r="14" fill="#FDE68A"/>
+  <!-- Hair front bangs -->
+  <path d="M 27,30 Q 40,24 53,30 Q 40,18 27,30 Z" fill="#92400E"/>
+  <!-- Face eyes & smile -->
+  <circle cx="35" cy="36" r="1.5" fill="#1E293B"/>
+  <circle cx="45" cy="36" r="1.5" fill="#1E293B"/>
+  <path d="M 37,42 Q 40,45 43,42" fill="none" stroke="#1E293B" stroke-width="1.2" stroke-linecap="round"/>
+  <!-- Headset -->
+  <path d="M 25,36 A 15 15 0 0 1 55,36" fill="none" stroke="#2563EB" stroke-width="3" stroke-linecap="round"/>
+  <rect x="23" y="32" width="4" height="9" rx="2" fill="#1D4ED8"/>
+  <rect x="53" y="32" width="4" height="9" rx="2" fill="#1D4ED8"/>
+  <!-- Headset microphone boom -->
+  <path d="M 25,38 Q 28,47 36,46" fill="none" stroke="#1D4ED8" stroke-width="2" stroke-linecap="round"/>
+  <circle cx="37" cy="46" r="2" fill="#2563EB"/>
+  <!-- Body/Suit -->
+  <path d="M 26,62 C 26,52 32,49 40,49 C 48,49 54,52 54,62 Z" fill="#0284C7"/>
+  <!-- Laptop in front -->
+  <rect x="26" y="58" width="28" height="18" rx="2" fill="#0369A1" stroke="#38BDF8" stroke-width="1"/>
+  <!-- Live Status Dot -->
+  <circle cx="62" cy="62" r="7" fill="#22C55E" stroke="#FFFFFF" stroke-width="2.5"/>
+</svg>

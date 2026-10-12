@@ -1,0 +1,17 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 60 60" width="60" height="60">
+  <defs>
+    <linearGradient id="vsCircle" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#3B82F6"/>
+      <stop offset="50%" stop-color="#8B5CF6"/>
+      <stop offset="100%" stop-color="#EC4899"/>
+    </linearGradient>
+    <filter id="vsGlow">
+      <feDropShadow dx="0" dy="0" stdDeviation="4" flood-color="#8B5CF6" flood-opacity="0.8"/>
+    </filter>
+  </defs>
+  <circle cx="30" cy="30" r="26" fill="#0F172A" stroke="url(#vsCircle)" stroke-width="3" filter="url(#vsGlow)"/>
+  <text x="30" y="38" font-family="'Impact', 'Arial Black', sans-serif" font-weight="900" font-size="22"
+        fill="#FFFFFF" text-anchor="middle" font-style="italic" letter-spacing="1">
+    VS
+  </text>
+</svg>

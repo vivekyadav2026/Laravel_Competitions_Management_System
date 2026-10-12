@@ -1,0 +1,21 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 48 48" width="48" height="48">
+  <defs>
+    <linearGradient id="wGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#4ADE80"/>
+      <stop offset="50%" stop-color="#22C55E"/>
+      <stop offset="100%" stop-color="#15803D"/>
+    </linearGradient>
+  </defs>
+  <!-- Back flap -->
+  <rect x="4" y="10" width="38" height="28" rx="6" fill="#14532D"/>
+  <!-- Front pouch -->
+  <rect x="4" y="14" width="40" height="25" rx="5" fill="url(#wGrad)" stroke="#86EFAC" stroke-width="1.2"/>
+  <!-- Card pocket slot -->
+  <path d="M 4,20 Q 24,26 44,20" stroke="#166534" stroke-width="1.5" fill="none"/>
+  <!-- Gold coin sticking out -->
+  <circle cx="28" cy="11" r="7" fill="#FACC15" stroke="#CA8A04" stroke-width="1.2"/>
+  <text x="28" y="14" font-family="'Arial', sans-serif" font-weight="900" font-size="9" fill="#713F12" text-anchor="middle">₹</text>
+  <!-- Wallet Clasp -->
+  <path d="M 32,22 L 44,22 C 45,22 46,23 46,24 L 46,30 C 46,31 45,32 44,32 L 32,32 Z" fill="#166534" stroke="#86EFAC" stroke-width="1"/>
+  <circle cx="40" cy="27" r="2.5" fill="#FACC15"/>
+</svg>

@@ -120,6 +120,15 @@
                         <input type="password" class="form-control" id="passwordInput"
                             placeholder="Enter at least 8+ characters " name="password">
                     </div>
+
+                    <div class="mb-3">
+                        <label for="referralInput" class="form-label"
+                            style="font-weight: bold;color: #565E6C">Referral Code (Optional)</label>
+                        <input type="text" class="form-control" id="referralInput"
+                            placeholder="Enter referral code (e.g. 780547)" name="referral_code"
+                            value="{{ request('ref', old('referral_code')) }}">
+                    </div>
+
                     <div class="center-btn">
                         <button type="submit" class="btn btn-primary">Register</button>
                     </div>
