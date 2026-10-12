@@ -12,35 +12,134 @@ use App\Http\Controllers\TeamController;
 use App\Http\Controllers\TeamEventScoreController;
 use App\Http\Controllers\UserController;
 use App\Http\Controllers\LudoController;
+use App\Http\Controllers\LudoAdminController;
 use Illuminate\Support\Facades\Route;
 
-// Ludo Tournament Platform Routes
+// Public Ludo Tournament Platform Routes
 Route::get('/', [LudoController::class, 'home'])->name('ludo.home');
 Route::get('/play', [LudoController::class, 'battles'])->name('ludo.play');
 Route::get('/battles', [LudoController::class, 'battles'])->name('ludo.battles');
-Route::post('/battles/create', [LudoController::class, 'createBattle'])->name('ludo.battles.create');
-Route::post('/battles/join/{id}', [LudoController::class, 'joinBattle'])->name('ludo.battles.join');
-Route::post('/battles/cancel/{id}', [LudoController::class, 'cancelBattle'])->name('ludo.battles.cancel');
-Route::get('/refer', [LudoController::class, 'refer'])->name('ludo.refer');
+Route::get('/battles/load-more', [LudoController::class, 'loadMoreBattles'])->name('ludo.battles.loadMore');
+Route::get('/rules', [LudoController::class, 'rules'])->name('ludo.rules');
 Route::get('/support', [LudoController::class, 'support'])->name('ludo.support');
-Route::get('/wallet', [LudoController::class, 'wallet'])->name('ludo.wallet');
-Route::get('/profile', [LudoController::class, 'profile'])->name('ludo.profile');
-Route::post('/profile/update', [LudoController::class, 'updateProfile'])->name('ludo.profile.update');
-Route::post('/profile/password', [LudoController::class, 'updatePassword'])->name('ludo.profile.password');
-Route::get('/history', [LudoController::class, 'history'])->name('ludo.history');
-Route::get('/kyc', [LudoController::class, 'kyc'])->name('ludo.kyc');
+Route::get('/tournaments', [LudoController::class, 'tournaments'])->name('ludo.tournaments');
+
+// Authentication routes
+Route::get('/showregister', [AuthController::class, 'showRegister'])->name('register');
+Route::get('/sign-up', [AuthController::class, 'showRegister']);
+Route::post('/register', [AuthController::class, 'register']);
+Route::get('/showlogin', [AuthController::class, 'showLogin'])->name('login');
+Route::post('/login', [AuthController::class, 'login'])->name('login.post');
+Route::post('/logout', [AuthController::class, 'logout'])->name('logout');
+Route::get('/logout', [AuthController::class, 'logout']); // Fallback GET logout
+
+// Protected Player Routes (Require Authentication)
+Route::middleware('auth')->group(function () {
+    // Battle Actions
+    Route::post('/battles/create', [LudoController::class, 'createBattle'])->name('ludo.battles.create');
+    Route::post('/battles/join/{id}', [LudoController::class, 'joinBattle'])->name('ludo.battles.join');
+    Route::post('/battles/cancel/{id}', [LudoController::class, 'cancelBattle'])->name('ludo.battles.cancel');
+    Route::post('/battles/{id}/result', [LudoController::class, 'submitBattleResult'])->name('ludo.battles.result');
+
+    // Disputes
+    Route::post('/battles/{id}/dispute', [LudoController::class, 'openDispute'])->name('ludo.dispute.open');
+    Route::get('/disputes/{id}', [LudoController::class, 'viewDispute'])->name('ludo.dispute.view');
+    Route::post('/disputes/{id}/evidence', [LudoController::class, 'submitDisputeEvidence'])->name('ludo.dispute.evidence');
+    Route::get('/disputes/evidence/{id}/download', [LudoController::class, 'downloadDisputeEvidence'])->name('ludo.dispute.evidence.download');
+
+    // Tournaments Participation
+    Route::post('/tournaments/{id}/join', [LudoController::class, 'joinTournament'])->name('ludo.tournaments.join');
+
+    // Refer & Earn
+    Route::get('/refer', [LudoController::class, 'refer'])->name('ludo.refer');
+
+    // Wallet & Points
+    Route::get('/wallet', [LudoController::class, 'wallet'])->name('ludo.wallet');
+    Route::post('/wallet/deposit', [LudoController::class, 'addVirtualPoints'])->name('ludo.wallet.deposit');
+
+    // Player Profile & Security
+    Route::get('/profile', [LudoController::class, 'profile'])->name('ludo.profile');
+    Route::post('/profile/update', [LudoController::class, 'updateProfile'])->name('ludo.profile.update');
+    Route::post('/profile/password', [LudoController::class, 'updatePassword'])->name('ludo.profile.password');
+
+    // History
+    Route::get('/history', [LudoController::class, 'history'])->name('ludo.history');
+
+    // KYC Verification & Document Access
+    Route::get('/kyc', [LudoController::class, 'kyc'])->name('ludo.kyc');
+    Route::post('/kyc/submit', [LudoController::class, 'submitKyc'])->name('ludo.kyc.submit');
+    Route::get('/kyc/download/{id}/{side?}', [LudoController::class, 'downloadKycDocument'])->name('ludo.kyc.download');
+
+    // Support Tickets & Attachments
+    Route::post('/support/ticket/create', [LudoController::class, 'createTicket'])->name('ludo.ticket.create');
+    Route::get('/support/ticket/{id}', [LudoController::class, 'viewTicket'])->name('ludo.ticket.view');
+    Route::post('/support/ticket/{id}/reply', [LudoController::class, 'replyTicket'])->name('ludo.ticket.reply');
+    Route::get('/support/ticket/{id}/attachment', [LudoController::class, 'downloadTicketAttachment'])->name('ludo.ticket.attachment');
+
+    // In-App Notifications
+    Route::get('/notifications', [LudoController::class, 'notifications'])->name('ludo.notifications');
+    Route::post('/notifications/read-all', [LudoController::class, 'markAllNotificationsRead'])->name('ludo.notifications.readAll');
+    Route::post('/notifications/{id}/read', [LudoController::class, 'markNotificationRead'])->name('ludo.notifications.read');
+});
+
+// Admin Review Routes
+Route::middleware(['auth', 'ludo.admin'])->group(function () {
+    Route::post('/admin/kyc/{id}/review', [LudoController::class, 'adminReviewKyc'])->name('ludo.admin.kyc.review');
+    Route::post('/admin/disputes/{id}/resolve', [LudoController::class, 'adminResolveDispute'])->name('ludo.admin.dispute.resolve');
+});
+
+// ==========================================
+// FSALUDOCLUB ADMINISTRATION DASHBOARD ROUTES
+// Protected by Auth and LudoAdminRoleMiddleware
+// ==========================================
+Route::middleware(['auth', 'ludo.admin'])->prefix('admin/ludo')->name('admin.ludo.')->group(function () {
+    // 1. Overview Dashboard
+    Route::get('/dashboard', [LudoAdminController::class, 'dashboard'])->name('dashboard');
+
+    // 2. User Management
+    Route::get('/users', [LudoAdminController::class, 'users'])->name('users.index');
+    Route::get('/users/{id}', [LudoAdminController::class, 'userShow'])->name('users.show');
+    Route::post('/users/{id}/status', [LudoAdminController::class, 'userToggleStatus'])->name('users.status');
+    Route::post('/users/{id}/role', [LudoAdminController::class, 'userUpdateRole'])->name('users.role');
+
+    // 3. Tournament Management
+    Route::get('/tournaments', [LudoAdminController::class, 'tournaments'])->name('tournaments.index');
+    Route::post('/tournaments', [LudoAdminController::class, 'tournamentStore'])->name('tournaments.store');
+    Route::get('/tournaments/{id}', [LudoAdminController::class, 'tournamentShow'])->name('tournaments.show');
+    Route::post('/tournaments/{id}/status', [LudoAdminController::class, 'tournamentUpdateStatus'])->name('tournaments.status');
+    Route::post('/tournaments/{id}/generate-bracket', [LudoAdminController::class, 'tournamentGenerateBracket'])->name('tournaments.bracket');
+
+    // 4. Match Management
+    Route::get('/matches', [LudoAdminController::class, 'matches'])->name('matches.index');
+    Route::get('/matches/{id}', [LudoAdminController::class, 'matchShow'])->name('matches.show');
+    Route::post('/matches/{id}/cancel', [LudoAdminController::class, 'matchCancel'])->name('matches.cancel');
+
+    // 5. Dispute Management
+    Route::get('/disputes', [LudoAdminController::class, 'disputes'])->name('disputes.index');
+
+    // 6. Virtual Points Ledger & Adjustments
+    Route::get('/ledger', [LudoAdminController::class, 'ledger'])->name('ledger.index');
+    Route::post('/ledger/adjust', [LudoAdminController::class, 'ledgerAdjust'])->name('ledger.adjust');
+
+    // 7. Content Management (Announcements, Bilingual Rules, FAQ)
+    Route::get('/content', [LudoAdminController::class, 'content'])->name('content.index');
+    Route::post('/content', [LudoAdminController::class, 'contentUpdate'])->name('content.update');
+
+    // 8. Platform Settings & Maintenance
+    Route::get('/settings', [LudoAdminController::class, 'settings'])->name('settings.index');
+    Route::post('/settings', [LudoAdminController::class, 'settingsUpdate'])->name('settings.update');
+
+    // 9. Support Tickets Desk
+    Route::get('/tickets', [LudoAdminController::class, 'tickets'])->name('tickets.index');
+
+    // 10. KYC Verifications Desk
+    Route::get('/kyc', [LudoAdminController::class, 'kycIndex'])->name('kyc.index');
+});
 
 // Legacy University Competitions home route
 Route::get('/competitions-home', [UserController::class, 'showHome']);
 
-// Authentication routes
-Route::get('/showregister', [AuthController::class, 'showRegister']);
-Route::post('/register', [AuthController::class, 'register']);
-Route::get('/showlogin', [AuthController::class, 'showLogin'])->name('login');
-Route::post('/login', [AuthController::class, 'login']);
-Route::get('/logout', [AuthController::class, 'logout']);
-
-// Authorize user for all routes
+// Authorize user for legacy competition routes
 Route::middleware('auth')->group(function () {
     // competition details page
     Route::get('/competition-details/{id}', [CompetitionController::class, 'index']);

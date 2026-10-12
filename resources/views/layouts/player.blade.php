@@ -5,7 +5,8 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
     <meta http-equiv="X-UA-Compatible" content="ie=edge">
     <meta name="csrf-token" content="{{ csrf_token() }}">
-    <title>@yield('title', 'Royal Ludo — Turn Fun Into Funds!')</title>
+    <title>@yield('title', config('ludo.brand_name', 'Fsaludoclub') . ' — ' . config('ludo.brand_tagline', 'Play Ludo • Win Glory'))</title>
+    <link rel="icon" type="image/png" href="{{ asset('assets/images/fsaludoclub-icon.png') }}">
 
     {{-- Local Bootstrap 5 --}}
     <link rel="stylesheet" href="{{ asset('css/bootstrap.min.css') }}">
@@ -45,19 +46,6 @@
 
             {{-- Bottom Sticky Navigation (5 Tabs) --}}
             <x-ludo.bottom-nav :active="$activeTab ?? 'home'" />
-        </div>
-
-        {{-- Desktop Showcase Column (Matches the reference screenshots) --}}
-        <div class="ludo-desktop-showcase">
-            <img src="{{ asset('assets/ludo/logo.svg') }}" alt="Royal Ludo Crest" class="ludo-showcase-logo">
-            <h1 class="ludo-showcase-title">Turn Fun Into Funds!</h1>
-            <div class="ludo-showcase-subtitle">
-                <span>For best experience, open</span>
-                <span class="text-white fw-bold">https://royalludo.com</span>
-                <span>on</span>
-                <i class="fa-brands fa-chrome text-warning fs-5"></i>
-                <span class="text-white fw-bold">chrome mobile</span>
-            </div>
         </div>
     </div>
 

@@ -3,25 +3,40 @@
 namespace App\Http\Controllers;
 
 use App\Models\LudoBattle;
+use App\Models\LudoSupportTicket;
+use App\Models\LudoTicketMessage;
+use App\Models\LudoKycSubmission;
+use App\Models\LudoDispute;
+use App\Models\LudoDisputeEvidence;
+use App\Models\LudoLedgerTransaction;
+use App\Models\LudoTournament;
+use App\Models\LudoTournamentParticipant;
+use App\Models\LudoSetting;
+use App\Models\LudoAdminAuditLog;
 use App\Models\User;
+use App\Notifications\LudoInAppNotification;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Str;
 
 class LudoController extends Controller
 {
     /**
-     * Home Lobby (Malik Ludo Reference Screenshots)
+     * Home Lobby — Fsaludoclub Platform
      */
     public function home()
     {
         $user = Auth::user();
         $coins = $user ? $user->coins : 0;
         $referral = $user ? $user->referral_balance : 0.00;
+        $announcement = LudoSetting::get('announcement_hi', '⭐ 🎉 📢 Fsaludoclub परिवार में आप सभी प्लेयरों का स्वागत है! किसी भी प्लेयर के साथ ना कभी गलत होगा ना ही कभी गलत होने देगा 🙏🙏 विश्वास बनाए रखें 🙏🙏');
 
         return view('ludo.home', [
             'coins' => $coins,
             'referral' => $referral,
+            'announcement' => $announcement,
             'activeTab' => 'home',
         ]);
     }
@@ -34,26 +49,166 @@ class LudoController extends Controller
         $user = Auth::user();
         $coins = $user ? $user->coins : 0;
         $referral = $user ? $user->referral_balance : 0.00;
+        $announcement = LudoSetting::get('announcement_hi', '⭐ 🙏 🙏 सभी यूजर ध्यान दें: मैच शुरू होने के 15 मिनट के अंदर रूम कोड डालें। किसी भी विवाद की स्थिति में स्क्रीनशॉट अनिवार्य है।');
+        $minBattlePoints = (int) LudoSetting::get('minimum_battle_amount', 50);
 
-        // Fetch Open Battles from database with pagination (5 per page)
+        // Fetch initial batch of 5 Open Battles
         $openBattles = LudoBattle::with('creator')
             ->where('status', 'open')
             ->latest('id')
-            ->paginate(5, ['*'], 'open_page');
+            ->take(6)
+            ->get();
 
-        // Fetch Running Battles from database with pagination (5 per page)
+        $openBattlesHasMore = $openBattles->count() > 5;
+        if ($openBattlesHasMore) {
+            $openBattles = $openBattles->slice(0, 5);
+        }
+
+        // Fetch initial batch of 5 Running Battles
         $runningBattles = LudoBattle::with(['creator', 'joiner'])
             ->where('status', 'running')
             ->latest('started_at')
-            ->paginate(5, ['*'], 'running_page');
+            ->latest('id')
+            ->take(6)
+            ->get();
+
+        $runningBattlesHasMore = $runningBattles->count() > 5;
+        if ($runningBattlesHasMore) {
+            $runningBattles = $runningBattles->slice(0, 5);
+        }
 
         return view('ludo.battles', [
             'coins' => $coins,
             'referral' => $referral,
+            'announcement' => $announcement,
+            'minBattlePoints' => $minBattlePoints,
             'openBattles' => $openBattles,
+            'openBattlesHasMore' => $openBattlesHasMore,
             'runningBattles' => $runningBattles,
+            'runningBattlesHasMore' => $runningBattlesHasMore,
             'activeTab' => 'home',
         ]);
+    }
+
+    /**
+     * Infinite Scroll / Load More Battles Endpoint
+     * Supports cursor-based pagination with stable tie-breaker ordering and N+1 prevention.
+     */
+    public function loadMoreBattles(Request $request)
+    {
+        $validated = $request->validate([
+            'type' => ['required', 'string', 'in:open,running'],
+            'cursor' => ['nullable', 'integer', 'min:1'],
+            'page' => ['nullable', 'integer', 'min:1'],
+            'per_page' => ['nullable', 'integer', 'min:1', 'max:20'],
+        ]);
+
+        $type = $validated['type'];
+        $limit = (int) ($validated['per_page'] ?? 5);
+
+        if ($type === 'open') {
+            $query = LudoBattle::with(['creator' => function ($q) {
+                $q->select('id', 'name');
+            }])
+            ->where('status', 'open');
+
+            if ($request->filled('cursor')) {
+                // Strictly monotonic cursor on ID
+                $query->where('id', '<', (int) $request->cursor);
+            } elseif ($request->filled('page') && (int) $request->page > 1) {
+                $query->skip(((int) $request->page - 1) * $limit);
+            }
+
+            $battles = $query->latest('id')
+                ->take($limit + 1)
+                ->get();
+
+            $hasMore = $battles->count() > $limit;
+            if ($hasMore) {
+                $battles = $battles->slice(0, $limit);
+            }
+
+            $nextCursor = $battles->last() ? $battles->last()->id : null;
+
+            $html = '';
+            foreach ($battles as $battle) {
+                $html .= view('ludo.partials.open_battle_card', ['battle' => $battle])->render();
+            }
+
+            return response()->json([
+                'success' => true,
+                'type' => 'open',
+                'count' => $battles->count(),
+                'has_more' => $hasMore,
+                'next_cursor' => $nextCursor,
+                'html' => $html,
+                'items' => $battles->map(function ($b) {
+                    return [
+                        'id' => $b->id,
+                        'battle_uid' => $b->battle_uid,
+                        'creator_id' => $b->creator_id,
+                        'creator_name' => $b->creator->name ?? 'Player_' . $b->creator_id,
+                        'entry_fee' => $b->entry_fee,
+                        'prize' => $b->prize,
+                        'status' => $b->status,
+                        'created_at' => $b->created_at?->toIso8601String(),
+                    ];
+                }),
+            ]);
+        } else {
+            $query = LudoBattle::with([
+                'creator' => function ($q) { $q->select('id', 'name'); },
+                'joiner' => function ($q) { $q->select('id', 'name'); },
+            ])
+            ->where('status', 'running');
+
+            if ($request->filled('cursor')) {
+                $query->where('id', '<', (int) $request->cursor);
+            } elseif ($request->filled('page') && (int) $request->page > 1) {
+                $query->skip(((int) $request->page - 1) * $limit);
+            }
+
+            $battles = $query->latest('started_at')
+                ->latest('id')
+                ->take($limit + 1)
+                ->get();
+
+            $hasMore = $battles->count() > $limit;
+            if ($hasMore) {
+                $battles = $battles->slice(0, $limit);
+            }
+
+            $nextCursor = $battles->last() ? $battles->last()->id : null;
+
+            $html = '';
+            foreach ($battles as $running) {
+                $html .= view('ludo.partials.running_battle_card', ['running' => $running])->render();
+            }
+
+            return response()->json([
+                'success' => true,
+                'type' => 'running',
+                'count' => $battles->count(),
+                'has_more' => $hasMore,
+                'next_cursor' => $nextCursor,
+                'html' => $html,
+                'items' => $battles->map(function ($b) {
+                    return [
+                        'id' => $b->id,
+                        'battle_uid' => $b->battle_uid,
+                        'creator_id' => $b->creator_id,
+                        'creator_name' => $b->creator->name ?? 'Player_1',
+                        'joiner_id' => $b->joiner_id,
+                        'joiner_name' => $b->joiner->name ?? 'Player_2',
+                        'entry_fee' => $b->entry_fee,
+                        'prize' => $b->prize,
+                        'room_code' => $b->room_code,
+                        'status' => $b->status,
+                        'started_at' => $b->started_at?->toIso8601String(),
+                    ];
+                }),
+            ]);
+        }
     }
 
     /**
@@ -61,31 +216,30 @@ class LudoController extends Controller
      */
     public function createBattle(Request $request)
     {
+        $minPoints = (int) LudoSetting::get('minimum_battle_amount', 50);
+
         $validated = $request->validate([
-            'amount' => ['required', 'integer', 'min:50', 'max:50000'],
+            'amount' => ['required', 'integer', 'min:' . $minPoints, 'max:50000'],
         ], [
             'amount.required' => 'Please enter the tournament points amount.',
             'amount.integer' => 'Tournament points must be a valid whole number.',
-            'amount.min' => 'Minimum battle entry points is 50.',
+            'amount.min' => "Minimum battle entry points is {$minPoints}.",
             'amount.max' => 'Maximum battle entry points per challenge is 50,000.',
         ]);
 
         $amount = (int) $validated['amount'];
 
-        // If user is authenticated, check their points; if guest, authenticate or use default demo user
+        // User must be authenticated
         $user = Auth::user();
         if (!$user) {
-            // Assign or login a demo guest player so testing is seamless
-            $user = User::firstOrCreate(
-                ['email' => 'player1@royalludo.test'],
-                [
-                    'name' => 'Royal_Player',
-                    'password' => bcrypt('secret123'),
-                    'coins' => 1000,
-                    'referral_code' => strtoupper(Str::random(6)),
-                ]
-            );
-            Auth::login($user);
+            return redirect()->route('login');
+        }
+
+        // KYC check if mandatory
+        $isKycMandatory = LudoSetting::get('kyc_mandatory', 'off') === 'on' || config('ludo.kyc.required_for_battles', false);
+        if ($isKycMandatory && $user->kyc_status !== 'verified') {
+            return redirect()->route('ludo.kyc')
+                ->with('error', 'KYC identity verification is required before creating tournament battles.');
         }
 
         // Check virtual points balance
@@ -144,16 +298,14 @@ class LudoController extends Controller
 
         $user = Auth::user();
         if (!$user) {
-            $user = User::firstOrCreate(
-                ['email' => 'challenger@royalludo.test'],
-                [
-                    'name' => 'Challenger_X',
-                    'password' => bcrypt('secret123'),
-                    'coins' => 2000,
-                    'referral_code' => strtoupper(Str::random(6)),
-                ]
-            );
-            Auth::login($user);
+            return redirect()->route('login');
+        }
+
+        // KYC check if mandatory
+        $isKycMandatory = LudoSetting::get('kyc_mandatory', 'off') === 'on' || config('ludo.kyc.required_for_battles', false);
+        if ($isKycMandatory && $user->kyc_status !== 'verified') {
+            return redirect()->route('ludo.kyc')
+                ->with('error', 'KYC identity verification is required before joining tournament battles.');
         }
 
         // Prevent creator from playing against themselves
@@ -175,13 +327,23 @@ class LudoController extends Controller
             'successful'
         );
 
-        // Transition battle to running state
+        // Transition battle to running state with configurable submission deadline
+        $submissionWindow = (int) LudoSetting::get('submission_window', config('ludo.battle.submission_window_minutes', 15));
         $battle->update([
             'joiner_id' => $user->id,
             'status' => 'running',
             'room_code' => (string) rand(10000000, 99999999),
             'started_at' => now(),
+            'submission_deadline_at' => now()->addMinutes($submissionWindow),
         ]);
+
+        // Send in-app notification to creator
+        $battle->creator->notify(new LudoInAppNotification(
+            "⚔️ Match Started!",
+            "{$user->name} joined your challenge {$battle->battle_uid}. Room Code: {$battle->room_code}",
+            "match",
+            url('/play')
+        ));
 
         return redirect()->back()->with('success', "⚔️ Match started! You joined {$battle->battle_uid} against {$battle->creator->name}. Room code: {$battle->room_code}");
     }
@@ -226,21 +388,22 @@ class LudoController extends Controller
     {
         $user = Auth::user();
         if (!$user) {
-            $user = User::firstOrCreate(
-                ['email' => 'player1@royalludo.test'],
-                [
-                    'name' => 'Royal_Player',
-                    'password' => bcrypt('secret123'),
-                    'coins' => 1000,
-                    'referral_code' => '780547',
-                    'player_uid' => 'LUDO00001',
-                ]
-            );
+            return redirect()->route('login');
         }
+
+        // Auto-generate unique referral code if missing (no hardcoded fallback)
+        if (empty($user->referral_code)) {
+            $uniqueCode = strtoupper(Str::random(6));
+            while (User::where('referral_code', $uniqueCode)->exists()) {
+                $uniqueCode = strtoupper(Str::random(6));
+            }
+            $user->referral_code = $uniqueCode;
+            $user->save();
+        }
+        $referralCode = $user->referral_code;
 
         $coins = $user->coins;
         $referral = $user->referral_balance;
-        $referralCode = $user->referral_code ?? '780547';
 
         // Fetch real legitimate referrals and history
         $referrals = \App\Models\LudoReferral::with('referredUser')
@@ -256,12 +419,16 @@ class LudoController extends Controller
         // Dynamic share URL using application's configured root
         $shareUrl = url('/showregister?ref=' . $referralCode);
 
+        // Dynamic commission rate from platform settings
+        $commissionVal = LudoSetting::get('commission_percentage', LudoSetting::get('referral_commission', '3%'));
+        $commission = is_numeric($commissionVal) ? $commissionVal . '%' : $commissionVal;
+
         return view('ludo.refer', [
             'coins' => $coins,
             'referral' => $referral,
             'referralCode' => $referralCode,
             'shareUrl' => $shareUrl,
-            'commission' => '3%',
+            'commission' => $commission,
             'totalReferrals' => $totalReferrals,
             'totalEligibleRewards' => $totalEligibleRewards,
             'referrals' => $referrals,
@@ -278,9 +445,30 @@ class LudoController extends Controller
         $coins = $user ? $user->coins : 0;
         $referral = $user ? $user->referral_balance : 0.00;
 
+        $tickets = $user ? LudoSupportTicket::where('user_id', $user->id)->latest('id')->paginate(5) : collect();
+
+        $supportConfig = config('ludo.support', []);
+
+        // Synchronize with database settings updated by admin
+        if ($hours = LudoSetting::get('support_hours')) {
+            $supportConfig['availability_notice'] = $hours;
+        }
+        if ($telegram = LudoSetting::get('support_telegram')) {
+            $supportConfig['telegram_url'] = $telegram;
+        }
+        if ($whatsapp = LudoSetting::get('support_whatsapp')) {
+            $digits = preg_replace('/[^0-9]/', '', $whatsapp);
+            $supportConfig['team_whatsapp_url'] = "https://wa.me/{$digits}?text=" . urlencode('Hello ' . config('ludo.brand_name', 'Fsaludoclub') . ' Support');
+        }
+        if ($email = LudoSetting::get('support_email')) {
+            $supportConfig['contact_url'] = "mailto:{$email}";
+        }
+
         return view('ludo.support', [
             'coins' => $coins,
             'referral' => $referral,
+            'tickets' => $tickets,
+            'supportConfig' => $supportConfig,
             'activeTab' => 'support',
         ]);
     }
@@ -292,17 +480,7 @@ class LudoController extends Controller
     {
         $user = Auth::user();
         if (!$user) {
-            $user = User::firstOrCreate(
-                ['email' => 'player1@royalludo.test'],
-                [
-                    'name' => 'Royal_Player',
-                    'password' => bcrypt('secret123'),
-                    'coins' => 1000,
-                    'referral_code' => '780547',
-                    'player_uid' => 'LUDO00001',
-                ]
-            );
-            Auth::login($user);
+            return redirect()->route('login');
         }
 
         $coins = $user->coins;
@@ -365,17 +543,7 @@ class LudoController extends Controller
     {
         $user = Auth::user();
         if (!$user) {
-            $user = User::firstOrCreate(
-                ['email' => 'player1@royalludo.test'],
-                [
-                    'name' => 'Royal_Player',
-                    'password' => bcrypt('secret123'),
-                    'coins' => 1000,
-                    'referral_code' => '780547',
-                    'player_uid' => 'LUDO00001',
-                ]
-            );
-            Auth::login($user);
+            return redirect()->route('login');
         }
 
         $coins = $user->coins;
@@ -431,10 +599,995 @@ class LudoController extends Controller
         $coins = $user ? $user->coins : 0;
         $referral = $user ? $user->referral_balance : 0.00;
 
+        $kycSubmission = $user ? LudoKycSubmission::where('user_id', $user->id)->latest('id')->first() : null;
+        $kycConfig = config('ludo.kyc');
+
         return view('ludo.kyc', [
             'coins' => $coins,
             'referral' => $referral,
+            'user' => $user,
+            'submission' => $kycSubmission,
+            'kycConfig' => $kycConfig,
             'activeTab' => 'profile',
         ]);
+    }
+
+    /**
+     * My Profile Screen
+     */
+    public function profile()
+    {
+        $user = Auth::user();
+        if (!$user) {
+            return redirect()->route('login');
+        }
+
+        $coins = $user->coins;
+        $referral = $user->referral_balance;
+
+        $totalBattles = LudoBattle::where(function ($q) use ($user) {
+            $q->where('creator_id', $user->id)->orWhere('joiner_id', $user->id);
+        })->where('status', 'completed')->count();
+
+        $wonBattles = LudoBattle::where('winner_id', $user->id)->where('status', 'completed')->count();
+        $lostBattles = max(0, $totalBattles - $wonBattles);
+        $winRate = $totalBattles > 0 ? round(($wonBattles / $totalBattles) * 100) : 0;
+        $pointsEarned = (int) LudoBattle::where('winner_id', $user->id)->where('status', 'completed')->sum('prize');
+        $isProGamer = ($wonBattles >= 10 && $winRate >= 60);
+
+        $stats = [
+            'total' => $totalBattles,
+            'won' => $wonBattles,
+            'lost' => $lostBattles,
+            'win_rate' => $winRate,
+            'points_earned' => $pointsEarned,
+        ];
+
+        return view('ludo.profile', [
+            'user' => $user,
+            'coins' => $coins,
+            'referral' => $referral,
+            'stats' => $stats,
+            'isProGamer' => $isProGamer,
+            'activeTab' => 'profile',
+        ]);
+    }
+
+    /**
+     * Update Profile Information & Privacy Settings
+     */
+    public function updateProfile(Request $request)
+    {
+        $user = Auth::user();
+        if (!$user) {
+            return redirect()->route('login');
+        }
+
+        $validated = $request->validate([
+            'name' => ['required', 'string', 'max:255'],
+            'phone' => ['nullable', 'string', 'max:20'],
+            'avatar' => ['nullable', 'image', 'mimes:jpeg,png,jpg,webp', 'max:2048'],
+            'hide_email' => ['nullable'],
+            'hide_phone' => ['nullable'],
+        ]);
+
+        $user->name = $validated['name'];
+        $user->phone = $validated['phone'] ?? null;
+        $user->hide_email = $request->has('hide_email') && ($request->hide_email == '1' || $request->hide_email === true);
+        $user->hide_phone = $request->has('hide_phone') && ($request->hide_phone == '1' || $request->hide_phone === true);
+
+        if ($request->hasFile('avatar')) {
+            $avatarFile = $request->file('avatar');
+            $filename = 'avatar_' . $user->id . '_' . time() . '.' . $avatarFile->getClientOriginalExtension();
+            $avatarFile->move(public_path('uploads/avatars'), $filename);
+            $user->avatar = 'uploads/avatars/' . $filename;
+        }
+
+        $user->save();
+
+        return redirect()->back()->with('success', 'Profile updated successfully.');
+    }
+
+    /**
+     * Change Password Securely
+     */
+    public function updatePassword(Request $request)
+    {
+        $user = Auth::user();
+        if (!$user) {
+            return redirect()->route('login');
+        }
+
+        $passwordField = $request->has('new_password') ? 'new_password' : 'password';
+
+        $request->validate([
+            'current_password' => ['required', 'current_password'],
+            $passwordField => ['required', 'string', 'min:8', 'confirmed'],
+        ]);
+
+        $user->password = bcrypt($request->input($passwordField));
+        $user->save();
+
+        return redirect()->back()->with('success', 'Password updated successfully.');
+    }
+
+    /**
+     * Rules & Guidelines Screen (English & Hindi support)
+     */
+    public function rules(Request $request)
+    {
+        $user = Auth::user();
+        $coins = $user ? $user->coins : 0;
+        $referral = $user ? $user->referral_balance : 0.00;
+        $lang = $request->query('lang', 'en'); // 'en' or 'hi'
+
+        $customRules = LudoSetting::get($lang === 'hi' ? 'rules_hi' : 'rules_en');
+
+        return view('ludo.rules', [
+            'coins' => $coins,
+            'referral' => $referral,
+            'activeTab' => 'home',
+            'lang' => $lang,
+            'customRules' => $customRules,
+        ]);
+    }
+
+    /**
+     * Create Support Ticket
+     */
+    public function createTicket(Request $request)
+    {
+        $user = Auth::user();
+        if (!$user) {
+            return redirect()->route('login');
+        }
+
+        $validated = $request->validate([
+            'category' => ['required', 'string', 'in:battle_issue,deposit_wallet,account_profile,kyc_issue,technical_bug,other'],
+            'subject' => ['required', 'string', 'max:190'],
+            'description' => ['required', 'string', 'min:10', 'max:5000'],
+            'priority' => ['nullable', 'in:normal,urgent'],
+            'attachment' => ['nullable', 'file', 'mimes:jpg,jpeg,png,webp,pdf', 'max:5120'], // 5MB max
+        ], [
+            'description.min' => 'Please provide at least 10 characters explaining your issue.',
+            'attachment.max' => 'Attachment cannot exceed 5MB.',
+        ]);
+
+        $attachmentPath = null;
+        $attachmentMime = null;
+        if ($request->hasFile('attachment')) {
+            $file = $request->file('attachment');
+            $attachmentMime = $file->getClientMimeType();
+            $attachmentPath = $file->store('private/support_evidence', 'local');
+        }
+
+        $ticket = LudoSupportTicket::create([
+            'ticket_uid' => 'TCK-' . strtoupper(Str::random(8)),
+            'user_id' => $user->id,
+            'category' => $validated['category'],
+            'subject' => $validated['subject'],
+            'description' => $validated['description'],
+            'status' => 'open',
+            'priority' => $validated['priority'] ?? 'normal',
+            'attachment_path' => $attachmentPath,
+            'attachment_mime' => $attachmentMime,
+        ]);
+
+        return redirect()->route('ludo.ticket.view', $ticket->id)->with('success', "Ticket {$ticket->ticket_uid} created successfully. Our team will review your inquiry.");
+    }
+
+    /**
+     * View Support Ticket Conversation
+     */
+    public function viewTicket($id)
+    {
+        $user = Auth::user();
+        if (!$user) {
+            return redirect()->route('login');
+        }
+
+        $ticket = LudoSupportTicket::with(['user', 'messages.user'])->findOrFail($id);
+
+        // Security check: only ticket creator or admin can view
+        if ($ticket->user_id !== $user->id && $user->role !== 'admin' && $user->role !== 'superadmin') {
+            abort(403, 'Unauthorized access to support ticket.');
+        }
+
+        return view('ludo.ticket_view', [
+            'ticket' => $ticket,
+            'coins' => $user->coins,
+            'referral' => $user->referral_balance,
+            'activeTab' => 'support',
+        ]);
+    }
+
+    /**
+     * Reply to Support Ticket
+     */
+    public function replyTicket(Request $request, $id)
+    {
+        $user = Auth::user();
+        if (!$user) {
+            return redirect()->route('login');
+        }
+
+        $ticket = LudoSupportTicket::findOrFail($id);
+
+        if ($ticket->user_id !== $user->id && $user->role !== 'admin' && $user->role !== 'superadmin') {
+            abort(403, 'Unauthorized access to reply.');
+        }
+
+        $validated = $request->validate([
+            'message' => ['required', 'string', 'min:2', 'max:5000'],
+            'attachment' => ['nullable', 'file', 'mimes:jpg,jpeg,png,webp,pdf', 'max:5120'],
+        ]);
+
+        $attachmentPath = null;
+        if ($request->hasFile('attachment')) {
+            $attachmentPath = $request->file('attachment')->store('private/support_evidence', 'local');
+        }
+
+        $isAdmin = in_array($user->role, ['admin', 'superadmin']);
+
+        LudoTicketMessage::create([
+            'ticket_id' => $ticket->id,
+            'user_id' => $user->id,
+            'is_admin' => $isAdmin,
+            'message' => $validated['message'],
+            'attachment_path' => $attachmentPath,
+        ]);
+
+        // If admin replied, set status to answered; if user replied, reopen or mark in_progress
+        if ($isAdmin) {
+            $ticket->update(['status' => 'answered']);
+            $ticket->user->notify(new LudoInAppNotification(
+                "🎫 Support Ticket Update",
+                "Support team replied to ticket #{$ticket->ticket_uid}: " . Str::limit($validated['message'], 60),
+                "support",
+                url('/support/ticket/' . $ticket->id)
+            ));
+        } else {
+            $ticket->update(['status' => 'in_progress']);
+        }
+
+        return redirect()->back()->with('success', 'Reply posted successfully.');
+    }
+
+    /**
+     * Download Support Ticket Attachment (Protected)
+     */
+    public function downloadTicketAttachment($id)
+    {
+        $user = Auth::user();
+        if (!$user) {
+            abort(401);
+        }
+
+        $ticket = LudoSupportTicket::findOrFail($id);
+        if ($ticket->user_id !== $user->id && !in_array($user->role, ['admin', 'superadmin'])) {
+            abort(403, 'Unauthorized to view this attachment.');
+        }
+
+        if (!$ticket->attachment_path || !Storage::disk('local')->exists($ticket->attachment_path)) {
+            abort(404, 'Evidence file not found.');
+        }
+
+        return Storage::disk('local')->download($ticket->attachment_path);
+    }
+
+    /**
+     * Submit KYC Documents
+     */
+    public function submitKyc(Request $request)
+    {
+        $user = Auth::user();
+        if (!$user) {
+            return redirect()->route('login');
+        }
+
+        $validated = $request->validate([
+            'document_type' => ['required', 'string', 'in:aadhaar,pan,voter_id,driving_license'],
+            'document_number' => ['required', 'string', 'min:4', 'max:50'],
+            'front_image' => ['required', 'file', 'mimes:jpg,jpeg,png,webp,pdf', 'max:5120'],
+            'back_image' => ['nullable', 'file', 'mimes:jpg,jpeg,png,webp,pdf', 'max:5120'],
+        ], [
+            'front_image.required' => 'Front copy of your identity document is required.',
+            'front_image.max' => 'Document size must be under 5MB.',
+        ]);
+
+        $frontPath = $request->file('front_image')->store('private/kyc_documents', 'local');
+        $backPath = $request->hasFile('back_image') ? $request->file('back_image')->store('private/kyc_documents', 'local') : null;
+
+        $submission = LudoKycSubmission::create([
+            'user_id' => $user->id,
+            'document_type' => $validated['document_type'],
+            'document_number' => $validated['document_number'],
+            'front_image_path' => $frontPath,
+            'back_image_path' => $backPath,
+            'status' => 'pending',
+        ]);
+
+        $user->update(['kyc_status' => 'pending']);
+
+        return redirect()->route('ludo.kyc')->with('success', 'KYC documents submitted securely! Verification takes up to 24 hours.');
+    }
+
+    /**
+     * Download KYC Document (Restricted to owner or Admin)
+     */
+    public function downloadKycDocument($id, $side = 'front')
+    {
+        $user = Auth::user();
+        if (!$user) {
+            abort(401);
+        }
+
+        $kyc = LudoKycSubmission::findOrFail($id);
+        if ($kyc->user_id !== $user->id && !in_array($user->role, ['admin', 'superadmin'])) {
+            abort(403, 'Unauthorized access to confidential KYC document.');
+        }
+
+        $path = $side === 'back' ? $kyc->back_image_path : $kyc->front_image_path;
+
+        if (!$path || !Storage::disk('local')->exists($path)) {
+            abort(404, 'Document file not found.');
+        }
+
+        return Storage::disk('local')->download($path);
+    }
+
+    /**
+     * Submit Match Result with Evidence (15-min window rule)
+     */
+    public function submitBattleResult(Request $request, $id)
+    {
+        $user = Auth::user();
+        if (!$user) {
+            return redirect()->route('login');
+        }
+
+        $battle = LudoBattle::findOrFail($id);
+
+        // Player must be participant
+        $isCreator = ($battle->creator_id === $user->id);
+        $isJoiner = ($battle->joiner_id === $user->id);
+
+        if (!$isCreator && !$isJoiner) {
+            return redirect()->back()->with('error', 'Unauthorized: You are not a participant in this match.');
+        }
+
+        if ($battle->status !== 'running') {
+            return redirect()->back()->with('error', 'Match is not in running state.');
+        }
+
+        $validated = $request->validate([
+            'result' => ['required', 'in:won,lost,cancelled'],
+            'evidence' => ['nullable', 'file', 'mimes:jpg,jpeg,png,webp', 'max:5120'],
+        ]);
+
+        $claimed = $validated['result'];
+
+        // Store private evidence screenshot if uploaded
+        $evidencePath = null;
+        if ($request->hasFile('evidence')) {
+            $evidencePath = $request->file('evidence')->store('private/battle_evidence', 'local');
+        }
+
+        // Check 15-minute submission deadline
+        $isExpired = false;
+        if ($battle->submission_deadline_at && now()->greaterThan($battle->submission_deadline_at)) {
+            $isExpired = true;
+        }
+
+        if ($isCreator) {
+            $battle->creator_claimed_result = $claimed;
+        } else {
+            $battle->joiner_claimed_result = $claimed;
+        }
+
+        // If deadline expired, do NOT automatically award win; flag for review
+        if ($isExpired) {
+            $battle->review_status = 'under_review';
+            $battle->save();
+            return redirect()->back()->with('warning', 'Result submitted after the 15-minute deadline. As per platform policy, expired submissions are placed under administrative review.');
+        }
+
+        // Both players have now submitted claims
+        $creatorClaim = $battle->creator_claimed_result;
+        $joinerClaim = $battle->joiner_claimed_result;
+
+        if ($creatorClaim !== 'pending' && $joinerClaim !== 'pending') {
+            // Check for agreement: e.g. one says won, other says lost
+            if ($creatorClaim === 'won' && $joinerClaim === 'lost') {
+                // Creator won
+                $this->finalizeBattleVictory($battle, $battle->creator_id, 'won');
+                return redirect()->back()->with('success', "Match completed! {$battle->creator->name} won 🪙 {$battle->prize} virtual points.");
+            } elseif ($creatorClaim === 'lost' && $joinerClaim === 'won') {
+                // Joiner won
+                $this->finalizeBattleVictory($battle, $battle->joiner_id, 'won');
+                return redirect()->back()->with('success', "Match completed! {$battle->joiner->name} won 🪙 {$battle->prize} virtual points.");
+            } elseif ($creatorClaim === 'cancelled' && $joinerClaim === 'cancelled') {
+                // Both agreed to cancel/draw -> refund both
+                $this->refundBothPlayers($battle, 'Mutual cancellation');
+                return redirect()->back()->with('success', 'Match cancelled by mutual agreement. Both players refunded.');
+            } else {
+                // CONFLICT! (e.g. both claim 'won' or conflicting claims)
+                $battle->update([
+                    'review_status' => 'disputed',
+                ]);
+
+                // Create an auto dispute record for admin review
+                $opponentId = $isCreator ? $battle->joiner_id : $battle->creator_id;
+                LudoDispute::create([
+                    'dispute_uid' => 'DSP-' . strtoupper(Str::random(8)),
+                    'battle_id' => $battle->id,
+                    'opened_by_user_id' => $user->id,
+                    'against_user_id' => $opponentId,
+                    'reason_category' => 'conflicting_claims',
+                    'description' => "Conflicting results submitted: Creator claimed {$creatorClaim}, Joiner claimed {$joinerClaim}.",
+                    'status' => 'open',
+                    'evidence_path' => $evidencePath,
+                ]);
+
+                return redirect()->back()->with('warning', 'Conflicting results detected! A dispute has been opened for administrative review.');
+            }
+        }
+
+        $battle->save();
+        return redirect()->back()->with('success', 'Result submitted. Waiting for opponent claim.');
+    }
+
+    /**
+     * Helper to credit winner safely
+     */
+    protected function finalizeBattleVictory(LudoBattle $battle, int $winnerId, string $finalResult)
+    {
+        $winner = User::findOrFail($winnerId);
+
+        $battle->update([
+            'status' => 'completed',
+            'winner_id' => $winnerId,
+            'final_result' => $finalResult,
+            'review_status' => 'auto_approved',
+            'completed_at' => now(),
+        ]);
+
+        // Credit virtual prize pool to winner via atomic ledger
+        LudoLedgerTransaction::recordAdjustment(
+            $winner,
+            $battle->prize,
+            'prize_payout',
+            "Won Battle {$battle->battle_uid} (Prize: 🪙 {$battle->prize})",
+            'successful'
+        );
+
+        // Notify winner
+        $winner->notify(new LudoInAppNotification(
+            "🏆 Victory in Battle {$battle->battle_uid}!",
+            "Congratulations! You won 🪙 {$battle->prize} virtual points.",
+            "match",
+            url('/history')
+        ));
+    }
+
+    /**
+     * Helper to refund both players on cancellation
+     */
+    protected function refundBothPlayers(LudoBattle $battle, string $reason)
+    {
+        $creator = User::findOrFail($battle->creator_id);
+        $joiner = User::findOrFail($battle->joiner_id);
+
+        $battle->update([
+            'status' => 'cancelled',
+            'final_result' => 'cancelled',
+            'review_status' => 'auto_approved',
+            'completed_at' => now(),
+        ]);
+
+        LudoLedgerTransaction::recordAdjustment(
+            $creator,
+            $battle->entry_fee,
+            'refund',
+            "Refund for Battle {$battle->battle_uid}: {$reason}",
+            'successful'
+        );
+
+        LudoLedgerTransaction::recordAdjustment(
+            $joiner,
+            $battle->entry_fee,
+            'refund',
+            "Refund for Battle {$battle->battle_uid}: {$reason}",
+            'successful'
+        );
+
+        $creator->notify(new LudoInAppNotification(
+            "🪙 Points Refunded",
+            "Battle {$battle->battle_uid} was cancelled ({$reason}). 🪙 {$battle->entry_fee} returned to wallet.",
+            "ledger",
+            url('/wallet')
+        ));
+        $joiner->notify(new LudoInAppNotification(
+            "🪙 Points Refunded",
+            "Battle {$battle->battle_uid} was cancelled ({$reason}). 🪙 {$battle->entry_fee} returned to wallet.",
+            "ledger",
+            url('/wallet')
+        ));
+    }
+
+    /**
+     * Open a Dispute
+     */
+    public function openDispute(Request $request, $battleId)
+    {
+        $user = Auth::user();
+        if (!$user) {
+            return redirect()->route('login');
+        }
+
+        $battle = LudoBattle::findOrFail($battleId);
+
+        $isCreator = ($battle->creator_id === $user->id);
+        $isJoiner = ($battle->joiner_id === $user->id);
+
+        if (!$isCreator && !$isJoiner) {
+            abort(403, 'Unauthorized.');
+        }
+
+        $validated = $request->validate([
+            'reason_category' => ['required', 'string', 'in:wrong_result,opponent_left,fake_screenshot,app_crash,timer_expired,other'],
+            'description' => ['required', 'string', 'min:10', 'max:5000'],
+            'evidence' => ['required', 'file', 'mimes:jpg,jpeg,png,webp,mp4', 'max:10240'], // 10MB max
+        ], [
+            'evidence.required' => 'Visual screenshot or video evidence is mandatory to open a dispute.',
+        ]);
+
+        $opponentId = $isCreator ? $battle->joiner_id : $battle->creator_id;
+
+        $evidencePath = $request->file('evidence')->store('private/dispute_evidence', 'local');
+
+        $dispute = LudoDispute::create([
+            'dispute_uid' => 'DSP-' . strtoupper(Str::random(8)),
+            'battle_id' => $battle->id,
+            'opened_by_user_id' => $user->id,
+            'against_user_id' => $opponentId,
+            'reason_category' => $validated['reason_category'],
+            'description' => $validated['description'],
+            'status' => 'open',
+            'evidence_path' => $evidencePath,
+        ]);
+
+        // Link dispute to battle and flag battle
+        $battle->update([
+            'dispute_id' => $dispute->id,
+            'review_status' => 'disputed',
+        ]);
+
+        // Log initial evidence row
+        LudoDisputeEvidence::create([
+            'dispute_id' => $dispute->id,
+            'user_id' => $user->id,
+            'notes' => 'Primary evidence provided by complainant.',
+            'file_path' => $evidencePath,
+            'file_mime' => $request->file('evidence')->getClientMimeType(),
+        ]);
+
+        // Notify opponent that dispute has been lodged
+        $opponent = User::find($opponentId);
+        if ($opponent) {
+            $opponent->notify(new LudoInAppNotification(
+                "⚠️ Match Dispute Lodged",
+                "A dispute was opened for Battle {$battle->battle_uid}. Admin review is active.",
+                "dispute",
+                url('/disputes/' . $dispute->id)
+            ));
+        }
+
+        return redirect()->route('ludo.dispute.view', $dispute->id)->with('success', "Dispute {$dispute->dispute_uid} lodged. An administrative review has begun.");
+    }
+
+    /**
+     * View Dispute Details & Evidence
+     */
+    public function viewDispute($id)
+    {
+        $user = Auth::user();
+        if (!$user) {
+            return redirect()->route('login');
+        }
+
+        $dispute = LudoDispute::with(['battle.creator', 'battle.joiner', 'openedBy', 'againstUser', 'resolver', 'evidences.user'])->findOrFail($id);
+
+        $isParticipant = ($dispute->opened_by_user_id === $user->id || $dispute->against_user_id === $user->id);
+        $isAdmin = in_array($user->role, ['admin', 'superadmin']);
+
+        if (!$isParticipant && !$isAdmin) {
+            abort(403, 'Unauthorized access to dispute.');
+        }
+
+        return view('ludo.dispute_view', [
+            'dispute' => $dispute,
+            'coins' => $user->coins,
+            'referral' => $user->referral_balance,
+            'activeTab' => 'home',
+            'isAdmin' => $isAdmin,
+        ]);
+    }
+
+    /**
+     * Submit Supplementary Dispute Evidence
+     */
+    public function submitDisputeEvidence(Request $request, $id)
+    {
+        $user = Auth::user();
+        if (!$user) {
+            return redirect()->route('login');
+        }
+
+        $dispute = LudoDispute::findOrFail($id);
+
+        $isParticipant = ($dispute->opened_by_user_id === $user->id || $dispute->against_user_id === $user->id);
+        if (!$isParticipant && !in_array($user->role, ['admin', 'superadmin'])) {
+            abort(403, 'Unauthorized.');
+        }
+
+        $validated = $request->validate([
+            'notes' => ['nullable', 'string', 'max:1000'],
+            'evidence' => ['required', 'file', 'mimes:jpg,jpeg,png,webp,mp4,pdf', 'max:10240'],
+        ]);
+
+        $path = $request->file('evidence')->store('private/dispute_evidence', 'local');
+
+        LudoDisputeEvidence::create([
+            'dispute_id' => $dispute->id,
+            'user_id' => $user->id,
+            'notes' => $validated['notes'],
+            'file_path' => $path,
+            'file_mime' => $request->file('evidence')->getClientMimeType(),
+        ]);
+
+        // If more evidence was requested, update status back to under_review
+        if ($dispute->status === 'more_evidence_requested') {
+            $dispute->update(['status' => 'under_review']);
+        }
+
+        return redirect()->back()->with('success', 'Supplementary evidence uploaded successfully.');
+    }
+
+    /**
+     * Download Dispute Evidence (Strict Authorization)
+     */
+    public function downloadDisputeEvidence($id)
+    {
+        $user = Auth::user();
+        if (!$user) {
+            abort(401);
+        }
+
+        $evidence = LudoDisputeEvidence::with('dispute')->findOrFail($id);
+        $dispute = $evidence->dispute;
+
+        $isParticipant = ($dispute->opened_by_user_id === $user->id || $dispute->against_user_id === $user->id);
+        $isAdmin = in_array($user->role, ['admin', 'superadmin']);
+
+        if (!$isParticipant && !$isAdmin) {
+            abort(403, 'Unauthorized: Access to match evidence is restricted.');
+        }
+
+        if (!Storage::disk('local')->exists($evidence->file_path)) {
+            abort(404, 'File not found in storage.');
+        }
+
+        return Storage::disk('local')->download($evidence->file_path);
+    }
+
+    /**
+     * Admin Dispute Decision & Resolution (With written mandatory reason and audit trail)
+     */
+    public function adminResolveDispute(Request $request, $id)
+    {
+        $admin = Auth::user();
+        if (!$admin || !in_array($admin->role, ['admin', 'superadmin'])) {
+            abort(403, 'Unauthorized: Administrator privileges required.');
+        }
+
+        $dispute = LudoDispute::with('battle')->findOrFail($id);
+        $battle = $dispute->battle;
+
+        $validated = $request->validate([
+            'decision' => ['required', 'in:award_creator,award_joiner,refund_both,request_evidence,reject_dispute'],
+            'admin_reason' => ['required', 'string', 'min:10', 'max:2000'],
+        ], [
+            'admin_reason.required' => 'A written justification is mandatory for auditing dispute resolutions.',
+            'admin_reason.min' => 'Written reason must be at least 10 characters.',
+        ]);
+
+        $decision = $validated['decision'];
+        $reason = $validated['admin_reason'];
+
+        if ($decision === 'request_evidence') {
+            $dispute->update([
+                'status' => 'more_evidence_requested',
+                'admin_decision_reason' => $reason,
+            ]);
+
+            if ($dispute->openedBy) {
+                $dispute->openedBy->notify(new LudoInAppNotification(
+                    "📋 Additional Evidence Requested",
+                    "Admin requested more evidence for Dispute {$dispute->dispute_uid}: {$reason}",
+                    "dispute",
+                    url('/disputes/' . $dispute->id)
+                ));
+            }
+            if ($dispute->againstUser) {
+                $dispute->againstUser->notify(new LudoInAppNotification(
+                    "📋 Additional Evidence Requested",
+                    "Admin requested more evidence for Dispute {$dispute->dispute_uid}: {$reason}",
+                    "dispute",
+                    url('/disputes/' . $dispute->id)
+                ));
+            }
+
+            return redirect()->back()->with('success', 'Requested additional evidence from participants.');
+        }
+
+        if ($decision === 'award_creator') {
+            $this->finalizeBattleVictory($battle, $battle->creator_id, 'won');
+            $dispute->update([
+                'status' => 'resolved',
+                'admin_decision_reason' => "Awarded victory to Creator ({$battle->creator->name}). Reason: {$reason}",
+                'resolved_by_admin_id' => $admin->id,
+                'resolved_at' => now(),
+            ]);
+        } elseif ($decision === 'award_joiner') {
+            $this->finalizeBattleVictory($battle, $battle->joiner_id, 'won');
+            $dispute->update([
+                'status' => 'resolved',
+                'admin_decision_reason' => "Awarded victory to Joiner ({$battle->joiner->name}). Reason: {$reason}",
+                'resolved_by_admin_id' => $admin->id,
+                'resolved_at' => now(),
+            ]);
+        } elseif ($decision === 'refund_both') {
+            $this->refundBothPlayers($battle, "Dispute administrative refund: {$reason}");
+            $dispute->update([
+                'status' => 'resolved',
+                'admin_decision_reason' => "Both players refunded entry fee. Reason: {$reason}",
+                'resolved_by_admin_id' => $admin->id,
+                'resolved_at' => now(),
+            ]);
+        } elseif ($decision === 'reject_dispute') {
+            $dispute->update([
+                'status' => 'rejected',
+                'admin_decision_reason' => "Dispute rejected. Reason: {$reason}",
+                'resolved_by_admin_id' => $admin->id,
+                'resolved_at' => now(),
+            ]);
+            $battle->update(['review_status' => 'verified']);
+        }
+
+        // Notify both participants of the final decision
+        $decisionMsg = "Dispute {$dispute->dispute_uid} resolved. Decision: {$decision}. Reason: {$reason}";
+        if ($dispute->openedBy) {
+            $dispute->openedBy->notify(new LudoInAppNotification(
+                "⚖️ Dispute Decision Rendered",
+                $decisionMsg,
+                "dispute",
+                url('/disputes/' . $dispute->id)
+            ));
+        }
+        if ($dispute->againstUser) {
+            $dispute->againstUser->notify(new LudoInAppNotification(
+                "⚖️ Dispute Decision Rendered",
+                $decisionMsg,
+                "dispute",
+                url('/disputes/' . $dispute->id)
+            ));
+        }
+
+        LudoAdminAuditLog::log(
+            'dispute_resolved',
+            "Resolved dispute {$dispute->dispute_uid} with decision: {$decision}. Rationale: {$reason}",
+            'LudoDispute',
+            $dispute->id
+        );
+
+        return redirect()->back()->with('success', 'Dispute decision executed and logged in audit history.');
+    }
+
+    /**
+     * Admin Review KYC Submission (Approve / Reject with reason)
+     */
+    public function adminReviewKyc(Request $request, $id)
+    {
+        $admin = Auth::user();
+        if (!$admin || !in_array($admin->role, ['admin', 'superadmin'])) {
+            abort(403, 'Admin privileges required.');
+        }
+
+        $submission = LudoKycSubmission::with('user')->findOrFail($id);
+
+        $validated = $request->validate([
+            'status' => ['required', 'in:approved,rejected'],
+            'admin_reason' => ['required', 'string', 'min:5', 'max:1000'],
+        ]);
+
+        $submission->update([
+            'status' => $validated['status'],
+            'admin_reason' => $validated['admin_reason'],
+            'reviewed_by_admin_id' => $admin->id,
+            'reviewed_at' => now(),
+        ]);
+
+        $submission->user->update([
+            'kyc_status' => $validated['status'] === 'approved' ? 'verified' : 'rejected',
+            'is_verified' => $validated['status'] === 'approved',
+        ]);
+
+        LudoAdminAuditLog::log(
+            'kyc_reviewed',
+            "Reviewed KYC for {$submission->user->name} (#{$submission->user->id}). Status: {$validated['status']}. Reason: {$validated['admin_reason']}",
+            'LudoKycSubmission',
+            $submission->id
+        );
+
+        return redirect()->back()->with('success', "KYC submission marked as {$validated['status']}.");
+    }
+
+    /**
+     * Player In-App Notifications Center
+     */
+    public function notifications()
+    {
+        $user = Auth::user();
+        if (!$user) {
+            return redirect()->route('login');
+        }
+
+        $notifications = $user->notifications()->paginate(15);
+
+        return view('ludo.notifications', [
+            'notifications' => $notifications,
+            'coins' => $user->coins,
+            'referral' => $user->referral_balance,
+            'activeTab' => 'profile',
+        ]);
+    }
+
+    /**
+     * Mark all notifications as read
+     */
+    public function markAllNotificationsRead()
+    {
+        $user = Auth::user();
+        if (!$user) {
+            return redirect()->route('login');
+        }
+
+        $user->unreadNotifications->markAsRead();
+
+        return redirect()->back()->with('success', 'All notifications marked as read.');
+    }
+
+    /**
+     * Mark single notification as read
+     */
+    public function markNotificationRead($id)
+    {
+        $user = Auth::user();
+        if (!$user) {
+            return redirect()->route('login');
+        }
+
+        $notification = $user->notifications()->where('id', $id)->first();
+        if ($notification) {
+            $notification->markAsRead();
+        }
+
+        return redirect()->back();
+    }
+
+    /**
+     * Tournaments Lobby for Players
+     */
+    public function tournaments()
+    {
+        $user = Auth::user();
+        $coins = $user ? $user->coins : 0;
+        $referral = $user ? $user->referral_balance : 0.00;
+
+        $tournaments = LudoTournament::withCount('participants')
+            ->whereIn('status', ['published', 'running', 'completed'])
+            ->latest('starts_at')
+            ->paginate(10);
+
+        $registeredTournamentIds = [];
+        if ($user) {
+            $registeredTournamentIds = LudoTournamentParticipant::where('user_id', $user->id)
+                ->pluck('tournament_id')
+                ->toArray();
+        }
+
+        return view('ludo.tournaments', [
+            'tournaments' => $tournaments,
+            'registeredTournamentIds' => $registeredTournamentIds,
+            'coins' => $coins,
+            'referral' => $referral,
+            'activeTab' => 'home',
+        ]);
+    }
+
+    /**
+     * Register / Join a Tournament (Data Integrity, Capacity, State, Balance & Unique checks)
+     */
+    public function joinTournament(Request $request, $id)
+    {
+        $user = Auth::user();
+        if (!$user) {
+            return redirect()->route('login');
+        }
+
+        if ($user->status === 'suspended') {
+            return redirect()->back()->with('error', 'Your account is suspended. You cannot register for tournaments.');
+        }
+
+        $tournament = LudoTournament::withCount('participants')->findOrFail($id);
+
+        // State check: Only 'published' tournaments accept registrations
+        if ($tournament->status !== 'published') {
+            return redirect()->back()->with('error', "Tournament is not open for registration (Current status: {$tournament->status}).");
+        }
+
+        // Deadline check
+        if ($tournament->registration_closes_at && now()->greaterThan($tournament->registration_closes_at)) {
+            return redirect()->back()->with('error', 'Tournament registration deadline has passed.');
+        }
+
+        // Capacity check
+        if ($tournament->participants_count >= $tournament->max_players) {
+            return redirect()->back()->with('error', 'Tournament bracket is completely full.');
+        }
+
+        // Duplicate registration check
+        $alreadyRegistered = LudoTournamentParticipant::where('tournament_id', $tournament->id)
+            ->where('user_id', $user->id)
+            ->exists();
+        if ($alreadyRegistered) {
+            return redirect()->back()->with('error', 'You are already registered in this tournament.');
+        }
+
+        // Virtual points balance check
+        if ($tournament->entry_fee > 0 && $user->coins < $tournament->entry_fee) {
+            return redirect()->back()->with('error', "Insufficient virtual points. You need 🪙 {$tournament->entry_fee} points to register.");
+        }
+
+        DB::transaction(function () use ($user, $tournament) {
+            // Deduct entry fee via atomic ledger
+            if ($tournament->entry_fee > 0) {
+                LudoLedgerTransaction::recordAdjustment(
+                    $user,
+                    -$tournament->entry_fee,
+                    'entry_fee',
+                    "Entry fee for Tournament: {$tournament->title} ({$tournament->tournament_uid})",
+                    'successful'
+                );
+            }
+
+            // Record participant
+            LudoTournamentParticipant::create([
+                'tournament_id' => $tournament->id,
+                'user_id' => $user->id,
+                'status' => 'registered',
+            ]);
+
+            // Dispatch notification
+            $user->notify(new LudoInAppNotification(
+                "🏆 Tournament Registration Confirmed",
+                "You are registered for '{$tournament->title}'. Starts: " . ($tournament->starts_at ? $tournament->starts_at->format('d M, h:i A') : 'TBA'),
+                "tournament",
+                url('/tournaments')
+            ));
+        });
+
+        return redirect()->back()->with('success', "Successfully registered for {$tournament->title}!");
     }
 }

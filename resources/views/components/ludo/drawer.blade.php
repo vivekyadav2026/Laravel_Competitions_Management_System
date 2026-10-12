@@ -21,7 +21,7 @@
 
         {{-- Center Logo --}}
         <div class="text-center py-2">
-            <img src="{{ asset('assets/ludo/logo.svg') }}" alt="Royal Ludo Logo" class="ludo-drawer-brand-logo">
+            <img src="{{ asset('assets/images/fsaludoclub-logo.png') }}" alt="{{ config('ludo.brand_name', 'Fsaludoclub') }} Logo" class="ludo-drawer-brand-logo">
         </div>
     </div>
 
@@ -50,6 +50,17 @@
             </a>
         </li>
         <li>
+            <a href="{{ url('/tournaments') }}" class="ludo-drawer-pill-item {{ request()->is('tournaments') ? 'active' : '' }}">
+                <div class="d-flex align-items-center gap-3">
+                    <span class="ludo-drawer-pill-icon text-warning">
+                        <i class="fa-solid fa-trophy fs-5"></i>
+                    </span>
+                    <span class="ludo-drawer-pill-text">Tournaments</span>
+                </div>
+                <span class="ludo-drawer-pill-arrow">&raquo;</span>
+            </a>
+        </li>
+        <li>
             <a href="{{ url('/wallet') }}" class="ludo-drawer-pill-item {{ request()->is('wallet') ? 'active' : '' }}">
                 <div class="d-flex align-items-center gap-3">
                     <span class="ludo-drawer-pill-icon text-warning">
@@ -58,6 +69,22 @@
                     <span class="ludo-drawer-pill-text">My Wallet</span>
                 </div>
                 <span class="ludo-drawer-pill-arrow">&raquo;</span>
+            </a>
+        </li>
+        <li>
+            <a href="{{ url('/notifications') }}" class="ludo-drawer-pill-item {{ request()->is('notifications') ? 'active' : '' }}">
+                <div class="d-flex align-items-center gap-3">
+                    <span class="ludo-drawer-pill-icon text-info">
+                        <i class="fa-solid fa-bell fs-5"></i>
+                    </span>
+                    <span class="ludo-drawer-pill-text">Notifications</span>
+                </div>
+                <div class="d-flex align-items-center gap-2">
+                    @if(auth()->check() && auth()->user()->unreadNotifications->count() > 0)
+                        <span class="badge bg-danger rounded-pill">{{ auth()->user()->unreadNotifications->count() }}</span>
+                    @endif
+                    <span class="ludo-drawer-pill-arrow">&raquo;</span>
+                </div>
             </a>
         </li>
         <li>
@@ -105,6 +132,17 @@
             </a>
         </li>
         <li>
+            <a href="{{ url('/rules') }}" class="ludo-drawer-pill-item {{ request()->is('rules') ? 'active' : '' }}">
+                <div class="d-flex align-items-center gap-3">
+                    <span class="ludo-drawer-pill-icon text-warning">
+                        <i class="fa-solid fa-scale-balanced fs-5"></i>
+                    </span>
+                    <span class="ludo-drawer-pill-text">Rules & Policy</span>
+                </div>
+                <span class="ludo-drawer-pill-arrow">&raquo;</span>
+            </a>
+        </li>
+        <li>
             <a href="#" class="ludo-drawer-pill-item js-ludo-theme-toggle">
                 <div class="d-flex align-items-center gap-3">
                     <span class="ludo-drawer-pill-icon text-warning">
@@ -129,15 +167,18 @@
 
         @auth
             <li class="mt-2">
-                <a href="{{ url('/logout') }}" class="ludo-drawer-pill-item border-danger border-opacity-50 text-danger">
-                    <div class="d-flex align-items-center gap-3">
-                        <span class="ludo-drawer-pill-icon text-danger">
-                            <i class="fa-solid fa-right-from-bracket fs-5"></i>
-                        </span>
-                        <span class="ludo-drawer-pill-text text-danger">Log Out</span>
-                    </div>
-                    <span class="ludo-drawer-pill-arrow text-danger">&raquo;</span>
-                </a>
+                <form method="POST" action="{{ route('logout') }}" id="drawer-logout-form" class="m-0 p-0">
+                    @csrf
+                    <button type="submit" class="ludo-drawer-pill-item border-danger border-opacity-50 text-danger w-100 bg-transparent text-start" style="cursor: pointer;">
+                        <div class="d-flex align-items-center gap-3">
+                            <span class="ludo-drawer-pill-icon text-danger">
+                                <i class="fa-solid fa-right-from-bracket fs-5"></i>
+                            </span>
+                            <span class="ludo-drawer-pill-text text-danger">Log Out</span>
+                        </div>
+                        <span class="ludo-drawer-pill-arrow text-danger">&raquo;</span>
+                    </button>
+                </form>
             </li>
         @else
             <li class="mt-2">

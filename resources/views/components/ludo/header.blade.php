@@ -13,8 +13,8 @@
         </button>
 
         {{-- Game Logo --}}
-        <a href="{{ url('/play') }}" class="d-inline-flex align-items-center">
-            <img src="{{ asset('assets/ludo/logo.svg') }}" alt="Royal Ludo Logo" class="ludo-header-logo">
+        <a href="{{ url('/') }}" class="d-inline-flex align-items-center">
+            <img src="{{ asset('assets/images/fsaludoclub-logo.png') }}" alt="{{ config('ludo.brand_name', 'Fsaludoclub') }} Logo" class="ludo-header-logo">
         </a>
     </div>
 

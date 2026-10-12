@@ -23,6 +23,10 @@ class LudoBattle extends Model
         'claimed_result',
         'final_result',
         'review_status',
+        'creator_claimed_result',
+        'joiner_claimed_result',
+        'submission_deadline_at',
+        'dispute_id',
         'started_at',
         'completed_at',
     ];
@@ -30,6 +34,7 @@ class LudoBattle extends Model
     protected $casts = [
         'entry_fee' => 'integer',
         'prize' => 'integer',
+        'submission_deadline_at' => 'datetime',
         'started_at' => 'datetime',
         'completed_at' => 'datetime',
     ];
@@ -65,5 +70,13 @@ class LudoBattle extends Model
     {
         // 5% platform virtual fee deduction: total pool = $entryFee * 2; prize = pool * 0.95 = 1.9 * entryFee
         return (int) round($entryFee * 1.9);
+    }
+
+    /**
+     * Dispute linked to this battle
+     */
+    public function dispute()
+    {
+        return $this->belongsTo(LudoDispute::class, 'dispute_id');
     }
 }

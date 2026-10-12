@@ -1,18 +1,18 @@
 @extends('layouts.player')
 
-@section('title', 'Royal Ludo — Home Lobby')
+@section('title', config('ludo.brand_name', 'Fsaludoclub') . ' — Home Lobby')
 
 @section('content')
-    {{-- Announcement Notice Banner (Exact replica of Screenshot #1 & #3) --}}
+    {{-- Announcement Notice Banner (Synchronized with Admin CMS) --}}
     <x-ludo.announcement>
-        <span class="fw-bold">⭐ 🎉 📢 रॉयल लूडो परिवार में आप सभी प्लेयरों का स्वागत है!</span> किसी भी प्लेयर के साथ ना कभी गलत होगा ना ही कभी गलत होने देगा 🙏🙏 विश्वास बनाए रखें 🙏🙏 (नोट- विड्रॉल की लिमिट ₹2,00,000 चालू है) किसी भी समस्या के लिए 24x7 व्हाट्सएप पर संपर्क करें।
+        {!! $announcement ?? '<span class="fw-bold">⭐ 🎉 📢 Fsaludoclub परिवार में आप सभी प्लेयरों का स्वागत है!</span> किसी भी प्लेयर के साथ ना कभी गलत होगा ना ही कभी गलत होने देगा 🙏🙏 विश्वास बनाए रखें 🙏🙏' !!}
     </x-ludo.announcement>
 
     {{-- Gold Tournament Category Banner --}}
     <x-ludo.gold-banner 
         title="OUR TOURNAMENTS" 
         subtitle="Choose your battle and win big" 
-        link="{{ url('/battles') }}" 
+        link="{{ url('/tournaments') }}" 
     />
 
     {{-- 2-Column Game Selection Cards Grid --}}
@@ -22,7 +22,7 @@
             <span class="ludo-badge-live">
                 <span class="live-dot"></span> LIVE
             </span>
-            <img src="{{ asset('assets/ludo/ludo-board.svg') }}" alt="Royal Ludo Classic">
+            <img src="{{ asset('assets/ludo/ludo-board.svg') }}" alt="Fsaludoclub Classic">
         </a>
 
         {{-- Card 2: 24x7 Ludo Support --}}

@@ -3,6 +3,7 @@
 namespace App\Providers;
 
 use App\Models\Competition;
+use Illuminate\Pagination\Paginator;
 use Illuminate\Support\Facades\View;
 use Illuminate\Support\ServiceProvider;
 
@@ -21,6 +22,8 @@ class AppServiceProvider extends ServiceProvider
      */
     public function boot(): void
     {
+        Paginator::useBootstrapFive();
+
         View::composer('components.navbar', function ($view) {
             $competitions = Competition::get(['id', 'competition_name']);
             $view->with('competitions', $competitions);

@@ -1,6 +1,6 @@
 @extends('layouts.player')
 
-@section('title', 'Royal Ludo — Refer & Earn')
+@section('title', config('ludo.brand_name', 'Fsaludoclub') . ' — Refer & Earn')
 
 @section('content')
     <div class="ludo-refer-container">
@@ -43,7 +43,7 @@
                 🎁 YOUR UNIQUE REFERRAL CODE
             </div>
             <div class="ludo-code-display">
-                <span id="ludoReferralCode" class="ludo-code-text">{{ $referralCode ?? '780547' }}</span>
+                <span id="ludoReferralCode" class="ludo-code-text">{{ $referralCode }}</span>
                 <button type="button" class="ludo-btn-copy js-copy-code" data-target="ludoReferralCode">
                     <i class="fa-regular fa-copy"></i> Copy
                 </button>
@@ -62,7 +62,7 @@
                 <span>Invite Friends (Share Link)</span>
             </button>
 
-            <a href="https://api.whatsapp.com/send?text={{ urlencode('Play Royal Ludo with me! Use my referral code ' . $referralCode . ' to get 100 bonus tournament points: ' . $shareUrl) }}" 
+            <a href="https://api.whatsapp.com/send?text={{ urlencode('Play ' . config('ludo.brand_name', 'Fsaludoclub') . ' with me! Use my referral code ' . $referralCode . ' to get 100 bonus tournament points: ' . $shareUrl) }}" 
                target="_blank" 
                class="ludo-btn-invite">
                 <i class="fa-brands fa-whatsapp fs-4"></i>
@@ -122,8 +122,8 @@
     <script>
         document.addEventListener('DOMContentLoaded', function() {
             const shareBtn = document.getElementById('btnWebShare');
-            const shareTitle = 'Royal Ludo Tournament';
-            const shareText = 'Play Royal Ludo with me! Use my referral code {{ $referralCode }} to get bonus points:';
+            const shareTitle = '{{ config("ludo.brand_name", "Fsaludoclub") }}';
+            const shareText = 'Play {{ config("ludo.brand_name", "Fsaludoclub") }} with me! Use my referral code {{ $referralCode }} to get bonus points:';
             const shareUrl = '{{ $shareUrl }}';
 
             if (shareBtn) {

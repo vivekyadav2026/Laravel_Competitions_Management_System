@@ -24,7 +24,7 @@
     </a>
 
     {{-- 3. Home --}}
-    <a href="{{ url('/play') }}" class="ludo-nav-item {{ $isHome ? 'active' : '' }}" title="Home Battles">
+    <a href="{{ url('/') }}" class="ludo-nav-item {{ $isHome ? 'active' : '' }}" title="Home Battles">
         <img src="{{ asset('assets/ludo/nav-home.svg') }}" alt="Home" class="ludo-nav-icon">
         <span class="ludo-nav-label">Home</span>
     </a>

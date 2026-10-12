@@ -71,7 +71,10 @@
                 <div class="lower-part mt-5">
                     <h6>{{ Auth::user()->name }}</h6>
                     <p>{{ Auth::user()->email }}</p>
-                    <a href="/logout" class="btn" style="color: #379AE6">Logout</a>
+                    <form method="POST" action="{{ route('logout') }}" class="d-inline m-0">
+                        @csrf
+                        <button type="submit" class="btn" style="color: #379AE6; background: transparent; border: none;">Logout</button>
+                    </form>
                 </div>
             </div>
             <div class="sidebar-content p-2">

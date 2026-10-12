@@ -1,15 +1,15 @@
 @extends('layouts.player')
 
-@section('title', 'Royal Ludo — My Profile')
+@section('title', config('ludo.brand_name', 'Fsaludoclub') . ' — My Profile')
 
 @section('content')
     {{-- Top Profile Header Card --}}
     <div class="ludo-refer-container py-4 mb-3 text-center position-relative">
         <div class="position-relative d-inline-block mb-2">
             @if(!empty($user->avatar))
-                <img src="{{ asset($user->avatar) }}" alt="Avatar" style="width: 80px; height: 80px; border-radius: 50%; border: 2.5px solid var(--ludo-cyan); object-fit: cover; background: #081226;">
+                <img src="{{ asset($user->avatar) }}" alt="Avatar" style="width: 80px; height: 80px; border-radius: 50%; border: 2.5px solid var(--ludo-gold); object-fit: cover; background: #081226;">
             @else
-                <img src="{{ asset('assets/ludo/nav-profile.svg') }}" alt="Profile" style="width: 80px; height: 80px; border-radius: 50%; border: 2.5px solid var(--ludo-cyan); padding: 6px; background: #081226;">
+                <img src="{{ asset('assets/ludo/nav-profile.svg') }}" alt="Profile" style="width: 80px; height: 80px; border-radius: 50%; border: 2.5px solid var(--ludo-gold); padding: 6px; background: #081226;">
             @endif
 
             @if($user->is_verified)
@@ -20,7 +20,7 @@
         </div>
 
         <h4 class="fw-bold text-white mb-1 d-flex align-items-center justify-content-center gap-2">
-            <span>{{ $user->name ?? 'Royal Player' }}</span>
+            <span>{{ $user->name ?? 'Fsaludoclub Player' }}</span>
             @if($isProGamer)
                 <span class="badge bg-warning text-dark border border-warning" style="font-size: 10px;" title="Legitimately earned Pro Gamer title">
                     🏆 PRO GAMER
@@ -166,10 +166,13 @@
         </a>
     </div>
 
-    {{-- Logout Button --}}
+    {{-- Logout Form --}}
     @auth
-        <a href="{{ url('/logout') }}" class="btn btn-outline-danger w-100 rounded-3 fw-bold py-2 mb-3">
-            <i class="fa-solid fa-right-from-bracket me-1"></i> Log Out
-        </a>
+        <form method="POST" action="{{ route('logout') }}" id="logout-form" class="mb-3">
+            @csrf
+            <button type="submit" class="btn btn-outline-danger w-100 rounded-3 fw-bold py-2">
+                <i class="fa-solid fa-right-from-bracket me-1"></i> Log Out
+            </button>
+        </form>
     @endauth
 @endsection

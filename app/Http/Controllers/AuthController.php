@@ -41,7 +41,7 @@ class AuthController extends Controller
                     'name' => $request->name,
                     'email' => $request->email,
                     'password' => Hash::make($request->password),
-                    'coins' => 100, // Welcome points
+                    'coins' => 0, // Initialized to 0, credited through ledger
                     'referral_code' => $uniqueRefCode,
                     'referred_by_id' => $referrer ? $referrer->id : null,
                 ]);
@@ -50,6 +50,15 @@ class AuthController extends Controller
                 $newUser->update([
                     'player_uid' => 'LUDO' . str_pad($newUser->id, 5, '0', STR_PAD_LEFT),
                 ]);
+
+                // Credit welcome virtual points via authoritative ledger
+                \App\Models\LudoLedgerTransaction::recordAdjustment(
+                    $newUser,
+                    100,
+                    'deposit',
+                    'Welcome registration virtual tournament bonus points',
+                    'successful'
+                );
 
                 // If legitimately referred by an existing user and not self-referral
                 if ($referrer && $referrer->id !== $newUser->id) {
@@ -62,8 +71,14 @@ class AuthController extends Controller
                         'rewarded_at' => now(),
                     ]);
 
-                    // Award virtual points to referrer
-                    $referrer->increment('coins', 50);
+                    // Award virtual points to referrer via authoritative ledger
+                    \App\Models\LudoLedgerTransaction::recordAdjustment(
+                        $referrer,
+                        50,
+                        'referral_bonus',
+                        "Referral bonus reward for inviting {$newUser->name} ({$newUser->player_uid})",
+                        'successful'
+                    );
                     $referrer->increment('referral_balance', 50.00);
                 }
             });
@@ -92,22 +107,42 @@ class AuthController extends Controller
 
         if (Auth::attempt($credentials, $remember)) {
             $user = Auth::user();
-            if ($user->role === 'admin') {
-                return redirect('/dashboard/users');
-            } else if ($user->role === 'superadmin') {
-                return redirect('/dashboard/admins');
-            } else {
-                return redirect('/');
+
+            // Check if user is suspended
+            if ($user->status === 'suspended') {
+                Auth::guard('web')->logout();
+                $request->session()->invalidate();
+                $request->session()->regenerateToken();
+
+                return redirect()->back()
+                    ->withInput($request->only('email', 'remember_me'))
+                    ->withErrors(['email' => 'Your account has been suspended. Please contact support.']);
             }
-        } else {
-            return redirect('/showlogin');
+
+            // Regenerate session to prevent session fixation
+            $request->session()->regenerate();
+
+            if ($user->role === 'admin') {
+                return redirect()->intended('/admin/ludo/dashboard');
+            } elseif ($user->role === 'superadmin') {
+                return redirect()->intended('/dashboard/admins');
+            } else {
+                return redirect()->intended('/');
+            }
         }
+
+        return redirect()->back()
+            ->withInput($request->only('email', 'remember_me'))
+            ->withErrors(['email' => 'The provided credentials do not match our records.']);
     }
 
-    public function logout()
+    public function logout(Request $request)
     {
-        Auth::logout();
-        return redirect('/');
-    }
+        Auth::guard('web')->logout();
 
+        $request->session()->invalidate();
+        $request->session()->regenerateToken();
+
+        return redirect()->route('login')->with('success', 'You have been logged out successfully.');
+    }
 }

@@ -1,5 +1,5 @@
 @props([
-    'text' => '⭐ 🎉 📢 Welcome to Royal Ludo! Instant 24x7 UPI withdrawals enabled. Keep playing and winning big! For any assistance, WhatsApp support is active 24x7.'
+    'text' => '⭐ 🎉 📢 Welcome to Fsaludoclub! Play fair and compete for virtual tournament points glory. For any assistance, 24x7 Support Desk is active.'
 ])
 
 <div class="ludo-announcement" role="alert">

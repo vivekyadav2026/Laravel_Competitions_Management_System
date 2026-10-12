@@ -33,6 +33,8 @@ class User extends Authenticatable
         'coins',
         'referral_balance',
         'referral_code',
+        'status',
+        'suspension_reason',
     ];
 
     /**
@@ -135,5 +137,20 @@ class User extends Authenticatable
             'win_rate' => $winRate,
             'points_earned' => (int) $virtualPointsEarned,
         ];
+    }
+
+    public function kycSubmissions()
+    {
+        return $this->hasMany(LudoKycSubmission::class, 'user_id')->latest('id');
+    }
+
+    public function supportTickets()
+    {
+        return $this->hasMany(LudoSupportTicket::class, 'user_id')->latest('id');
+    }
+
+    public function openedDisputes()
+    {
+        return $this->hasMany(LudoDispute::class, 'opened_by_user_id')->latest('id');
     }
 }

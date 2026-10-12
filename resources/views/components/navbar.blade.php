@@ -68,7 +68,10 @@
                 </ul>
 
                 @auth
-                    <a class="btn" href="/logout" style="background-color: #379AE6;color:white">Logout</a>
+                    <form method="POST" action="{{ route('logout') }}" class="d-inline m-0">
+                        @csrf
+                        <button type="submit" class="btn" style="background-color: #379AE6;color:white">Logout</button>
+                    </form>
                 @else
                     <a class="btn" href="/showlogin" style="margin-right: 10px;color:#379AE6">Sign In</a>
                     <a class="btn" href="/showregister" style="background-color: #379AE6;color:white">Sign Up</a>

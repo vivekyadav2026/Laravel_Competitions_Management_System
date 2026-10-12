@@ -1,5 +1,5 @@
 /**
- * ROYAL LUDO TOURNAMENT PLATFORM — CLIENT APPLICATION LOGIC
+ * FSALUDOCLUB TOURNAMENT PLATFORM — CLIENT APPLICATION LOGIC
  * Handles Theme Toggling, Drawer Slideout, Clipboard Copy, and Interactive Dialogs
  */
 
