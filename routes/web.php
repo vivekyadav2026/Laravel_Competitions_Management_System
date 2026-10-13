@@ -30,6 +30,21 @@ Route::get('/sign-up', [AuthController::class, 'showRegister']);
 Route::post('/register', [AuthController::class, 'register']);
 Route::get('/showlogin', [AuthController::class, 'showLogin'])->name('login');
 Route::post('/login', [AuthController::class, 'login'])->name('login.post');
+Route::get('/admin', function () {
+    if (auth()->check() && in_array(auth()->user()->role, ['admin', 'superadmin', 'support_staff', 'moderator'])) {
+        return redirect()->route('admin.ludo.dashboard');
+    }
+    return redirect()->route('admin.login');
+});
+Route::get('/admin/ludo', function () {
+    if (auth()->check() && in_array(auth()->user()->role, ['admin', 'superadmin', 'support_staff', 'moderator'])) {
+        return redirect()->route('admin.ludo.dashboard');
+    }
+    return redirect()->route('admin.login');
+});
+Route::get('/admin/login', [AuthController::class, 'showAdminLogin'])->name('admin.login');
+Route::get('/admin/ludo/login', [AuthController::class, 'showAdminLogin']);
+Route::post('/admin/login', [AuthController::class, 'adminLogin'])->name('admin.login.post');
 Route::post('/logout', [AuthController::class, 'logout'])->name('logout');
 Route::get('/logout', [AuthController::class, 'logout']); // Fallback GET logout
 

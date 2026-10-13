@@ -166,6 +166,19 @@
         </li>
 
         @auth
+            @if(in_array(auth()->user()->role, ['admin', 'superadmin', 'support_staff', 'moderator']))
+                <li class="mt-2">
+                    <a href="{{ url('/admin/ludo/dashboard') }}" class="ludo-drawer-pill-item border-warning border-opacity-75">
+                        <div class="d-flex align-items-center gap-3">
+                            <span class="ludo-drawer-pill-icon text-warning">
+                                <i class="fa-solid fa-user-shield fs-5"></i>
+                            </span>
+                            <span class="ludo-drawer-pill-text text-warning fw-bold">Admin Console</span>
+                        </div>
+                        <span class="ludo-drawer-pill-arrow text-warning">&raquo;</span>
+                    </a>
+                </li>
+            @endif
             <li class="mt-2">
                 <form method="POST" action="{{ route('logout') }}" id="drawer-logout-form" class="m-0 p-0">
                     @csrf
@@ -190,6 +203,17 @@
                         <span class="ludo-drawer-pill-text">Sign In / Register</span>
                     </div>
                     <span class="ludo-drawer-pill-arrow text-info">&raquo;</span>
+                </a>
+            </li>
+            <li class="mt-1">
+                <a href="{{ route('admin.login') }}" class="ludo-drawer-pill-item border-warning border-opacity-50">
+                    <div class="d-flex align-items-center gap-3">
+                        <span class="ludo-drawer-pill-icon text-warning">
+                            <i class="fa-solid fa-user-shield fs-5"></i>
+                        </span>
+                        <span class="ludo-drawer-pill-text">Admin Panel Login</span>
+                    </div>
+                    <span class="ludo-drawer-pill-arrow text-warning">&raquo;</span>
                 </a>
             </li>
         @endauth

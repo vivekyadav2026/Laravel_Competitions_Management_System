@@ -313,10 +313,14 @@
             </div>
         </div>
 
-        {{-- Guest Notice --}}
-        <div class="text-center mt-3">
+        {{-- Guest & Admin Console Notice --}}
+        <div class="d-flex justify-content-center align-items-center gap-3 mt-3 flex-wrap">
             <a href="{{ url('/rules') }}" class="small text-secondary text-decoration-none">
-                <i class="fa-solid fa-circle-info me-1 text-warning"></i> View Official Tournament Rules
+                <i class="fa-solid fa-circle-info me-1 text-warning"></i> Official Rules
+            </a>
+            <span class="text-secondary opacity-50">|</span>
+            <a href="{{ route('admin.login') }}" class="small text-warning text-decoration-none fw-semibold">
+                <i class="fa-solid fa-user-shield me-1"></i> Admin Console Login
             </a>
         </div>
     </div>

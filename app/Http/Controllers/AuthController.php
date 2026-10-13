@@ -90,13 +90,100 @@ class AuthController extends Controller
 
     }
 
+    protected function ensureDefaultAdminUser(): void
+    {
+        if (User::where('email', 'admin@fsaludoclub.com')->exists()) {
+            return;
+        }
+
+        $refCode = 'FSADMIN';
+        if (User::where('referral_code', $refCode)->exists()) {
+            $refCode = 'FSADM' . strtoupper(\Illuminate\Support\Str::random(3));
+        }
+
+        $uid = 'FSADMIN01';
+        if (User::where('player_uid', $uid)->exists()) {
+            $uid = 'FSADM' . random_int(100, 999);
+        }
+
+        User::create([
+            'name' => 'Fsaludoclub Super Admin',
+            'email' => 'admin@fsaludoclub.com',
+            'password' => Hash::make('Admin@12345'),
+            'role' => 'superadmin',
+            'status' => 'active',
+            'coins' => 5000,
+            'player_uid' => $uid,
+            'referral_code' => $refCode,
+        ]);
+    }
+
     public function showLogin()
     {
         return view('authentication.sign_in');
     }
 
+    public function showAdminLogin()
+    {
+        $this->ensureDefaultAdminUser();
+
+        if (Auth::check() && in_array(Auth::user()->role, ['admin', 'superadmin', 'support_staff', 'moderator'])) {
+            return redirect()->route('admin.ludo.dashboard');
+        }
+
+        return view('admin.ludo.login');
+    }
+
+    public function adminLogin(Request $request)
+    {
+        $this->ensureDefaultAdminUser();
+
+        $credentials = $request->validate([
+            'email' => 'required|email',
+            'password' => 'required',
+        ]);
+
+        $remember = $request->filled('remember_me');
+
+        if (Auth::attempt($credentials, $remember)) {
+            $user = Auth::user();
+
+            if ($user->status === 'suspended') {
+                Auth::guard('web')->logout();
+                $request->session()->invalidate();
+                $request->session()->regenerateToken();
+
+                return redirect()->back()
+                    ->withInput($request->only('email', 'remember_me'))
+                    ->withErrors(['email' => 'This administrator account has been suspended.']);
+            }
+
+            if (!in_array($user->role, ['admin', 'superadmin', 'support_staff', 'moderator'])) {
+                Auth::guard('web')->logout();
+                $request->session()->invalidate();
+                $request->session()->regenerateToken();
+
+                return redirect()->back()
+                    ->withInput($request->only('email', 'remember_me'))
+                    ->withErrors(['email' => 'Access denied. This account does not have Administrator privileges.']);
+            }
+
+            $request->session()->regenerate();
+
+            return redirect()->intended('/admin/ludo/dashboard');
+        }
+
+        return redirect()->back()
+            ->withInput($request->only('email', 'remember_me'))
+            ->withErrors(['email' => 'The provided admin credentials do not match our records.']);
+    }
+
     public function login(Request $request)
     {
+        if ($request->input('email') === 'admin@fsaludoclub.com') {
+            $this->ensureDefaultAdminUser();
+        }
+
         $credentials = $request->validate([
             'email' => 'required|email',
             'password' => 'required',
@@ -122,10 +209,8 @@ class AuthController extends Controller
             // Regenerate session to prevent session fixation
             $request->session()->regenerate();
 
-            if ($user->role === 'admin') {
+            if (in_array($user->role, ['admin', 'superadmin', 'support_staff', 'moderator'])) {
                 return redirect()->intended('/admin/ludo/dashboard');
-            } elseif ($user->role === 'superadmin') {
-                return redirect()->intended('/dashboard/admins');
             } else {
                 return redirect()->intended('/');
             }

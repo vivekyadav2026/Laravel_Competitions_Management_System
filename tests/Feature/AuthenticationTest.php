@@ -214,4 +214,24 @@ class AuthenticationTest extends TestCase
         $validResponse->assertSessionHas('success');
         $this->assertTrue(Hash::check('newPassword123', $user->fresh()->password));
     }
+
+    /**
+     * Dedicated Admin Panel login page renders and authenticates admin to /admin/ludo/dashboard.
+     */
+    public function test_admin_panel_login_page_loads_and_authenticates_admin()
+    {
+        $getResponse = $this->get('/admin/login');
+        $getResponse->assertStatus(200);
+        $getResponse->assertSee('Admin Console');
+        $getResponse->assertSee('admin@fsaludoclub.com');
+
+        $postResponse = $this->post('/admin/login', [
+            'email' => 'admin@fsaludoclub.com',
+            'password' => 'Admin@12345',
+        ]);
+
+        $postResponse->assertRedirect('/admin/ludo/dashboard');
+        $this->assertAuthenticated();
+        $this->assertTrue(in_array(auth()->user()->role, ['admin', 'superadmin']));
+    }
 }
