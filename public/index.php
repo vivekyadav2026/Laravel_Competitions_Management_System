@@ -48,6 +48,18 @@ $app = require_once __DIR__.'/../bootstrap/app.php';
 
 $kernel = $app->make(Kernel::class);
 
+// Support seamless routing when accessed via root .htaccess (XAMPP subfolder or cPanel public_html) without /public in the URL
+if (
+    isset($_SERVER['SCRIPT_NAME'], $_SERVER['REQUEST_URI']) &&
+    substr($_SERVER['SCRIPT_NAME'], -17) === '/public/index.php' &&
+    strpos($_SERVER['REQUEST_URI'], '/public') === false
+) {
+    $_SERVER['SCRIPT_NAME'] = substr($_SERVER['SCRIPT_NAME'], 0, -17) . '/index.php';
+    if (isset($_SERVER['PHP_SELF'])) {
+        $_SERVER['PHP_SELF'] = $_SERVER['SCRIPT_NAME'];
+    }
+}
+
 $response = $kernel->handle(
     $request = Request::capture()
 )->send();
