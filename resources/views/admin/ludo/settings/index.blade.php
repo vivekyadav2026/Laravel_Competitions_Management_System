@@ -4,30 +4,42 @@
 @section('page_title', 'Platform System Configurations')
 
 @section('content')
-    <div class="admin-card mb-4" style="max-width: 800px;">
+    <div class="admin-card mb-4" style="max-width: 860px;">
         <h5 class="text-white fw-bold mb-3 border-bottom border-secondary border-opacity-25 pb-2">
-            <i class="fa-solid fa-sliders text-warning me-2"></i> Core Platform Parameters
+            <i class="fa-solid fa-sliders text-warning me-2"></i> Core Platform & Virtual-Points Parameters
         </h5>
 
         <form action="{{ route('admin.ludo.settings.update') }}" method="POST">
             @csrf
 
-            <div class="mb-3">
-                <label class="form-label text-white small fw-bold">Platform Brand Title <span class="text-danger">*</span></label>
-                <input type="text" name="platform_name" class="form-control bg-dark text-light border-secondary small" value="{{ $settings['platform_name'] }}" required maxlength="100">
-                <small class="text-secondary">Official name displayed in player browser titlebars and headers.</small>
+            <div class="row g-3 mb-3">
+                <div class="col-12 col-md-6">
+                    <label class="form-label text-white small fw-bold">Platform Brand Title <span class="text-danger">*</span></label>
+                    <input type="text" name="platform_name" class="form-control bg-dark text-light border-secondary small" value="{{ $settings['platform_name'] }}" required maxlength="100">
+                    <small class="text-secondary">Official name displayed in player browser titlebars and headers.</small>
+                </div>
+                <div class="col-12 col-md-6">
+                    <label class="form-label text-white small fw-bold">Welcome Bonus (New Player Virtual Points)</label>
+                    <input type="number" name="welcome_bonus_points" class="form-control bg-dark text-light border-secondary small" value="{{ $settings['welcome_bonus_points'] ?? 100 }}" min="0" max="10000">
+                    <small class="text-secondary">Non-cash virtual points credited to newly registered accounts.</small>
+                </div>
             </div>
 
             <div class="row g-3 mb-3">
-                <div class="col-12 col-md-6">
-                    <label class="form-label text-white small fw-bold">Match Result Submission Deadline (Minutes) <span class="text-danger">*</span></label>
+                <div class="col-12 col-md-4">
+                    <label class="form-label text-white small fw-bold">Match Result Submission Window (Min) <span class="text-danger">*</span></label>
                     <input type="number" name="submission_window" class="form-control bg-dark text-light border-secondary small" value="{{ $settings['submission_window'] }}" min="5" max="120" required>
-                    <small class="text-secondary">Submissions beyond this window are flagged for manual admin review.</small>
+                    <small class="text-secondary">Submissions after this window are flagged for admin review.</small>
                 </div>
-                <div class="col-12 col-md-6">
-                    <label class="form-label text-white small fw-bold">Referral Commission Rate <span class="text-danger">*</span></label>
+                <div class="col-12 col-md-4">
+                    <label class="form-label text-white small fw-bold">Referral Commission Label <span class="text-danger">*</span></label>
                     <input type="text" name="referral_commission" class="form-control bg-dark text-light border-secondary small" value="{{ $settings['referral_commission'] }}" required>
-                    <small class="text-secondary">Display commission percentage for Refer & Earn.</small>
+                    <small class="text-secondary">Display commission label on Refer & Earn.</small>
+                </div>
+                <div class="col-12 col-md-4">
+                    <label class="form-label text-white small fw-bold">Referral Signup Bonus (Points)</label>
+                    <input type="number" name="referral_reward_points" class="form-control bg-dark text-light border-secondary small" value="{{ $settings['referral_reward_points'] ?? 50 }}" min="0" max="5000">
+                    <small class="text-secondary">Virtual points awarded per eligible referral.</small>
                 </div>
             </div>
 
@@ -54,16 +66,22 @@
             </div>
 
             <div class="row g-3 mb-3">
-                <div class="col-12 col-md-6">
+                <div class="col-12 col-md-4">
                     <label class="form-label text-white small fw-bold">Minimum Battle Entry Points <span class="text-danger">*</span></label>
                     <input type="number" name="minimum_battle_amount" class="form-control bg-dark text-light border-secondary small" value="{{ $settings['minimum_battle_amount'] ?? '50' }}" min="10" max="1000" required>
-                    <small class="text-secondary">Minimum virtual points needed to create a match.</small>
                 </div>
-                <div class="col-12 col-md-6">
+                <div class="col-12 col-md-4">
                     <label class="form-label text-white small fw-bold">KYC Mandatory for Standard Battles</label>
                     <select name="kyc_mandatory" class="form-select bg-dark text-light border-secondary small">
                         <option value="off" {{ $settings['kyc_mandatory'] === 'off' ? 'selected' : '' }}>Off (Optional for basic battles)</option>
-                        <option value="on" {{ $settings['kyc_mandatory'] === 'on' ? 'selected' : '' }}>On (Enforce identity verification before match entry)</option>
+                        <option value="on" {{ $settings['kyc_mandatory'] === 'on' ? 'selected' : '' }}>On (Enforce KYC before match entry)</option>
+                    </select>
+                </div>
+                <div class="col-12 col-md-4">
+                    <label class="form-label text-white small fw-bold">Referral Program Toggle</label>
+                    <select name="referral_enabled" class="form-select bg-dark text-light border-secondary small">
+                        <option value="on" {{ ($settings['referral_enabled'] ?? 'on') === 'on' ? 'selected' : '' }}>On (Enabled)</option>
+                        <option value="off" {{ ($settings['referral_enabled'] ?? 'on') === 'off' ? 'selected' : '' }}>Off (Disabled)</option>
                     </select>
                 </div>
             </div>

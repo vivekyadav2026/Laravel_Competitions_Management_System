@@ -51,35 +51,41 @@ class AuthController extends Controller
                     'player_uid' => 'LUDO' . str_pad($newUser->id, 5, '0', STR_PAD_LEFT),
                 ]);
 
-                // Credit welcome virtual points via authoritative ledger
-                \App\Models\LudoLedgerTransaction::recordAdjustment(
-                    $newUser,
-                    100,
-                    'deposit',
-                    'Welcome registration virtual tournament bonus points',
-                    'successful'
-                );
+                // Credit welcome virtual points via authoritative ledger (configurable by admin, default 100)
+                $welcomeBonus = (int) \App\Models\LudoSetting::get('welcome_bonus_points', 100);
+                if ($welcomeBonus > 0) {
+                    \App\Models\LudoLedgerTransaction::recordAdjustment(
+                        $newUser,
+                        $welcomeBonus,
+                        'deposit',
+                        'Welcome registration virtual tournament bonus points',
+                        'successful'
+                    );
+                }
 
-                // If legitimately referred by an existing user and not self-referral
-                if ($referrer && $referrer->id !== $newUser->id) {
+                // If legitimately referred by an existing user, not self-referral, and referral program is enabled
+                $referralEnabled = \App\Models\LudoSetting::get('referral_enabled', 'on') !== 'off';
+                $rewardPoints = (int) \App\Models\LudoSetting::get('referral_reward_points', 50);
+
+                if ($referrer && $referrer->id !== $newUser->id && $referralEnabled && $rewardPoints > 0) {
                     \App\Models\LudoReferral::create([
                         'referrer_id' => $referrer->id,
                         'referred_user_id' => $newUser->id,
                         'referral_code' => trim($request->referral_code),
                         'status' => 'eligible',
-                        'reward_points' => 50, // 50 virtual reward points
+                        'reward_points' => $rewardPoints,
                         'rewarded_at' => now(),
                     ]);
 
                     // Award virtual points to referrer via authoritative ledger
                     \App\Models\LudoLedgerTransaction::recordAdjustment(
                         $referrer,
-                        50,
+                        $rewardPoints,
                         'referral_bonus',
                         "Referral bonus reward for inviting {$newUser->name} ({$newUser->player_uid})",
                         'successful'
                     );
-                    $referrer->increment('referral_balance', 50.00);
+                    $referrer->increment('referral_balance', (float) $rewardPoints);
                 }
             });
 

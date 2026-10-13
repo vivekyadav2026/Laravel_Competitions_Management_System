@@ -4,6 +4,28 @@
 @section('page_title', 'KYC Compliance & Verification Desk')
 
 @section('content')
+    {{-- KYC Summary Counters --}}
+    <div class="row g-3 mb-4">
+        <div class="col-4">
+            <div class="admin-stat-card">
+                <div class="admin-stat-title">Pending Review Queue</div>
+                <div class="admin-stat-val text-warning">{{ number_format($summary['pending'] ?? 0) }}</div>
+            </div>
+        </div>
+        <div class="col-4">
+            <div class="admin-stat-card">
+                <div class="admin-stat-title">Verified (Approved)</div>
+                <div class="admin-stat-val text-success">{{ number_format($summary['approved'] ?? 0) }}</div>
+            </div>
+        </div>
+        <div class="col-4">
+            <div class="admin-stat-card">
+                <div class="admin-stat-title">Rejected Submissions</div>
+                <div class="admin-stat-val text-danger">{{ number_format($summary['rejected'] ?? 0) }}</div>
+            </div>
+        </div>
+    </div>
+
     <div class="admin-card mb-4">
         {{-- Search & Filter Bar --}}
         <form action="{{ route('admin.ludo.kyc.index') }}" method="GET" class="row g-2 align-items-center mb-3">
@@ -45,8 +67,8 @@
                         <th>Document Type</th>
                         <th>Document ID</th>
                         <th>Protected Documents</th>
-                        <th>Status</th>
-                        <th>Date</th>
+                        <th>Status & Reviewer</th>
+                        <th>Submitted</th>
                         <th>Compliance Review</th>
                     </tr>
                 </thead>
@@ -54,7 +76,9 @@
                     @forelse($submissions as $sub)
                         <tr>
                             <td>
-                                <div class="text-white small fw-bold">{{ $sub->user->name ?? 'Player #' . $sub->user_id }}</div>
+                                <a href="{{ route('admin.ludo.users.show', $sub->user_id) }}" class="text-white small fw-bold text-decoration-none d-block">
+                                    {{ $sub->user->name ?? 'Player #' . $sub->user_id }}
+                                </a>
                                 <div class="text-secondary small">{{ $sub->user->email ?? 'No email' }}</div>
                                 <span class="badge bg-dark border border-secondary text-info" style="font-size: 9px;">
                                     UID: {{ $sub->user->player_uid ?? $sub->user_id }}
@@ -87,8 +111,14 @@
                                     {{ $sub->status }}
                                 </span>
                                 @if($sub->admin_reason)
-                                    <div class="text-secondary small mt-1" style="font-size: 10px; max-width: 150px;">
-                                        {{ Str::limit($sub->admin_reason, 40) }}
+                                    <div class="text-light small mt-1" style="font-size: 10.5px; max-width: 180px;">
+                                        {{ Str::limit($sub->admin_reason, 55) }}
+                                    </div>
+                                @endif
+                                @if($sub->reviewer)
+                                    <div class="text-secondary" style="font-size: 10px;">
+                                        By {{ $sub->reviewer->name }}
+                                        {{ $sub->reviewed_at ? '(' . $sub->reviewed_at->format('d M, h:i A') . ')' : '' }}
                                     </div>
                                 @endif
                             </td>

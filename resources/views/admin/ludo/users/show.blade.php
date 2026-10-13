@@ -52,6 +52,29 @@
                     </div>
                 </div>
 
+                {{-- Match Statistics Summary --}}
+                <div class="row g-2 mt-3 pt-3 border-top border-secondary border-opacity-25 text-center">
+                    <div class="col-6 col-md-3">
+                        <div class="text-secondary small">Matches Played</div>
+                        <div class="text-white fw-bold">{{ $battleStats['total'] ?? 0 }}</div>
+                    </div>
+                    <div class="col-6 col-md-3">
+                        <div class="text-secondary small">Won / Lost</div>
+                        <div class="fw-bold">
+                            <span class="text-success">{{ $battleStats['won'] ?? 0 }}W</span> /
+                            <span class="text-danger">{{ $battleStats['lost'] ?? 0 }}L</span>
+                        </div>
+                    </div>
+                    <div class="col-6 col-md-3">
+                        <div class="text-secondary small">Win Rate</div>
+                        <div class="text-info fw-bold">{{ $battleStats['win_rate'] ?? 0 }}%</div>
+                    </div>
+                    <div class="col-6 col-md-3">
+                        <div class="text-secondary small">Virtual Prizes Won</div>
+                        <div class="text-warning fw-bold">🪙 {{ number_format($battleStats['points_earned'] ?? 0) }}</div>
+                    </div>
+                </div>
+
                 @if($user->status === 'suspended' && $user->suspension_reason)
                     <div class="mt-3 p-2 rounded-2 bg-danger bg-opacity-25 border border-danger text-danger small">
                         <strong>Suspension Reason:</strong> {{ $user->suspension_reason }}
@@ -88,17 +111,119 @@
                     <div class="mb-2">
                         <label class="form-label text-secondary small fw-bold mb-1">Assign Permitted Role</label>
                         <select name="role" class="form-select form-select-sm bg-dark text-light border-secondary">
-                            <option value="normal" {{ $user->role === 'normal' ? 'selected' : '' }}>Player (Normal)</option>
+                            <option value="normal" {{ in_array($user->role, ['normal', 'user']) ? 'selected' : '' }}>Player (Normal)</option>
                             <option value="support_staff" {{ $user->role === 'support_staff' ? 'selected' : '' }}>Support Staff</option>
                             <option value="moderator" {{ $user->role === 'moderator' ? 'selected' : '' }}>Moderator</option>
                             <option value="admin" {{ $user->role === 'admin' ? 'selected' : '' }}>Admin</option>
-                            <option value="superadmin" {{ $user->role === 'superadmin' ? 'selected' : '' }}>Superadmin</option>
+                            @if(auth()->user() && auth()->user()->role === 'superadmin')
+                                <option value="superadmin" {{ $user->role === 'superadmin' ? 'selected' : '' }}>Superadmin</option>
+                            @endif
                         </select>
                     </div>
                     <button type="submit" class="btn btn-sm btn-outline-info w-100 rounded-pill">
                         Update Role
                     </button>
                 </form>
+            </div>
+        </div>
+    </div>
+
+    {{-- Two Column: Permitted Profile Corrections & Referral Dossier --}}
+    <div class="row g-3 mb-4">
+        {{-- Permitted Profile Corrections --}}
+        <div class="col-12 col-lg-6">
+            <div class="admin-card h-100">
+                <h6 class="text-white fw-bold mb-3 border-bottom border-secondary border-opacity-25 pb-2">
+                    <i class="fa-solid fa-user-pen text-info me-1"></i> Permitted Profile Corrections (Audited)
+                </h6>
+                <form action="{{ route('admin.ludo.users.profile', $user->id) }}" method="POST" class="row g-2">
+                    @csrf
+                    <div class="col-12 col-md-6">
+                        <label class="form-label text-secondary small fw-bold mb-1">Display Name</label>
+                        <input type="text" name="name" class="form-control form-control-sm bg-dark text-light border-secondary" value="{{ $user->name }}" required>
+                    </div>
+                    <div class="col-12 col-md-6">
+                        <label class="form-label text-secondary small fw-bold mb-1">Phone Number</label>
+                        <input type="text" name="phone" class="form-control form-control-sm bg-dark text-light border-secondary" value="{{ $user->phone }}">
+                    </div>
+                    <div class="col-12">
+                        <label class="form-label text-secondary small fw-bold mb-1">Email Address</label>
+                        <input type="email" name="email" class="form-control form-control-sm bg-dark text-light border-secondary" value="{{ $user->email }}" required>
+                    </div>
+                    <div class="col-12">
+                        <label class="form-label text-secondary small fw-bold mb-1">Mandatory Audit Reason <span class="text-danger">*</span></label>
+                        <input type="text" name="reason" class="form-control form-control-sm bg-dark text-light border-secondary" placeholder="Explain why profile details are being corrected..." required minlength="5">
+                    </div>
+                    <div class="col-12 mt-2">
+                        <button type="submit" class="btn btn-sm btn-warning rounded-pill px-4 fw-bold">
+                            Save Profile Correction
+                        </button>
+                    </div>
+                </form>
+            </div>
+        </div>
+
+        {{-- Referral Information --}}
+        <div class="col-12 col-lg-6">
+            <div class="admin-card h-100">
+                <div class="d-flex align-items-center justify-content-between mb-3 border-bottom border-secondary border-opacity-25 pb-2">
+                    <h6 class="text-white fw-bold mb-0">
+                        <i class="fa-solid fa-gift text-danger me-1"></i> Referral Attribution & Invites
+                    </h6>
+                    <span class="badge bg-dark border border-secondary text-warning font-monospace">
+                        Code: {{ $user->referral_code ?? 'None' }}
+                    </span>
+                </div>
+
+                <div class="row g-2 mb-3">
+                    <div class="col-6">
+                        <div class="text-secondary small">Invited By (Referrer)</div>
+                        <div class="text-white small fw-bold">
+                            @if($user->referrer)
+                                <a href="{{ route('admin.ludo.users.show', $user->referrer->id) }}" class="text-info text-decoration-none">
+                                    {{ $user->referrer->name }} ({{ $user->referrer->player_uid }})
+                                </a>
+                            @else
+                                Organic Registration
+                            @endif
+                        </div>
+                    </div>
+                    <div class="col-6">
+                        <div class="text-secondary small">Referral Bonus Earned</div>
+                        <div class="text-warning small fw-bold">🪙 {{ number_format($user->referral_balance ?? 0) }} Points ({{ $user->referrals->count() }} Invites)</div>
+                    </div>
+                </div>
+
+                @if($user->referrals->count() > 0)
+                    <div class="table-responsive" style="max-height: 150px; overflow-y: auto;">
+                        <table class="table admin-table">
+                            <thead>
+                                <tr>
+                                    <th>Referred Player</th>
+                                    <th>Reward</th>
+                                    <th>Status</th>
+                                    <th>Date</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                @foreach($user->referrals as $ref)
+                                    <tr>
+                                        <td class="small">
+                                            <a href="{{ route('admin.ludo.users.show', $ref->referred_user_id) }}" class="text-info text-decoration-none">
+                                                {{ $ref->referredUser->name ?? 'User #' . $ref->referred_user_id }}
+                                            </a>
+                                        </td>
+                                        <td class="text-warning small fw-bold">+{{ $ref->reward_points }} 🪙</td>
+                                        <td><span class="badge bg-success" style="font-size: 9px;">{{ strtoupper($ref->status) }}</span></td>
+                                        <td class="text-secondary small">{{ $ref->created_at->format('d M Y') }}</td>
+                                    </tr>
+                                @endforeach
+                            </tbody>
+                        </table>
+                    </div>
+                @else
+                    <div class="text-center text-secondary py-2 small">No players invited by this user yet.</div>
+                @endif
             </div>
         </div>
     </div>

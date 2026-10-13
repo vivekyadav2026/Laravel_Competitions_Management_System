@@ -1,15 +1,20 @@
 @extends('layouts.admin')
 
 @section('title', 'Tournament Workbench — ' . $tournament->title)
-@section('page_title', 'Tournament Workbench')
+@section('page_title', 'Tournament Workbench: ' . $tournament->title)
 
 @section('content')
-    <div class="mb-3 d-flex align-items-center justify-content-between">
+    <div class="mb-3 d-flex align-items-center justify-content-between flex-wrap gap-2">
         <a href="{{ route('admin.ludo.tournaments.index') }}" class="btn btn-sm btn-outline-secondary rounded-pill px-3">
             &larr; Back to Tournaments
         </a>
-        <div class="d-flex gap-2">
-            <span class="badge {{ $tournament->status === 'published' ? 'bg-success' : ($tournament->status === 'running' ? 'bg-primary' : ($tournament->status === 'completed' ? 'bg-warning text-dark' : 'bg-secondary')) }} fs-6">
+        <div class="d-flex align-items-center gap-2">
+            @if(!in_array($tournament->status, ['completed', 'cancelled']))
+                <button type="button" class="btn btn-sm btn-outline-warning rounded-pill px-3" data-bs-toggle="modal" data-bs-target="#editTournamentModal">
+                    <i class="fa-solid fa-pen-to-square me-1"></i> Edit Tournament
+                </button>
+            @endif
+            <span class="badge {{ $tournament->status === 'published' ? 'bg-success' : ($tournament->status === 'running' ? 'bg-primary' : ($tournament->status === 'completed' ? 'bg-warning text-dark' : ($tournament->status === 'cancelled' ? 'bg-danger' : 'bg-secondary'))) }} fs-6">
                 {{ strtoupper($tournament->status) }}
             </span>
         </div>
@@ -17,7 +22,7 @@
 
     {{-- Overview & Action Cards --}}
     <div class="row g-3 mb-4">
-        <div class="col-12 col-lg-8">
+        <div class="col-12 col-lg-7">
             <div class="admin-card h-100">
                 <h5 class="text-white fw-bold mb-1">{{ $tournament->title }}</h5>
                 <span class="text-secondary small font-monospace">UID: {{ $tournament->tournament_uid }}</span>
@@ -37,49 +42,104 @@
                     </div>
                     <div class="col-6 col-md-3">
                         <div class="text-secondary small">Starts At</div>
-                        <div class="text-light fw-bold">{{ $tournament->starts_at ? $tournament->starts_at->format('d M, h:i A') : 'TBD' }}</div>
+                        <div class="text-light fw-bold small">{{ $tournament->starts_at ? $tournament->starts_at->format('d M Y, h:i A') : 'TBD' }}</div>
+                    </div>
+                </div>
+
+                <div class="row g-3 mt-1">
+                    <div class="col-6">
+                        <div class="text-secondary small">Registration Closes At</div>
+                        <div class="text-warning small fw-semibold">
+                            {{ $tournament->registration_closes_at ? $tournament->registration_closes_at->format('d M Y, h:i A') : 'Open until start' }}
+                        </div>
+                    </div>
+                    <div class="col-6">
+                        <div class="text-secondary small">Tournament Champion</div>
+                        <div class="text-success small fw-bold">
+                            {{ $tournament->winner ? $tournament->winner->name : 'Not Yet Crowned' }}
+                        </div>
                     </div>
                 </div>
 
                 @if($tournament->description)
                     <div class="mt-3 p-2 rounded-2 text-light small" style="background: rgba(0,0,0,0.3);">
-                        {{ $tournament->description }}
+                        <strong>Description:</strong> {{ $tournament->description }}
+                    </div>
+                @endif
+
+                @if($tournament->rules_text)
+                    <div class="mt-2 p-2 rounded-2 text-secondary small" style="background: rgba(0,0,0,0.2);">
+                        <strong>Tournament Rules:</strong> {{ $tournament->rules_text }}
                     </div>
                 @endif
             </div>
         </div>
 
-        <div class="col-12 col-lg-4">
+        <div class="col-12 col-lg-5">
             <div class="admin-card h-100">
                 <h6 class="text-white fw-bold mb-3 border-bottom border-secondary border-opacity-25 pb-2">
-                    <i class="fa-solid fa-gear text-warning me-1"></i> Stage Transitions
+                    <i class="fa-solid fa-gear text-warning me-1"></i> Stage Transitions & Controls
                 </h6>
 
-                {{-- Status Change Form --}}
-                <form action="{{ route('admin.ludo.tournaments.status', $tournament->id) }}" method="POST" class="mb-3">
-                    @csrf
-                    <div class="mb-2">
-                        <label class="form-label text-secondary small fw-bold mb-1">Update Tournament Status</label>
-                        <select name="status" class="form-select form-select-sm bg-dark text-light border-secondary">
-                            <option value="draft" {{ $tournament->status === 'draft' ? 'selected' : '' }}>Draft (Private)</option>
-                            <option value="published" {{ $tournament->status === 'published' ? 'selected' : '' }}>Published (Registration Open)</option>
-                            <option value="running" {{ $tournament->status === 'running' ? 'selected' : '' }}>Running (Live Matches)</option>
-                            <option value="completed" {{ $tournament->status === 'completed' ? 'selected' : '' }}>Completed (Finalized)</option>
-                            <option value="cancelled" {{ $tournament->status === 'cancelled' ? 'selected' : '' }}>Cancelled</option>
-                        </select>
-                    </div>
-                    <button type="submit" class="btn btn-sm btn-info w-100 rounded-pill fw-bold">
-                        Apply Status Transition
-                    </button>
-                </form>
+                @if(!in_array($tournament->status, ['completed', 'cancelled']))
+                    {{-- Status Change Form --}}
+                    <form action="{{ route('admin.ludo.tournaments.status', $tournament->id) }}" method="POST" class="mb-3">
+                        @csrf
+                        <div class="mb-2">
+                            <label class="form-label text-secondary small fw-bold mb-1">Update Tournament Status</label>
+                            <select name="status" class="form-select form-select-sm bg-dark text-light border-secondary">
+                                <option value="draft" {{ $tournament->status === 'draft' ? 'selected' : '' }}>Draft (Private)</option>
+                                <option value="published" {{ $tournament->status === 'published' ? 'selected' : '' }}>Published (Registration Open)</option>
+                                <option value="running" {{ $tournament->status === 'running' ? 'selected' : '' }}>Running (Live Matches)</option>
+                                <option value="completed" {{ $tournament->status === 'completed' ? 'selected' : '' }}>Completed (Finalized)</option>
+                                <option value="cancelled" {{ $tournament->status === 'cancelled' ? 'selected' : '' }}>Cancelled (Refund All Participants)</option>
+                            </select>
+                        </div>
 
-                {{-- Generate Bracket Button --}}
-                <form action="{{ route('admin.ludo.tournaments.bracket', $tournament->id) }}" method="POST">
-                    @csrf
-                    <button type="submit" class="btn btn-sm btn-outline-warning w-100 rounded-pill" onclick="return confirm('Generate or overwrite tournament brackets with current registered players?')">
-                        <i class="fa-solid fa-sitemap me-1"></i> Generate Elimination Bracket
-                    </button>
-                </form>
+                        @if($tournament->participants->count() > 0)
+                            <div class="mb-2">
+                                <label class="form-label text-secondary small fw-bold mb-1">Select Champion (When Marking Completed)</label>
+                                <select name="winner_user_id" class="form-select form-select-sm bg-dark text-light border-secondary">
+                                    <option value="">-- Optional: Select Winner for Prize Payout --</option>
+                                    @foreach($tournament->participants as $part)
+                                        <option value="{{ $part->user_id }}">{{ $part->user->name ?? 'Player #' . $part->user_id }} (Seed #{{ $part->seed ?? $loop->iteration }})</option>
+                                    @endforeach
+                                </select>
+                            </div>
+                        @endif
+
+                        <div class="mb-2">
+                            <label class="form-label text-secondary small fw-bold mb-1">Reason / Administrative Note (Mandatory for Cancel)</label>
+                            <input type="text" name="reason" class="form-control form-control-sm bg-dark text-light border-secondary" placeholder="Enter reason for status transition or cancellation...">
+                        </div>
+
+                        <button type="submit" class="btn btn-sm btn-info w-100 rounded-pill fw-bold" onclick="return confirm('Apply this tournament status transition?')">
+                            Apply Status Transition
+                        </button>
+                    </form>
+
+                    <div class="d-flex gap-2">
+                        {{-- Close Registration Button --}}
+                        <form action="{{ route('admin.ludo.tournaments.closeRegistration', $tournament->id) }}" method="POST" class="flex-grow-1">
+                            @csrf
+                            <button type="submit" class="btn btn-sm btn-outline-secondary w-100 rounded-pill">
+                                <i class="fa-solid fa-lock me-1"></i> Close Registration
+                            </button>
+                        </form>
+
+                        {{-- Generate Bracket Button --}}
+                        <form action="{{ route('admin.ludo.tournaments.bracket', $tournament->id) }}" method="POST" class="flex-grow-1">
+                            @csrf
+                            <button type="submit" class="btn btn-sm btn-outline-warning w-100 rounded-pill" onclick="return confirm('Generate or overwrite tournament brackets with current registered players?')">
+                                <i class="fa-solid fa-sitemap me-1"></i> Generate Bracket
+                            </button>
+                        </form>
+                    </div>
+                @else
+                    <div class="alert alert-secondary bg-dark text-secondary small mb-0">
+                        This tournament is <strong>{{ strtoupper($tournament->status) }}</strong> ({{ $tournament->completed_at ? $tournament->completed_at->format('d M Y, h:i A') : '' }}). Historical records and brackets are locked for audit integrity.
+                    </div>
+                @endif
             </div>
         </div>
     </div>
@@ -122,13 +182,13 @@
         @else
             <div class="text-center py-4 text-secondary small">
                 <i class="fa-solid fa-sitemap fs-2 text-secondary opacity-50 mb-2 d-block"></i>
-                No elimination bracket generated yet. Once participants have registered, click "Generate Elimination Bracket" above.
+                No elimination bracket generated yet. Once participants have registered, click "Generate Bracket" above.
             </div>
         @endif
     </div>
 
     {{-- Registered Participants List --}}
-    <div class="admin-card">
+    <div class="admin-card mb-4">
         <h6 class="text-white fw-bold mb-3 border-bottom border-secondary border-opacity-25 pb-2">
             <i class="fa-solid fa-users text-primary me-1"></i> Registered Participants ({{ $tournament->participants->count() }})
         </h6>
@@ -149,7 +209,11 @@
                     @forelse($tournament->participants as $p)
                         <tr>
                             <td><span class="badge bg-dark border border-secondary text-info">#{{ $p->seed ?? $loop->iteration }}</span></td>
-                            <td class="fw-bold text-white">{{ $p->user->name ?? 'Player' }}</td>
+                            <td class="fw-bold text-white">
+                                <a href="{{ route('admin.ludo.users.show', $p->user_id) }}" class="text-white text-decoration-none">
+                                    {{ $p->user->name ?? 'Player' }}
+                                </a>
+                            </td>
                             <td class="text-secondary small">{{ $p->user->email ?? 'N/A' }}</td>
                             <td>Round {{ $p->current_round }}</td>
                             <td><span class="badge {{ $p->status === 'winner' ? 'bg-success' : ($p->status === 'eliminated' ? 'bg-danger' : 'bg-primary') }}">{{ strtoupper($p->status) }}</span></td>
@@ -164,4 +228,73 @@
             </table>
         </div>
     </div>
+
+    {{-- Edit Tournament Modal --}}
+    @if(!in_array($tournament->status, ['completed', 'cancelled']))
+        <div class="modal fade" id="editTournamentModal" tabindex="-1" aria-hidden="true">
+            <div class="modal-dialog modal-dialog-centered modal-lg">
+                <div class="modal-content" style="background: #141f38; border: 1px solid #ffd700; color: #fff;">
+                    <div class="modal-header border-secondary border-opacity-25">
+                        <h5 class="modal-title fw-bold fs-6">
+                            <i class="fa-solid fa-pen-to-square text-warning me-1"></i> Edit Tournament Configuration
+                        </h5>
+                        <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+                    </div>
+                    <form action="{{ route('admin.ludo.tournaments.update', $tournament->id) }}" method="POST">
+                        @csrf
+                        <div class="modal-body text-secondary small py-3">
+                            <div class="mb-3">
+                                <label class="form-label text-light fw-bold small">Tournament Title <span class="text-danger">*</span></label>
+                                <input type="text" name="title" class="form-control bg-dark text-light border-secondary small" value="{{ $tournament->title }}" required maxlength="150">
+                            </div>
+
+                            <div class="row g-2 mb-3">
+                                <div class="col-6 col-md-4">
+                                    <label class="form-label text-light fw-bold small">Entry Points <span class="text-danger">*</span></label>
+                                    <input type="number" name="entry_fee" class="form-control bg-dark text-light border-secondary small" value="{{ $tournament->entry_fee }}" min="0" required {{ $tournament->participants->count() > 0 ? 'readonly' : '' }}>
+                                </div>
+                                <div class="col-6 col-md-4">
+                                    <label class="form-label text-light fw-bold small">Prize Pool (Virtual Points) <span class="text-danger">*</span></label>
+                                    <input type="number" name="prize_pool" class="form-control bg-dark text-light border-secondary small" value="{{ $tournament->prize_pool }}" min="50" required>
+                                </div>
+                                <div class="col-12 col-md-4">
+                                    <label class="form-label text-light fw-bold small">Capacity (Max Players)</label>
+                                    <select name="max_players" class="form-select bg-dark text-light border-secondary small">
+                                        @foreach([4, 8, 16, 32, 64] as $cap)
+                                            <option value="{{ $cap }}" {{ (int)$tournament->max_players === $cap ? 'selected' : '' }}>{{ $cap }} Players</option>
+                                        @endforeach
+                                    </select>
+                                </div>
+                            </div>
+
+                            <div class="row g-2 mb-3">
+                                <div class="col-12 col-md-6">
+                                    <label class="form-label text-light fw-bold small">Starts At <span class="text-danger">*</span></label>
+                                    <input type="datetime-local" name="starts_at" class="form-control bg-dark text-light border-secondary small" value="{{ $tournament->starts_at ? $tournament->starts_at->format('Y-m-d\TH:i') : '' }}" required>
+                                </div>
+                                <div class="col-12 col-md-6">
+                                    <label class="form-label text-light fw-bold small">Registration Closes At</label>
+                                    <input type="datetime-local" name="registration_closes_at" class="form-control bg-dark text-light border-secondary small" value="{{ $tournament->registration_closes_at ? $tournament->registration_closes_at->format('Y-m-d\TH:i') : '' }}">
+                                </div>
+                            </div>
+
+                            <div class="mb-3">
+                                <label class="form-label text-light fw-bold small">Description</label>
+                                <textarea name="description" rows="2" class="form-control bg-dark text-light border-secondary small">{{ $tournament->description }}</textarea>
+                            </div>
+
+                            <div class="mb-2">
+                                <label class="form-label text-light fw-bold small">Specific Tournament Rules</label>
+                                <textarea name="rules_text" rows="2" class="form-control bg-dark text-light border-secondary small">{{ $tournament->rules_text }}</textarea>
+                            </div>
+                        </div>
+                        <div class="modal-footer border-secondary border-opacity-25 pt-2">
+                            <button type="button" class="btn btn-sm btn-outline-secondary rounded-pill" data-bs-dismiss="modal">Cancel</button>
+                            <button type="submit" class="btn btn-sm btn-warning rounded-pill px-4 fw-bold">Save Changes</button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+    @endif
 @endsection

@@ -329,6 +329,24 @@
                 </a>
             </li>
             <li>
+                <a href="{{ route('admin.ludo.referrals.index') }}" class="admin-nav-link {{ ($activeSection ?? '') === 'referrals' ? 'active' : '' }}">
+                    <i class="fa-solid fa-gift text-danger"></i>
+                    <span>Referral Management</span>
+                </a>
+            </li>
+            <li>
+                <a href="{{ route('admin.ludo.reports.index') }}" class="admin-nav-link {{ ($activeSection ?? '') === 'reports' ? 'active' : '' }}">
+                    <i class="fa-solid fa-chart-pie text-success"></i>
+                    <span>Reports & CSV Exports</span>
+                </a>
+            </li>
+            <li>
+                <a href="{{ route('admin.ludo.audit.index') }}" class="admin-nav-link {{ ($activeSection ?? '') === 'audit' ? 'active' : '' }}">
+                    <i class="fa-solid fa-clipboard-list text-info"></i>
+                    <span>Audit Logs Trail</span>
+                </a>
+            </li>
+            <li>
                 <a href="{{ route('admin.ludo.content.index') }}" class="admin-nav-link {{ ($activeSection ?? '') === 'content' ? 'active' : '' }}">
                     <i class="fa-solid fa-newspaper text-info"></i>
                     <span>CMS & Rules</span>

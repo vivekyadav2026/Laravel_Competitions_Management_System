@@ -37,12 +37,16 @@ class LudoAdminRoleMiddleware
             return $next($request);
         }
 
-        // Specific sub-role checks
-        if ($permissionGroup === 'support' && in_array($role, ['support_staff', 'moderator'])) {
-            return $next($request);
+        // Strict admin-only group
+        if ($permissionGroup === 'strict') {
+            abort(403, 'Unauthorized: Senior Administrator privileges required.');
         }
 
-        if ($permissionGroup === 'moderator' && $role === 'moderator') {
+        // Specific or general staff access for support_staff and moderator
+        if (in_array($role, ['support_staff', 'moderator'])) {
+            if ($permissionGroup === 'moderator' && $role !== 'moderator') {
+                abort(403, 'Unauthorized: Moderator privileges required.');
+            }
             return $next($request);
         }
 

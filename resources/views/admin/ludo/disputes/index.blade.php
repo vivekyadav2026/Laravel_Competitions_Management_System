@@ -77,7 +77,7 @@
                                 @endif
                             </td>
                             <td>
-                                <a href="{{ route('ludo.dispute.view', $d->id) }}" class="btn btn-sm btn-outline-info rounded-pill py-0 px-2" style="font-size: 11px;">
+                                <a href="{{ route('admin.ludo.disputes.show', $d->id) }}" class="btn btn-sm btn-outline-info rounded-pill py-0 px-2" style="font-size: 11px;">
                                     Dossier &rarr;
                                 </a>
                             </td>

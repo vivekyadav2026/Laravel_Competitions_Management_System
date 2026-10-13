@@ -7,10 +7,10 @@
     <div class="admin-card mb-4">
         {{-- Search & Filter Bar --}}
         <form action="{{ route('admin.ludo.matches.index') }}" method="GET" class="row g-2 align-items-center mb-3">
-            <div class="col-12 col-md-4">
+            <div class="col-12 col-md-3">
                 <div class="input-group input-group-sm">
                     <span class="input-group-text bg-dark text-secondary border-secondary"><i class="fa-solid fa-search"></i></span>
-                    <input type="text" name="search" class="form-control bg-dark text-light border-secondary" placeholder="Search by Battle UID, room code, player..." value="{{ request('search') }}">
+                    <input type="text" name="search" class="form-control bg-dark text-light border-secondary" placeholder="Battle UID, room code, player..." value="{{ request('search') }}">
                 </div>
             </div>
             <div class="col-6 col-md-2">
@@ -31,7 +31,13 @@
                     <option value="verified" {{ request('review_status') === 'verified' ? 'selected' : '' }}>Verified</option>
                 </select>
             </div>
-            <div class="col-6 col-md-2 d-flex gap-2">
+            <div class="col-6 col-md-2">
+                <input type="date" name="from" class="form-control form-control-sm bg-dark text-light border-secondary" value="{{ request('from') }}" title="From Date">
+            </div>
+            <div class="col-6 col-md-1">
+                <input type="date" name="to" class="form-control form-control-sm bg-dark text-light border-secondary" value="{{ request('to') }}" title="To Date">
+            </div>
+            <div class="col-12 col-md-2 d-flex gap-2">
                 <button type="submit" class="btn btn-sm btn-info rounded-pill px-3 fw-bold flex-grow-1">Filter</button>
                 <a href="{{ route('admin.ludo.matches.index') }}" class="btn btn-sm btn-outline-secondary rounded-pill px-2">Reset</a>
             </div>

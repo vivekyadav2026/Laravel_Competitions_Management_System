@@ -114,6 +114,7 @@ Route::middleware(['auth', 'ludo.admin'])->prefix('admin/ludo')->name('admin.lud
     // 2. User Management
     Route::get('/users', [LudoAdminController::class, 'users'])->name('users.index');
     Route::get('/users/{id}', [LudoAdminController::class, 'userShow'])->name('users.show');
+    Route::post('/users/{id}/profile', [LudoAdminController::class, 'userUpdateProfile'])->name('users.profile');
     Route::post('/users/{id}/status', [LudoAdminController::class, 'userToggleStatus'])->name('users.status');
     Route::post('/users/{id}/role', [LudoAdminController::class, 'userUpdateRole'])->name('users.role');
 
@@ -121,34 +122,50 @@ Route::middleware(['auth', 'ludo.admin'])->prefix('admin/ludo')->name('admin.lud
     Route::get('/tournaments', [LudoAdminController::class, 'tournaments'])->name('tournaments.index');
     Route::post('/tournaments', [LudoAdminController::class, 'tournamentStore'])->name('tournaments.store');
     Route::get('/tournaments/{id}', [LudoAdminController::class, 'tournamentShow'])->name('tournaments.show');
+    Route::post('/tournaments/{id}/update', [LudoAdminController::class, 'tournamentUpdate'])->name('tournaments.update');
     Route::post('/tournaments/{id}/status', [LudoAdminController::class, 'tournamentUpdateStatus'])->name('tournaments.status');
+    Route::post('/tournaments/{id}/close-registration', [LudoAdminController::class, 'tournamentCloseRegistration'])->name('tournaments.closeRegistration');
     Route::post('/tournaments/{id}/generate-bracket', [LudoAdminController::class, 'tournamentGenerateBracket'])->name('tournaments.bracket');
 
-    // 4. Match Management
+    // 4. Match & Result Management
     Route::get('/matches', [LudoAdminController::class, 'matches'])->name('matches.index');
     Route::get('/matches/{id}', [LudoAdminController::class, 'matchShow'])->name('matches.show');
     Route::post('/matches/{id}/cancel', [LudoAdminController::class, 'matchCancel'])->name('matches.cancel');
+    Route::post('/matches/{id}/resolve', [LudoAdminController::class, 'matchResolveResult'])->name('matches.resolve');
 
     // 5. Dispute Management
     Route::get('/disputes', [LudoAdminController::class, 'disputes'])->name('disputes.index');
+    Route::get('/disputes/{id}', [LudoAdminController::class, 'disputeShow'])->name('disputes.show');
 
     // 6. Virtual Points Ledger & Adjustments
     Route::get('/ledger', [LudoAdminController::class, 'ledger'])->name('ledger.index');
     Route::post('/ledger/adjust', [LudoAdminController::class, 'ledgerAdjust'])->name('ledger.adjust');
 
-    // 7. Content Management (Announcements, Bilingual Rules, FAQ)
+    // 7. Referral Management
+    Route::get('/referrals', [LudoAdminController::class, 'referrals'])->name('referrals.index');
+    Route::post('/referrals/settings', [LudoAdminController::class, 'referralSettingsUpdate'])->name('referrals.settings');
+    Route::post('/referrals/{id}/status', [LudoAdminController::class, 'referralUpdateStatus'])->name('referrals.status');
+
+    // 8. Content Management (Announcements, Bilingual Rules, FAQ)
     Route::get('/content', [LudoAdminController::class, 'content'])->name('content.index');
     Route::post('/content', [LudoAdminController::class, 'contentUpdate'])->name('content.update');
 
-    // 8. Platform Settings & Maintenance
+    // 9. Platform Settings & Maintenance
     Route::get('/settings', [LudoAdminController::class, 'settings'])->name('settings.index');
     Route::post('/settings', [LudoAdminController::class, 'settingsUpdate'])->name('settings.update');
 
-    // 9. Support Tickets Desk
+    // 10. Support Tickets Desk
     Route::get('/tickets', [LudoAdminController::class, 'tickets'])->name('tickets.index');
+    Route::get('/tickets/{id}', [LudoAdminController::class, 'ticketShow'])->name('tickets.show');
+    Route::post('/tickets/{id}/status', [LudoAdminController::class, 'ticketUpdateStatus'])->name('tickets.status');
 
-    // 10. KYC Verifications Desk
+    // 11. KYC Verifications Desk
     Route::get('/kyc', [LudoAdminController::class, 'kycIndex'])->name('kyc.index');
+
+    // 12. Reports, CSV Exports & Audit Logs
+    Route::get('/reports', [LudoAdminController::class, 'reports'])->name('reports.index');
+    Route::get('/reports/export/{type}', [LudoAdminController::class, 'reportsExportCsv'])->name('reports.export');
+    Route::get('/audit-logs', [LudoAdminController::class, 'auditLogs'])->name('audit.index');
 });
 
 // Legacy University Competitions home route

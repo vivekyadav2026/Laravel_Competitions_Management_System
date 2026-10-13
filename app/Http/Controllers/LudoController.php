@@ -788,8 +788,8 @@ class LudoController extends Controller
 
         $ticket = LudoSupportTicket::with(['user', 'messages.user'])->findOrFail($id);
 
-        // Security check: only ticket creator or admin can view
-        if ($ticket->user_id !== $user->id && $user->role !== 'admin' && $user->role !== 'superadmin') {
+        // Security check: only ticket creator or authorized staff can view
+        if ($ticket->user_id !== $user->id && !in_array($user->role, ['admin', 'superadmin', 'support_staff', 'moderator'])) {
             abort(403, 'Unauthorized access to support ticket.');
         }
 
@@ -813,7 +813,7 @@ class LudoController extends Controller
 
         $ticket = LudoSupportTicket::findOrFail($id);
 
-        if ($ticket->user_id !== $user->id && $user->role !== 'admin' && $user->role !== 'superadmin') {
+        if ($ticket->user_id !== $user->id && !in_array($user->role, ['admin', 'superadmin', 'support_staff', 'moderator'])) {
             abort(403, 'Unauthorized access to reply.');
         }
 
@@ -827,7 +827,7 @@ class LudoController extends Controller
             $attachmentPath = $request->file('attachment')->store('private/support_evidence', 'local');
         }
 
-        $isAdmin = in_array($user->role, ['admin', 'superadmin']);
+        $isAdmin = in_array($user->role, ['admin', 'superadmin', 'support_staff', 'moderator']);
 
         LudoTicketMessage::create([
             'ticket_id' => $ticket->id,
@@ -846,6 +846,7 @@ class LudoController extends Controller
                 "support",
                 url('/support/ticket/' . $ticket->id)
             ));
+            LudoAdminAuditLog::log('ticket_replied', "Replied to support ticket {$ticket->ticket_uid}", 'LudoSupportTicket', $ticket->id);
         } else {
             $ticket->update(['status' => 'in_progress']);
         }
@@ -864,7 +865,7 @@ class LudoController extends Controller
         }
 
         $ticket = LudoSupportTicket::findOrFail($id);
-        if ($ticket->user_id !== $user->id && !in_array($user->role, ['admin', 'superadmin'])) {
+        if ($ticket->user_id !== $user->id && !in_array($user->role, ['admin', 'superadmin', 'support_staff', 'moderator'])) {
             abort(403, 'Unauthorized to view this attachment.');
         }
 
@@ -923,7 +924,7 @@ class LudoController extends Controller
         }
 
         $kyc = LudoKycSubmission::findOrFail($id);
-        if ($kyc->user_id !== $user->id && !in_array($user->role, ['admin', 'superadmin'])) {
+        if ($kyc->user_id !== $user->id && !in_array($user->role, ['admin', 'superadmin', 'moderator'])) {
             abort(403, 'Unauthorized access to confidential KYC document.');
         }
 
@@ -1199,7 +1200,7 @@ class LudoController extends Controller
         $dispute = LudoDispute::with(['battle.creator', 'battle.joiner', 'openedBy', 'againstUser', 'resolver', 'evidences.user'])->findOrFail($id);
 
         $isParticipant = ($dispute->opened_by_user_id === $user->id || $dispute->against_user_id === $user->id);
-        $isAdmin = in_array($user->role, ['admin', 'superadmin']);
+        $isAdmin = in_array($user->role, ['admin', 'superadmin', 'moderator']);
 
         if (!$isParticipant && !$isAdmin) {
             abort(403, 'Unauthorized access to dispute.');
@@ -1227,7 +1228,7 @@ class LudoController extends Controller
         $dispute = LudoDispute::findOrFail($id);
 
         $isParticipant = ($dispute->opened_by_user_id === $user->id || $dispute->against_user_id === $user->id);
-        if (!$isParticipant && !in_array($user->role, ['admin', 'superadmin'])) {
+        if (!$isParticipant && !in_array($user->role, ['admin', 'superadmin', 'moderator'])) {
             abort(403, 'Unauthorized.');
         }
 
@@ -1268,7 +1269,7 @@ class LudoController extends Controller
         $dispute = $evidence->dispute;
 
         $isParticipant = ($dispute->opened_by_user_id === $user->id || $dispute->against_user_id === $user->id);
-        $isAdmin = in_array($user->role, ['admin', 'superadmin']);
+        $isAdmin = in_array($user->role, ['admin', 'superadmin', 'moderator']);
 
         if (!$isParticipant && !$isAdmin) {
             abort(403, 'Unauthorized: Access to match evidence is restricted.');
@@ -1287,12 +1288,16 @@ class LudoController extends Controller
     public function adminResolveDispute(Request $request, $id)
     {
         $admin = Auth::user();
-        if (!$admin || !in_array($admin->role, ['admin', 'superadmin'])) {
+        if (!$admin || !in_array($admin->role, ['admin', 'superadmin', 'moderator'])) {
             abort(403, 'Unauthorized: Administrator privileges required.');
         }
 
         $dispute = LudoDispute::with('battle')->findOrFail($id);
         $battle = $dispute->battle;
+
+        if ($dispute->status === 'resolved') {
+            return redirect()->back()->with('error', 'This dispute has already been finalized and cannot be re-processed.');
+        }
 
         $validated = $request->validate([
             'decision' => ['required', 'in:award_creator,award_joiner,refund_both,request_evidence,reject_dispute'],
@@ -1328,11 +1333,24 @@ class LudoController extends Controller
                 ));
             }
 
+            LudoAdminAuditLog::log(
+                'dispute_evidence_requested',
+                "Requested additional evidence for dispute {$dispute->dispute_uid}. Reason: {$reason}",
+                'LudoDispute',
+                $dispute->id
+            );
+
             return redirect()->back()->with('success', 'Requested additional evidence from participants.');
+        }
+
+        // Prevent duplicate payout/refund if battle is already completed or cancelled
+        if (in_array($decision, ['award_creator', 'award_joiner', 'refund_both']) && $battle && in_array($battle->status, ['completed', 'cancelled'])) {
+            return redirect()->back()->with('error', 'The linked battle has already been settled or cancelled.');
         }
 
         if ($decision === 'award_creator') {
             $this->finalizeBattleVictory($battle, $battle->creator_id, 'won');
+            $battle->update(['review_status' => 'verified']);
             $dispute->update([
                 'status' => 'resolved',
                 'admin_decision_reason' => "Awarded victory to Creator ({$battle->creator->name}). Reason: {$reason}",
@@ -1341,6 +1359,7 @@ class LudoController extends Controller
             ]);
         } elseif ($decision === 'award_joiner') {
             $this->finalizeBattleVictory($battle, $battle->joiner_id, 'won');
+            $battle->update(['review_status' => 'verified']);
             $dispute->update([
                 'status' => 'resolved',
                 'admin_decision_reason' => "Awarded victory to Joiner ({$battle->joiner->name}). Reason: {$reason}",
@@ -1362,7 +1381,9 @@ class LudoController extends Controller
                 'resolved_by_admin_id' => $admin->id,
                 'resolved_at' => now(),
             ]);
-            $battle->update(['review_status' => 'verified']);
+            if ($battle) {
+                $battle->update(['review_status' => 'verified']);
+            }
         }
 
         // Notify both participants of the final decision
@@ -1400,7 +1421,7 @@ class LudoController extends Controller
     public function adminReviewKyc(Request $request, $id)
     {
         $admin = Auth::user();
-        if (!$admin || !in_array($admin->role, ['admin', 'superadmin'])) {
+        if (!$admin || !in_array($admin->role, ['admin', 'superadmin', 'moderator'])) {
             abort(403, 'Admin privileges required.');
         }
 
@@ -1422,6 +1443,15 @@ class LudoController extends Controller
             'kyc_status' => $validated['status'] === 'approved' ? 'verified' : 'rejected',
             'is_verified' => $validated['status'] === 'approved',
         ]);
+
+        if ($submission->user) {
+            $submission->user->notify(new LudoInAppNotification(
+                $validated['status'] === 'approved' ? "✅ KYC Identity Verified" : "❌ KYC Verification Update",
+                "Your KYC document submission was {$validated['status']}. Notes: {$validated['admin_reason']}",
+                "kyc",
+                url('/kyc')
+            ));
+        }
 
         LudoAdminAuditLog::log(
             'kyc_reviewed',
