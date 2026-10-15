@@ -349,16 +349,24 @@
                             </div>
                         </div>
 
-                        {{-- Download Secure Links --}}
-                        <div class="d-flex flex-wrap gap-2 my-2">
+                        {{-- View & Download Secure Links --}}
+                        <div class="d-flex flex-wrap align-items-center gap-2 my-2">
+                            <a href="{{ route('ludo.kyc.view', [$sub->id, 'front']) }}" target="_blank" class="btn btn-sm btn-info text-dark rounded-pill py-0 px-2 fw-bold" style="font-size: 11px;">
+                                <i class="fa-solid fa-eye me-1"></i> View Front Document
+                            </a>
+                            @if($sub->back_image_path)
+                                <a href="{{ route('ludo.kyc.view', [$sub->id, 'back']) }}" target="_blank" class="btn btn-sm btn-outline-info rounded-pill py-0 px-2 fw-bold" style="font-size: 11px;">
+                                    <i class="fa-solid fa-eye me-1"></i> View Back Document
+                                </a>
+                            @endif
                             @if($sub->front_image_path)
-                                <a href="{{ route('ludo.kyc.download', [$sub->id, 'front']) }}" class="btn btn-sm btn-outline-info rounded-pill py-0 px-2" style="font-size: 11px;">
-                                    <i class="fa-solid fa-file-image me-1"></i> Download Front Document
+                                <a href="{{ route('ludo.kyc.download', [$sub->id, 'front']) }}" class="btn btn-sm btn-outline-secondary rounded-pill py-0 px-2" style="font-size: 11px;">
+                                    <i class="fa-solid fa-download me-1"></i> Download Front
                                 </a>
                             @endif
                             @if($sub->back_image_path)
-                                <a href="{{ route('ludo.kyc.download', [$sub->id, 'back']) }}" class="btn btn-sm btn-outline-info rounded-pill py-0 px-2" style="font-size: 11px;">
-                                    <i class="fa-solid fa-file-image me-1"></i> Download Back Document
+                                <a href="{{ route('ludo.kyc.download', [$sub->id, 'back']) }}" class="btn btn-sm btn-outline-secondary rounded-pill py-0 px-2" style="font-size: 11px;">
+                                    <i class="fa-solid fa-download me-1"></i> Download Back
                                 </a>
                             @endif
                         </div>

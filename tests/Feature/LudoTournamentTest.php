@@ -350,10 +350,21 @@ class LudoTournamentTest extends TestCase
         $dlRes = $this->actingAs($user)->get("/kyc/download/{$submission->id}/front");
         $dlRes->assertStatus(200);
 
-        // Stranger cannot download confidential document
+        // User and Admin can view document inline
+        $viewRes = $this->actingAs($user)->get("/kyc/view/{$submission->id}/front");
+        $viewRes->assertStatus(200);
+        $this->assertStringContainsString('inline', $viewRes->headers->get('Content-Disposition'));
+
+        $adminViewRes = $this->actingAs($admin)->get("/kyc/view/{$submission->id}/front");
+        $adminViewRes->assertStatus(200);
+
+        // Stranger cannot download or view confidential document
         $stranger = User::factory()->create(['referral_code' => 'STR_' . Str::random(4)]);
         $strangerRes = $this->actingAs($stranger)->get("/kyc/download/{$submission->id}/front");
         $strangerRes->assertStatus(403);
+
+        $strangerViewRes = $this->actingAs($stranger)->get("/kyc/view/{$submission->id}/front");
+        $strangerViewRes->assertStatus(403);
 
         // Admin approves KYC with reason
         $adminRes = $this->actingAs($admin)->post("/admin/kyc/{$submission->id}/review", [

@@ -74,10 +74,15 @@
                         Submitted: <strong class="text-light">{{ $submission->created_at->format('d M Y, h:i A') }}</strong> | 
                         Type: <strong class="text-light">{{ strtoupper(str_replace('_', ' ', $submission->document_type)) }}</strong>
                     </div>
-                    <div class="mt-3">
-                        <a href="{{ route('ludo.kyc.download', [$submission->id, 'front']) }}" class="btn btn-sm btn-outline-info rounded-pill py-1 px-3" style="font-size: 11px;">
-                            <i class="fa-solid fa-file me-1"></i> View Submitted Front Copy
+                    <div class="mt-3 d-flex gap-2 justify-content-center flex-wrap">
+                        <a href="{{ route('ludo.kyc.view', [$submission->id, 'front']) }}" target="_blank" class="btn btn-sm btn-info text-dark rounded-pill py-1 px-3 fw-bold" style="font-size: 11px;">
+                            <i class="fa-solid fa-eye me-1"></i> View Submitted Front Copy
                         </a>
+                        @if($submission->back_image_path)
+                            <a href="{{ route('ludo.kyc.view', [$submission->id, 'back']) }}" target="_blank" class="btn btn-sm btn-outline-info rounded-pill py-1 px-3 fw-bold" style="font-size: 11px;">
+                                <i class="fa-solid fa-eye me-1"></i> View Submitted Back Copy
+                            </a>
+                        @endif
                     </div>
                 @endif
             </div>

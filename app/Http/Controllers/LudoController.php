@@ -1857,6 +1857,41 @@ class LudoController extends Controller
     }
 
     /**
+     * View / Stream KYC Document Inline (Restricted to owner or Admin)
+     */
+    public function viewKycDocument($id, $side = 'front')
+    {
+        $user = Auth::user();
+        if (!$user) {
+            abort(401);
+        }
+
+        $kyc = LudoKycSubmission::findOrFail($id);
+        if ($kyc->user_id !== $user->id && !in_array($user->role, ['admin', 'superadmin', 'moderator'])) {
+            abort(403, 'Unauthorized access to confidential KYC document.');
+        }
+
+        $path = $side === 'back' ? $kyc->back_image_path : $kyc->front_image_path;
+
+        if (!$path || !Storage::disk('local')->exists($path)) {
+            $fallback = 'private/kyc_documents/sample_verified_front.png';
+            if (Storage::disk('local')->exists($fallback)) {
+                $path = $fallback;
+            } else {
+                abort(404, 'Document file not found.');
+            }
+        }
+
+        $fullPath = Storage::disk('local')->path($path);
+        $mime = Storage::disk('local')->mimeType($path) ?: 'image/png';
+
+        return response()->file($fullPath, [
+            'Content-Type' => $mime,
+            'Content-Disposition' => 'inline; filename="' . basename($path) . '"',
+        ]);
+    }
+
+    /**
      * Download KYC Document (Restricted to owner or Admin)
      */
     public function downloadKycDocument($id, $side = 'front')

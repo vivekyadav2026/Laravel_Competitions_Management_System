@@ -536,6 +536,9 @@ class AdminPanelCompleteTest extends TestCase
         // Verify the table contains the synchronized verified and pending players
         $response->assertSee('Kyc Pending Player');
         $response->assertSee('Kyc Verified Player');
+        $response->assertSee('View Document');
+        $response->assertSee('kycDocPreviewModal');
+        $response->assertSee('/kyc/view/');
 
         // Test filtering by approved
         $approvedRes = $this->actingAs($admin)->get('/admin/ludo/kyc?status=approved');
@@ -548,5 +551,11 @@ class AdminPanelCompleteTest extends TestCase
         $pendingRes->assertStatus(200);
         $this->assertTrue($pendingRes->viewData('submissions')->contains('user_id', $playerPending->id));
         $this->assertFalse($pendingRes->viewData('submissions')->contains('user_id', $playerVerified->id));
+
+        // Test viewing document directly via inline stream route
+        $submission = \App\Models\LudoKycSubmission::where('user_id', $playerVerified->id)->first();
+        $streamRes = $this->actingAs($admin)->get("/kyc/view/{$submission->id}/front");
+        $streamRes->assertStatus(200);
+        $this->assertStringContainsString('inline', $streamRes->headers->get('Content-Disposition'));
     }
 }

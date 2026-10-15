@@ -101,6 +101,7 @@ Route::middleware('auth')->group(function () {
     // KYC Verification & Document Access
     Route::get('/kyc', [LudoController::class, 'kyc'])->name('ludo.kyc');
     Route::post('/kyc/submit', [LudoController::class, 'submitKyc'])->name('ludo.kyc.submit');
+    Route::get('/kyc/view/{id}/{side?}', [LudoController::class, 'viewKycDocument'])->name('ludo.kyc.view');
     Route::get('/kyc/download/{id}/{side?}', [LudoController::class, 'downloadKycDocument'])->name('ludo.kyc.download');
 
     // Support Tickets & Attachments
