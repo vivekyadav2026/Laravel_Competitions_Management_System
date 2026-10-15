@@ -818,6 +818,8 @@ class LudoAdminController extends Controller
      */
     public function matches(Request $request)
     {
+        LudoBattle::processExpiredDeadlines();
+
         $query = LudoBattle::with(['creator', 'joiner', 'winner', 'dispute'])->latest('id');
 
         if ($request->filled('search')) {
@@ -871,6 +873,9 @@ class LudoAdminController extends Controller
             'adminReviewedBy',
             'dispute.evidences.user'
         ])->findOrFail($id);
+
+        $match->checkAndProcessSubmissionExpiry();
+        $match->refresh();
 
         $matchTransactions = LudoLedgerTransaction::with('user')
             ->where('description', 'like', "%{$match->battle_uid}%")
@@ -1963,6 +1968,8 @@ class LudoAdminController extends Controller
      */
     public function liveNotifications(Request $request)
     {
+        LudoBattle::processExpiredDeadlines();
+
         $pendingDeposits = LudoUpiDeposit::where('status', 'pending')->count();
         $pendingWithdrawals = LudoWithdrawalRequest::where('status', 'pending')->count();
         $pendingKyc = LudoKycSubmission::where('status', 'pending')->count();
@@ -2060,6 +2067,7 @@ class LudoAdminController extends Controller
                     'battle_uid' => $latestMatchReview->battle_uid,
                     'status' => $latestMatchReview->status,
                     'review_status' => $latestMatchReview->review_status,
+                    'review_badge_text' => $latestMatchReview->getExpiredReviewStatusText() ?? strtoupper(str_replace('_', ' ', $latestMatchReview->review_status)),
                     'refund_status' => $latestMatchReview->refund_status,
                     'created_at_human' => $latestMatchReview->updated_at ? $latestMatchReview->updated_at->diffForHumans() : 'Just now',
                 ] : null,
@@ -2125,11 +2133,15 @@ class LudoAdminController extends Controller
      */
     public function matchesLiveFeed(Request $request)
     {
+        LudoBattle::processExpiredDeadlines();
+
         $matches = LudoBattle::with(['creator', 'joiner'])
             ->latest('updated_at')
             ->take(20)
             ->get()
             ->map(function ($m) {
+                $revBadge = $m->getFormattedReviewBadge();
+                $statBadge = $m->getFormattedStatusBadge();
                 return [
                     'id' => $m->id,
                     'battle_uid' => $m->battle_uid,
@@ -2141,6 +2153,11 @@ class LudoAdminController extends Controller
                     'status' => $m->status,
                     'review_status' => $m->review_status,
                     'refund_status' => $m->refund_status,
+                    'review_badge_text' => $revBadge['text'],
+                    'review_badge_class' => $revBadge['class'],
+                    'status_badge_text' => $statBadge['text'],
+                    'status_badge_class' => $statBadge['class'],
+                    'is_deadline_expired' => $m->isSubmissionDeadlineExpired(),
                     'created_at_formatted' => $m->created_at ? $m->created_at->format('d M, h:i A') : '-',
                     'audit_url' => route('admin.ludo.matches.show', $m->id),
                 ];

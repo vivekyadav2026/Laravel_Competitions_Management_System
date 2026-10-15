@@ -469,7 +469,7 @@ class LudoTournamentTest extends TestCase
         $response->assertSessionHas('warning');
         // Match must NOT be auto-completed or auto-awarded to joiner; placed under review
         $this->assertEquals('under_review', $battle->fresh()->review_status);
-        $this->assertEquals('running', $battle->fresh()->status);
+        $this->assertEquals('under_review', $battle->fresh()->status);
         $this->assertNull($battle->fresh()->winner_id);
     }
 

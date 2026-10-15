@@ -75,6 +75,10 @@
                     <span class="badge bg-danger text-white border border-danger px-2 py-1" id="arenaHeaderStatusBadge" style="font-size: 10px;">
                         <span class="live-dot d-inline-block me-1" style="width: 6px; height: 6px; background: #fff; border-radius: 50%;"></span>LIVE BATTLE
                     </span>
+                @elseif($battle->status === 'under_review' || $battle->review_status === 'under_review')
+                    <span class="badge bg-warning text-dark px-2 py-1 badge-under-review" id="arenaHeaderStatusBadge" style="font-size: 10px;">
+                        <i class="fa-solid fa-hourglass-half me-1"></i>UNDER REVIEW
+                    </span>
                 @elseif($battle->status === 'requested')
                     <span class="badge bg-warning text-dark px-2 py-1" id="arenaHeaderStatusBadge" style="font-size: 10px;">
                         <span class="spinner-grow spinner-grow-sm me-1" style="width: 6px; height: 6px;"></span>WAITING TO START
@@ -289,7 +293,7 @@
             {{-- Match Status & Cancel Button (Screenshot #4) --}}
             <div class="d-flex justify-content-between align-items-center pt-2 border-top border-secondary border-opacity-25 mt-2">
                 <span class="text-secondary small" style="font-size: 11.5px;">
-                    Match Status: <strong class="text-warning text-capitalize" id="arenaMatchStatusText">{{ $battle->status }}</strong>
+                    Match Status: <strong class="text-warning text-capitalize" id="arenaMatchStatusText">{{ $battle->getExpiredReviewStatusText() ?? $battle->status }}</strong>
                 </span>
 
                 @if($isParticipant && in_array($battle->status, ['open', 'requested']) && !in_array($battle->review_status, ['under_review', 'disputed']) && $battle->refund_status !== 'pending')
@@ -387,7 +391,11 @@
     </div>
 
     <div id="matchResultSectionContainer" class="{{ $isFinalized ? 'd-none' : '' }}">
-        @if($battle->status === 'running' && $isParticipant)
+        @if(in_array($battle->status, ['running', 'under_review']) && $isParticipant)
+            @php
+                $isExpired = $battle->isSubmissionDeadlineExpired();
+                $expiredText = $battle->getExpiredReviewStatusText();
+            @endphp
             @if($myClaim && $myClaim !== 'pending')
                 {{-- Player has already submitted claim: Under review / awaiting verification --}}
                 <div class="ludo-arena-card mb-4 text-center p-3" id="myClaimSubmittedCard">
@@ -396,7 +404,11 @@
                             <i class="fa-solid fa-clock-rotate-left text-warning"></i> Match Result Status
                         </h5>
                         <div id="cardStatusBadgeWrapper">
-                            @if($battle->review_status === 'under_review')
+                            @if($isExpired)
+                                <span class="badge {{ $expiredText === 'SUBMISSION EXPIRED — ADMIN REVIEW REQUIRED' ? 'bg-danger text-white' : 'bg-warning text-dark' }} px-2 py-1" style="font-size: 10.5px;">
+                                    <i class="fa-solid fa-hourglass-half me-1"></i> UNDER REVIEW
+                                </span>
+                            @elseif($battle->review_status === 'under_review')
                                 <span class="badge bg-warning text-dark px-2 py-1" style="font-size: 10.5px;"><i class="fa-solid fa-hourglass-half me-1"></i> UNDER REVIEW</span>
                             @elseif($battle->review_status === 'disputed')
                                 <span class="badge bg-danger text-white px-2 py-1" style="font-size: 10.5px;"><i class="fa-solid fa-triangle-exclamation me-1"></i> DISPUTED</span>
@@ -408,13 +420,13 @@
 
                     <div class="p-3 rounded-3 mb-3 text-start" style="background: rgba(14, 42, 92, 0.45); border: 1px solid rgba(0, 210, 255, 0.3);">
                         <div class="row g-2 align-items-center mb-2 pb-2 border-bottom border-secondary border-opacity-25">
-                            <div class="col-6">
+                            <div class="col-12 col-sm-6">
                                 <span class="text-secondary small d-block" style="font-size: 10.5px;">MATCH STATUS</span>
-                                <strong class="text-warning text-uppercase" id="cardMatchStatusText" style="font-size: 13px;">
-                                    {{ $battle->review_status === 'under_review' ? 'Under Review' : ($battle->review_status === 'disputed' ? 'Disputed' : 'Awaiting Verification') }}
+                                <strong class="text-warning text-uppercase" id="cardMatchStatusText" style="font-size: 12px;">
+                                    {{ $expiredText ?? ($battle->review_status === 'under_review' ? 'Under Review' : ($battle->review_status === 'disputed' ? 'Disputed' : 'Awaiting Verification')) }}
                                 </strong>
                             </div>
-                            <div class="col-6 text-end">
+                            <div class="col-12 col-sm-6 text-sm-end">
                                 <span class="text-secondary small d-block" style="font-size: 10.5px;">OPPONENT</span>
                                 <span class="text-white fw-bold d-inline-block text-truncate" style="max-width: 140px; font-size: 12.5px;" id="cardOpponentNameText">{{ $opponentName }}</span>
                                 <span class="text-info font-monospace fw-bold d-block" style="font-size: 10.5px;" id="cardOpponentUsernameText">{{ $opponentUsername }}</span>
@@ -435,13 +447,84 @@
                                 @else
                                     Opponent Claim: <strong class="text-light text-uppercase">{{ $opponentClaim }}</strong>
                                 @endif
+                            @elseif($isExpired)
+                                <span class="text-danger fw-bold"><i class="fa-solid fa-clock-rotate-left me-1"></i> Opponent failed to submit claim before deadline expired.</span>
                             @else
                                 <span class="spinner-border spinner-border-sm me-1 text-warning"></span> Waiting for opponent claim / admin verification...
                             @endif
                         </div>
 
                         <div class="alert alert-warning py-2 px-3 mb-0 small fw-bold" id="arenaAwaitingNotice">
-                            <i class="fa-solid fa-hourglass-half me-1"></i> Match result is awaiting verification / under review. Final outcome and points will be credited once verified.
+                            @if($isExpired)
+                                <i class="fa-solid fa-hourglass-half me-1"></i> Submission deadline expired. Under administrative review: final winner and points will be credited once verified by platform admin.
+                            @else
+                                <i class="fa-solid fa-hourglass-half me-1"></i> Match result is awaiting verification / under review. Final outcome and points will be credited once verified.
+                            @endif
+                        </div>
+                    </div>
+
+                    {{-- Disabled Play Again Button While Under Review --}}
+                    <div id="playAgainButtonWrapper" class="mt-3">
+                        <button type="button" class="btn ludo-btn-play-again-disabled w-100 py-3 rounded-pill gap-2" disabled id="btnPlayAgainDisabled" title="Play Again will unlock once the match result is finalized.">
+                            <i class="fa-solid fa-rotate-right fs-5"></i> 🔄 Play Again
+                        </button>
+                        <div class="small text-warning mt-2 text-center" id="playAgainUnlockNotice" style="font-size: 11px;">
+                            <i class="fa-solid fa-lock me-1"></i> Play Again will unlock automatically once the match result is finalized.
+                        </div>
+                    </div>
+                </div>
+            @elseif($isExpired)
+                {{-- Player has NOT submitted claim and deadline has expired! --}}
+                <div class="ludo-arena-card mb-4 text-center p-3" id="expiredSubmissionCard">
+                    <div class="d-flex justify-content-between align-items-center mb-2 pb-2 border-bottom border-secondary border-opacity-25">
+                        <h5 class="fw-bold text-white mb-0 fs-6 d-flex align-items-center gap-2">
+                            <i class="fa-solid fa-clock-rotate-left text-warning"></i> Match Result Status
+                        </h5>
+                        <div id="cardStatusBadgeWrapper">
+                            <span class="badge {{ $expiredText === 'SUBMISSION EXPIRED — ADMIN REVIEW REQUIRED' ? 'bg-danger text-white' : 'bg-warning text-dark' }} px-2 py-1" style="font-size: 10.5px;">
+                                <i class="fa-solid fa-hourglass-half me-1"></i> {{ $expiredText === 'SUBMISSION EXPIRED — ADMIN REVIEW REQUIRED' ? 'SUBMISSION EXPIRED' : 'UNDER REVIEW' }}
+                            </span>
+                        </div>
+                    </div>
+
+                    <div class="p-3 rounded-3 mb-3 text-start" style="background: rgba(14, 42, 92, 0.45); border: 1px solid rgba(0, 210, 255, 0.3);">
+                        <div class="row g-2 align-items-center mb-2 pb-2 border-bottom border-secondary border-opacity-25">
+                            <div class="col-12 col-sm-6">
+                                <span class="text-secondary small d-block" style="font-size: 10.5px;">MATCH STATUS</span>
+                                <strong class="text-warning text-uppercase" id="cardMatchStatusText" style="font-size: 12px;">
+                                    {{ $expiredText }}
+                                </strong>
+                            </div>
+                            <div class="col-12 col-sm-6 text-sm-end">
+                                <span class="text-secondary small d-block" style="font-size: 10.5px;">OPPONENT</span>
+                                <span class="text-white fw-bold d-inline-block text-truncate" style="max-width: 140px; font-size: 12.5px;" id="cardOpponentNameText">{{ $opponentName }}</span>
+                                <span class="text-info font-monospace fw-bold d-block" style="font-size: 10.5px;" id="cardOpponentUsernameText">{{ $opponentUsername }}</span>
+                            </div>
+                        </div>
+
+                        <div class="small text-secondary mb-1">Your Result Submission:</div>
+                        <div class="fw-bold fs-6 text-uppercase mb-1 text-danger">
+                            ⚠️ None (Submission Deadline Expired)
+                        </div>
+
+                        @if($opponentClaim && $opponentClaim !== 'pending')
+                            <div class="small text-secondary mb-1">Opponent Claim:</div>
+                            <div class="fw-bold fs-6 text-uppercase mb-2 text-warning">
+                                {{ $opponentClaim === 'won' ? '🏆 Opponent Submitted Victory Claim' : 'Opponent Claim: ' . strtoupper($opponentClaim) }}
+                            </div>
+                        @else
+                            <div class="small text-secondary mb-1">Opponent Claim:</div>
+                            <div class="fw-bold fs-6 text-uppercase mb-2 text-secondary">
+                                None (Submission Deadline Expired)
+                            </div>
+                        @endif
+
+                        <div class="alert {{ $expiredText === 'SUBMISSION EXPIRED — ADMIN REVIEW REQUIRED' ? 'alert-danger' : 'alert-warning' }} py-2 px-3 mb-0 small fw-bold" id="arenaAwaitingNotice">
+                            @if($expiredText === 'SUBMISSION EXPIRED — ADMIN REVIEW REQUIRED')
+                                <i class="fa-solid fa-triangle-exclamation me-1"></i> The submission deadline has expired. Neither player submitted a result in time. Placed under administrative review for manual resolution or cancellation.
+                            @else
+                                <i class="fa-solid fa-hourglass-half me-1"></i> The submission deadline has expired. Your opponent submitted a Victory Claim. Held under administrative review for verification.
+                            @endif
                         </div>
                     </div>
 
@@ -1030,6 +1113,101 @@
             let hasNotifiedVictoryClaim = false;
 
             let isPolling = false;
+
+            function handleExpiredSubmissionUI(b) {
+                const expiredText = b.expired_review_status_text || 'UNDER REVIEW';
+                const isNoClaim = (expiredText === 'SUBMISSION EXPIRED — ADMIN REVIEW REQUIRED');
+
+                // 1. Arena Header Badge
+                const badgeContainer = document.getElementById('arenaHeaderStatusBadgeContainer');
+                if (badgeContainer && !badgeContainer.querySelector('.badge-under-review')) {
+                    badgeContainer.innerHTML = '<span class="badge bg-warning text-dark px-2 py-1 badge-under-review" id="arenaHeaderStatusBadge" style="font-size: 10px;"><i class="fa-solid fa-hourglass-half me-1"></i>UNDER REVIEW</span>';
+                }
+
+                // 2. Arena Match Status Text
+                const statusText = document.getElementById('arenaMatchStatusText');
+                if (statusText) statusText.textContent = expiredText;
+
+                // 3. Card status text
+                const cardStatus = document.getElementById('cardMatchStatusText');
+                if (cardStatus) cardStatus.textContent = expiredText;
+
+                // 4. Card Status Badge Wrapper
+                const badgeWrapper = document.getElementById('cardStatusBadgeWrapper');
+                if (badgeWrapper) {
+                    const badgeCls = isNoClaim ? 'bg-danger text-white' : 'bg-warning text-dark';
+                    const badgeLabel = isNoClaim ? 'SUBMISSION EXPIRED' : 'UNDER REVIEW';
+                    badgeWrapper.innerHTML = `<span class="badge ${badgeCls} px-2 py-1" style="font-size: 10.5px;"><i class="fa-solid fa-hourglass-half me-1"></i> ${badgeLabel}</span>`;
+                }
+
+                // 5. If submitResultCard exists, replace with expired card
+                const submitCard = document.getElementById('submitResultCard');
+                if (submitCard) {
+                    const badgeCls = isNoClaim ? 'bg-danger text-white' : 'bg-warning text-dark';
+                    const badgeLabel = isNoClaim ? 'SUBMISSION EXPIRED' : 'UNDER REVIEW';
+                    const alertCls = isNoClaim ? 'alert-danger' : 'alert-warning';
+                    const alertMsg = isNoClaim
+                        ? '<i class="fa-solid fa-triangle-exclamation me-1"></i> The submission deadline has expired. Neither player submitted a result in time. Placed under administrative review for manual resolution or cancellation.'
+                        : '<i class="fa-solid fa-hourglass-half me-1"></i> The submission deadline has expired. Your opponent submitted a Victory Claim. Held under administrative review for verification.';
+                    const oppClaimHtml = b.opponent_claimed_result && b.opponent_claimed_result !== 'pending'
+                        ? `<div class="small text-secondary mb-1">Opponent Claim:</div><div class="fw-bold fs-6 text-uppercase mb-2 text-warning">${b.opponent_claimed_result === 'won' ? '🏆 Opponent Submitted Victory Claim' : 'Opponent Claim: ' + b.opponent_claimed_result.toUpperCase()}</div>`
+                        : `<div class="small text-secondary mb-1">Opponent Claim:</div><div class="fw-bold fs-6 text-uppercase mb-2 text-secondary">None (Submission Deadline Expired)</div>`;
+
+                    submitCard.outerHTML = `
+                        <div class="ludo-arena-card mb-4 text-center p-3 animate__animated animate__fadeIn" id="expiredSubmissionCard">
+                            <div class="d-flex justify-content-between align-items-center mb-2 pb-2 border-bottom border-secondary border-opacity-25">
+                                <h5 class="fw-bold text-white mb-0 fs-6 d-flex align-items-center gap-2">
+                                    <i class="fa-solid fa-clock-rotate-left text-warning"></i> Match Result Status
+                                </h5>
+                                <div id="cardStatusBadgeWrapper">
+                                    <span class="badge ${badgeCls} px-2 py-1" style="font-size: 10.5px;">
+                                        <i class="fa-solid fa-hourglass-half me-1"></i> ${badgeLabel}
+                                    </span>
+                                </div>
+                            </div>
+                            <div class="p-3 rounded-3 mb-3 text-start" style="background: rgba(14, 42, 92, 0.45); border: 1px solid rgba(0, 210, 255, 0.3);">
+                                <div class="row g-2 align-items-center mb-2 pb-2 border-bottom border-secondary border-opacity-25">
+                                    <div class="col-12 col-sm-6">
+                                        <span class="text-secondary small d-block" style="font-size: 10.5px;">MATCH STATUS</span>
+                                        <strong class="text-warning text-uppercase" id="cardMatchStatusText" style="font-size: 12px;">
+                                            ${expiredText}
+                                        </strong>
+                                    </div>
+                                    <div class="col-12 col-sm-6 text-sm-end">
+                                        <span class="text-secondary small d-block" style="font-size: 10.5px;">OPPONENT</span>
+                                        <span class="text-white fw-bold d-inline-block text-truncate" style="max-width: 140px; font-size: 12.5px;" id="cardOpponentNameText">${b.opponent_name || 'Opponent'}</span>
+                                        <span class="text-info font-monospace fw-bold d-block" style="font-size: 10.5px;" id="cardOpponentUsernameText">${b.opponent_username || ''}</span>
+                                    </div>
+                                </div>
+                                <div class="small text-secondary mb-1">Your Result Submission:</div>
+                                <div class="fw-bold fs-6 text-uppercase mb-1 text-danger">
+                                    ⚠️ None (Submission Deadline Expired)
+                                </div>
+                                ${oppClaimHtml}
+                                <div class="alert ${alertCls} py-2 px-3 mb-0 small fw-bold" id="arenaAwaitingNotice">
+                                    ${alertMsg}
+                                </div>
+                            </div>
+                            <div id="playAgainButtonWrapper" class="mt-3">
+                                <button type="button" class="btn ludo-btn-play-again-disabled w-100 py-3 rounded-pill gap-2" disabled id="btnPlayAgainDisabled" title="Play Again will unlock once the match result is finalized.">
+                                    <i class="fa-solid fa-rotate-right fs-5"></i> 🔄 Play Again
+                                </button>
+                                <div class="small text-warning mt-2 text-center" id="playAgainUnlockNotice" style="font-size: 11px;">
+                                    <i class="fa-solid fa-lock me-1"></i> Play Again will unlock automatically once the match result is finalized.
+                                </div>
+                            </div>
+                        </div>
+                    `;
+                }
+
+                // 6. If myClaimSubmittedCard exists, update notice alert
+                const noticeAlert = document.getElementById('arenaAwaitingNotice');
+                if (noticeAlert) {
+                    noticeAlert.className = 'alert alert-warning py-2 px-3 mb-0 small fw-bold';
+                    noticeAlert.innerHTML = '<i class="fa-solid fa-hourglass-half me-1"></i> Submission deadline expired. Under administrative review: final winner and points will be credited once verified by platform admin.';
+                }
+            }
+
             const pollInterval = setInterval(async function() {
                 if (document.hidden || isPolling) return;
                 isPolling = true;
@@ -1141,11 +1319,18 @@
                                 }
                             }
 
-                            // 4. Match status transitioned (e.g. running -> completed / cancelled)
+                            // 3.5 Submission deadline expired handling
+                            if (b.is_deadline_expired || b.status === 'under_review' || b.review_status === 'under_review') {
+                                if (b.is_deadline_expired || b.expired_review_status_text) {
+                                    handleExpiredSubmissionUI(b);
+                                }
+                            }
+
+                            // 4. Match status transitioned (e.g. running -> completed / cancelled / under_review)
                             if (b.status !== currentStatus || ((b.status === 'completed' || b.status === 'cancelled') && !document.getElementById('btnPlayAgainActive'))) {
                                 currentStatus = b.status;
                                 const statusText = document.getElementById('arenaMatchStatusText');
-                                if (statusText) statusText.textContent = currentStatus;
+                                if (statusText) statusText.textContent = b.expired_review_status_text || currentStatus;
 
                                 const badgeContainer = document.getElementById('arenaHeaderStatusBadgeContainer');
                                 if (badgeContainer) {
@@ -1154,6 +1339,8 @@
                                         const waitingCard = document.getElementById('waitingCreatorCard');
                                         if (waitingCard) waitingCard.style.display = 'none';
                                         showArenaToast('🎮 Match Started! Waiting for Room Code.', 'success');
+                                    } else if (currentStatus === 'under_review') {
+                                        badgeContainer.innerHTML = '<span class="badge bg-warning text-dark px-2 py-1 badge-under-review" id="arenaHeaderStatusBadge" style="font-size: 10px;"><i class="fa-solid fa-hourglass-half me-1"></i>UNDER REVIEW</span>';
                                     } else if (currentStatus === 'completed') {
                                         badgeContainer.innerHTML = '<span class="badge bg-success text-white px-2 py-1" id="arenaHeaderStatusBadge" style="font-size: 10px;"><i class="fa-solid fa-check me-1"></i>COMPLETED</span>';
                                         showArenaToast('Match Completed! Outcome settled.', 'info');
@@ -1197,10 +1384,29 @@
                                 showArenaToast('🎮 Opponent shared Room Code: ' + d.battle.room_code, 'success');
                                 playArenaTone('roomcode');
                             }
+
+                            if (d.battle.is_deadline_expired || d.battle.status === 'under_review' || d.battle.review_status === 'under_review') {
+                                if (d.battle.is_deadline_expired || d.battle.expired_review_status_text) {
+                                    handleExpiredSubmissionUI(d.battle);
+                                }
+                            }
+
                             if (d.battle.status !== currentStatus || ((d.battle.status === 'completed' || d.battle.status === 'cancelled') && !document.getElementById('btnPlayAgainActive'))) {
                                 currentStatus = d.battle.status;
                                 const statusText = document.getElementById('arenaMatchStatusText');
-                                if (statusText) statusText.textContent = currentStatus;
+                                if (statusText) statusText.textContent = d.battle.expired_review_status_text || currentStatus;
+
+                                const badgeContainer = document.getElementById('arenaHeaderStatusBadgeContainer');
+                                if (badgeContainer) {
+                                    if (currentStatus === 'under_review') {
+                                        badgeContainer.innerHTML = '<span class="badge bg-warning text-dark px-2 py-1 badge-under-review" id="arenaHeaderStatusBadge" style="font-size: 10px;"><i class="fa-solid fa-hourglass-half me-1"></i>UNDER REVIEW</span>';
+                                    } else if (currentStatus === 'completed') {
+                                        badgeContainer.innerHTML = '<span class="badge bg-success text-white px-2 py-1" id="arenaHeaderStatusBadge" style="font-size: 10px;"><i class="fa-solid fa-check me-1"></i>COMPLETED</span>';
+                                    } else if (currentStatus === 'cancelled') {
+                                        badgeContainer.innerHTML = '<span class="badge bg-secondary text-white px-2 py-1" id="arenaHeaderStatusBadge" style="font-size: 10px;"><i class="fa-solid fa-ban me-1"></i>CANCELLED</span>';
+                                    }
+                                }
+
                                 if (currentStatus === 'completed') {
                                     renderMatchCompletedBanner(d.battle.winner_name, d.battle.prize, d.battle.winner_id, d.battle.winner_username, d.battle.opponent_name, d.battle.opponent_username);
                                 } else if (currentStatus === 'cancelled') {

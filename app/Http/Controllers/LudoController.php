@@ -50,6 +50,8 @@ class LudoController extends Controller
      */
     public function battles()
     {
+        LudoBattle::processExpiredDeadlines();
+
         $user = Auth::user();
         $coins = $user ? $user->fresh()->coins : 0;
         $referral = $user ? $user->fresh()->referral_balance : 0.00;
@@ -140,6 +142,8 @@ class LudoController extends Controller
 
         $type = $validated['type'];
         $limit = (int) ($validated['per_page'] ?? 5);
+
+        LudoBattle::processExpiredDeadlines();
 
         $filterRealUsers = function ($query) {
             if (!app()->environment('testing')) {
@@ -612,6 +616,9 @@ class LudoController extends Controller
     public function viewBattle(Request $request, $id)
     {
         $battle = LudoBattle::with(['creator', 'joiner', 'winner'])->findOrFail($id);
+        $battle->checkAndProcessSubmissionExpiry();
+        $battle->refresh();
+
         $user = Auth::user();
 
         $coins = $user ? $user->coins : 0;
@@ -620,6 +627,11 @@ class LudoController extends Controller
 
         $isCreator = $user && $user->id === $battle->creator_id;
         $isJoiner = $user && $user->id === $battle->joiner_id;
+        $isAdmin = $user && in_array($user->role, ['admin', 'superadmin']);
+
+        if (!$isCreator && !$isJoiner && !$isAdmin) {
+            abort(403, 'Unauthorized: You are not a participant in this match.');
+        }
 
         // Calculate countdown for Room Code upload (180s from start or creation)
         $remainingSeconds = 180;
@@ -1061,6 +1073,8 @@ class LudoController extends Controller
             return response()->json(['authenticated' => false]);
         }
 
+        LudoBattle::processExpiredDeadlines();
+
         $data = [
             'authenticated' => true,
             'user_id' => $user->id,
@@ -1072,6 +1086,9 @@ class LudoController extends Controller
         if ($request->filled('battle_id')) {
             $battle = LudoBattle::with(['creator', 'joiner', 'winner'])->find($request->battle_id);
             if ($battle) {
+                $battle->checkAndProcessSubmissionExpiry();
+                $battle->refresh();
+
                 $remSec = 180;
                 if ($battle->room_code_expires_at) {
                     $remSec = max(0, now()->diffInSeconds($battle->room_code_expires_at, false));
@@ -1092,12 +1109,23 @@ class LudoController extends Controller
                     $claimStatusMsg = "Your opponent ({$oppUserTag}) has submitted a Victory Claim. Awaiting verification.";
                 }
 
+                $revBadge = $battle->getFormattedReviewBadge();
+                $statBadge = $battle->getFormattedStatusBadge();
+                $expiredText = $battle->getExpiredReviewStatusText();
+
                 $data['battle'] = [
                     'id' => $battle->id,
                     'battle_uid' => $battle->battle_uid,
                     'status' => $battle->status,
                     'review_status' => $battle->review_status,
                     'refund_status' => $battle->refund_status,
+                    'is_deadline_expired' => $battle->isSubmissionDeadlineExpired(),
+                    'expired_review_status_text' => $expiredText,
+                    'review_badge_text' => $revBadge['text'],
+                    'review_badge_class' => $revBadge['class'],
+                    'status_badge_text' => $statBadge['text'],
+                    'status_badge_class' => $statBadge['class'],
+                    'submission_deadline_at' => $battle->submission_deadline_at?->toIso8601String(),
                     'room_code' => $isAuthorized ? $battle->room_code : null,
                     'remaining_seconds' => $remSec,
                     'cancellation_reason' => $battle->cancellation_reason,
@@ -2281,7 +2309,7 @@ class LudoController extends Controller
             return redirect()->back()->with('error', 'Unauthorized: You are not a participant in this match.');
         }
 
-        if ($battle->status !== 'running') {
+        if (!in_array($battle->status, ['running', 'under_review'])) {
             if ($request->expectsJson() || $request->ajax()) {
                 return response()->json(['success' => false, 'message' => 'Match is not in running state.'], 422);
             }
@@ -2337,13 +2365,16 @@ class LudoController extends Controller
         }
 
         // If deadline expired, do NOT automatically award win; flag for review
-        if ($isExpired) {
+        if ($isExpired || $battle->isSubmissionDeadlineExpired()) {
+            $battle->status = 'under_review';
             $battle->review_status = 'under_review';
             $battle->save();
+            $battle->checkAndProcessSubmissionExpiry();
+            $msg = $battle->getExpiredReviewStatusText() ?? 'Result submitted after deadline. Under administrative review.';
             if ($request->expectsJson() || $request->ajax()) {
-                return response()->json(['success' => true, 'status' => 'under_review', 'message' => 'Result submitted after deadline. Under administrative review.']);
+                return response()->json(['success' => true, 'status' => 'under_review', 'message' => $msg]);
             }
-            return redirect()->back()->with('warning', 'Result submitted after the 15-minute deadline. As per platform policy, expired submissions are placed under administrative review.');
+            return redirect()->back()->with('warning', 'Result submitted after the deadline. As per platform policy, expired submissions are placed under administrative review.');
         }
 
         // Both players have now submitted claims

@@ -8,12 +8,16 @@
         <a href="{{ route('admin.ludo.matches.index') }}" class="btn btn-sm btn-outline-secondary rounded-pill px-3">
             &larr; Back to Matches
         </a>
+        @php
+            $statusInfo = $match->getFormattedStatusBadge();
+            $badgeInfo = $match->getFormattedReviewBadge();
+        @endphp
         <div class="d-flex gap-2 align-items-center flex-wrap">
-            <span class="badge {{ $match->status === 'completed' ? 'bg-success' : ($match->status === 'running' ? 'bg-primary' : ($match->status === 'cancelled' ? 'bg-danger' : 'bg-secondary')) }} fs-6">
-                {{ strtoupper($match->status) }}
+            <span class="badge {{ $statusInfo['class'] }} fs-6">
+                {{ $statusInfo['text'] }}
             </span>
-            <span class="badge {{ $match->review_status === 'disputed' ? 'bg-danger' : ($match->review_status === 'under_review' ? 'bg-warning text-dark' : 'bg-dark border border-secondary text-info') }} fs-6">
-                REVIEW: {{ strtoupper(str_replace('_', ' ', $match->review_status)) }}
+            <span class="badge {{ $badgeInfo['class'] }} fs-6">
+                REVIEW: {{ $badgeInfo['text'] }}
             </span>
             <span class="badge {{ $match->refund_status === 'approved' ? 'bg-success' : ($match->refund_status === 'pending' ? 'bg-warning text-dark' : ($match->refund_status === 'rejected' ? 'bg-danger' : 'bg-dark border border-secondary text-secondary')) }} fs-6">
                 REFUND: {{ strtoupper($match->refund_status ?? 'NONE') }}
@@ -117,6 +121,9 @@
                         <div class="text-secondary small">Submission Deadline</div>
                         <div class="text-warning fw-bold small">
                             {{ $match->submission_deadline_at ? $match->submission_deadline_at->format('h:i A') : 'N/A' }}
+                            @if($match->isSubmissionDeadlineExpired())
+                                <span class="badge bg-danger ms-1" style="font-size: 9.5px;">EXPIRED</span>
+                            @endif
                         </div>
                     </div>
                     <div class="col-6 col-sm-3">
@@ -210,10 +217,10 @@
                                 <label class="form-label text-secondary small fw-bold mb-1">Select Settlement Verdict (by Participant User ID)</label>
                                 <select name="decision" class="form-select form-select-sm bg-dark text-light border-secondary" required>
                                     <option value="{{ $match->creator_id }}">
-                                        Award Victory to Player 1 (Creator): {{ $match->creator->name }} ({{ $match->creator->formatted_username }}) [User ID: #{{ $match->creator_id }}] — Credit 🪙 {{ $match->prize }}
+                                       (Creator): {{ $match->creator->name }} ({{ $match->creator->formatted_username }}) — Credit 🪙 {{ $match->prize }}
                                     </option>
                                     <option value="{{ $match->joiner->id }}">
-                                        Award Victory to Player 2 (Opponent): {{ $match->joiner->name }} ({{ $match->joiner->formatted_username }}) [User ID: #{{ $match->joiner->id }}] — Credit 🪙 {{ $match->prize }}
+                                        (Opponent): {{ $match->joiner->name }} ({{ $match->joiner->formatted_username }}) — Credit 🪙 {{ $match->prize }}
                                     </option>
                                     <option value="reject_result">Reject Results as Invalid (Hold for Further Review)</option>
                                     <option value="mark_verified">Mark Review Status as Verified (No Payout Change)</option>
@@ -369,6 +376,48 @@
                     @empty
                         <tr>
                             <td colspan="7" class="text-center text-secondary py-3 small">No ledger transactions referencing this battle UID.</td>
+                        </tr>
+                    @endforelse
+                </tbody>
+            </table>
+        </div>
+    {{-- Match Audit Trail & System Events --}}
+    <div class="admin-card mb-4">
+        <h6 class="text-white fw-bold mb-3 border-bottom border-secondary border-opacity-25 pb-2">
+            <i class="fa-solid fa-list-check text-info me-1"></i> Match Audit Trail & System Events
+        </h6>
+        <div class="table-responsive">
+            <table class="table admin-table">
+                <thead>
+                    <tr>
+                        <th>Action Type</th>
+                        <th>Event Description</th>
+                        <th>Logged By</th>
+                        <th>IP Address</th>
+                        <th>Timestamp</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    @forelse($matchAuditLogs ?? [] as $log)
+                        <tr>
+                            <td>
+                                <span class="badge {{ $log->action_type === 'deadline_expired' ? 'bg-danger text-white' : ($log->action_type === 'match_verified' ? 'bg-success text-white' : 'bg-dark border border-secondary text-info') }}" style="font-size: 10px;">
+                                    {{ strtoupper(str_replace('_', ' ', $log->action_type)) }}
+                                </span>
+                            </td>
+                            <td class="text-light small">{{ $log->description }}</td>
+                            <td class="text-secondary small font-monospace">
+                                {{ $log->admin ? $log->admin->name . ' (' . $log->admin->formatted_username . ')' : 'System / Automation' }}
+                            </td>
+                            <td class="text-secondary small font-monospace">{{ $log->ip_address ?? '127.0.0.1' }}</td>
+                            <td class="text-secondary small">
+                                <div>{{ $log->created_at->format('d M Y, h:i A') }}</div>
+                                <span class="text-muted" style="font-size: 10px;">{{ $log->created_at->diffForHumans() }}</span>
+                            </td>
+                        </tr>
+                    @empty
+                        <tr>
+                            <td colspan="5" class="text-center text-secondary py-3 small">No administrative audit records logged for this match yet.</td>
                         </tr>
                     @endforelse
                 </tbody>

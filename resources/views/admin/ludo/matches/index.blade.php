@@ -18,6 +18,7 @@
                     <option value="">All Statuses</option>
                     <option value="open" {{ request('status') === 'open' ? 'selected' : '' }}>Open</option>
                     <option value="running" {{ request('status') === 'running' ? 'selected' : '' }}>Running</option>
+                    <option value="under_review" {{ request('status') === 'under_review' ? 'selected' : '' }}>Under Review</option>
                     <option value="completed" {{ request('status') === 'completed' ? 'selected' : '' }}>Completed</option>
                     <option value="cancelled" {{ request('status') === 'cancelled' ? 'selected' : '' }}>Cancelled</option>
                 </select>
@@ -59,6 +60,10 @@
                 </thead>
                 <tbody id="adminMatchesTableBody">
                     @forelse($matches as $m)
+                        @php
+                            $statusInfo = $m->getFormattedStatusBadge();
+                            $badgeInfo = $m->getFormattedReviewBadge();
+                        @endphp
                         <tr id="matchRow{{ $m->id }}">
                             <td class="font-monospace text-info small">
                                 <div>{{ $m->battle_uid }}</div>
@@ -82,13 +87,13 @@
                                 <strong class="text-success">🪙 {{ number_format($m->prize) }}</strong>
                             </td>
                             <td>
-                                <span class="badge match-status-badge {{ $m->status === 'completed' ? 'bg-success' : ($m->status === 'running' ? 'bg-primary' : ($m->status === 'cancelled' ? 'bg-danger' : 'bg-secondary')) }}">
-                                    {{ strtoupper($m->status) }}
+                                <span class="badge match-status-badge {{ $statusInfo['class'] }}">
+                                    {{ $statusInfo['text'] }}
                                 </span>
                             </td>
                             <td>
-                                <span class="badge match-review-badge {{ $m->review_status === 'disputed' ? 'bg-danger' : ($m->review_status === 'under_review' ? 'bg-warning text-dark' : 'bg-dark border border-secondary text-info') }}">
-                                    {{ strtoupper(str_replace('_', ' ', $m->review_status)) }}
+                                <span class="badge match-review-badge {{ $badgeInfo['class'] }}" style="font-size: 10.5px;">
+                                    {{ $badgeInfo['text'] }}
                                 </span>
                             </td>
                             <td>
@@ -143,25 +148,27 @@ document.addEventListener('DOMContentLoaded', function() {
                             const statusBadge = row.querySelector('.match-status-badge');
                             if (statusBadge) {
                                 const st = m.status;
-                                const cls = st === 'completed' ? 'bg-success' : (st === 'running' ? 'bg-primary' : (st === 'cancelled' ? 'bg-danger' : 'bg-secondary'));
+                                const cls = m.status_badge_class || (st === 'completed' ? 'bg-success' : (st === 'running' ? 'bg-primary' : (st === 'cancelled' ? 'bg-danger' : 'bg-warning text-dark')));
                                 statusBadge.className = 'badge match-status-badge ' + cls;
-                                statusBadge.textContent = st.toUpperCase();
+                                statusBadge.textContent = m.status_badge_text || st.toUpperCase();
                             }
 
                             // Update review status badge
                             const reviewBadge = row.querySelector('.match-review-badge');
                             if (reviewBadge) {
                                 const rev = m.review_status || 'none';
-                                const rcls = rev === 'disputed' ? 'bg-danger' : (rev === 'under_review' ? 'bg-warning text-dark' : 'bg-dark border border-secondary text-info');
+                                const rcls = m.review_badge_class || (rev === 'disputed' ? 'bg-danger' : (rev === 'under_review' ? 'bg-warning text-dark' : 'bg-dark border border-secondary text-info'));
                                 reviewBadge.className = 'badge match-review-badge ' + rcls;
-                                reviewBadge.textContent = rev.replace('_', ' ').toUpperCase();
+                                reviewBadge.textContent = m.review_badge_text || rev.replace('_', ' ').toUpperCase();
                             }
                         } else if (tableBody) {
                             // Insert new match row dynamically without reload
                             const st = m.status;
-                            const cls = st === 'completed' ? 'bg-success' : (st === 'running' ? 'bg-primary' : (st === 'cancelled' ? 'bg-danger' : 'bg-secondary'));
+                            const cls = m.status_badge_class || (st === 'completed' ? 'bg-success' : (st === 'running' ? 'bg-primary' : (st === 'cancelled' ? 'bg-danger' : 'bg-warning text-dark')));
+                            const statusText = m.status_badge_text || st.toUpperCase();
                             const rev = m.review_status || 'none';
-                            const rcls = rev === 'disputed' ? 'bg-danger' : (rev === 'under_review' ? 'bg-warning text-dark' : 'bg-dark border border-secondary text-info');
+                            const rcls = m.review_badge_class || (rev === 'disputed' ? 'bg-danger' : (rev === 'under_review' ? 'bg-warning text-dark' : 'bg-dark border border-secondary text-info'));
+                            const reviewText = m.review_badge_text || rev.replace('_', ' ').toUpperCase();
                             const roomHtml = m.room_code ? `<span class="badge bg-dark border border-warning text-warning font-monospace match-room-code-badge" style="font-size: 11px;">${m.room_code}</span>` : `<span class="text-secondary small match-room-code-badge">None</span>`;
 
                             const newRowHtml = `
@@ -180,10 +187,10 @@ document.addEventListener('DOMContentLoaded', function() {
                                         <strong class="text-success">🪙 ${Number(m.prize).toLocaleString()}</strong>
                                     </td>
                                     <td>
-                                        <span class="badge match-status-badge ${cls}">${st.toUpperCase()}</span>
+                                        <span class="badge match-status-badge ${cls}">${statusText}</span>
                                     </td>
                                     <td>
-                                        <span class="badge match-review-badge ${rcls}">${rev.replace('_', ' ').toUpperCase()}</span>
+                                        <span class="badge match-review-badge ${rcls}" style="font-size: 10.5px;">${reviewText}</span>
                                     </td>
                                     <td>
                                         <a href="${m.audit_url}" class="btn btn-sm btn-outline-info rounded-pill py-0 px-2" style="font-size: 11px;">
