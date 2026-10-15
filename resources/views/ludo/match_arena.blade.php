@@ -98,6 +98,28 @@
         </div>
     </div>
 
+    {{-- Administrative Review & Frozen Settlement Banner --}}
+    @if(in_array($battle->review_status, ['under_review', 'disputed']) || $battle->refund_status === 'pending')
+        <div class="ludo-arena-card mb-3 p-3" style="background: rgba(245, 158, 11, 0.12); border: 1px solid rgba(245, 158, 11, 0.4);">
+            <div class="d-flex align-items-center gap-3">
+                <div class="text-warning fs-3">
+                    <i class="fa-solid fa-shield-halved"></i>
+                </div>
+                <div>
+                    <h6 class="text-warning fw-bold mb-1">
+                        <i class="fa-solid fa-lock me-1"></i> Under Administrative Review
+                    </h6>
+                    <p class="small text-light mb-0" style="font-size: 11.5px;">
+                        This match is currently held for administrator audit. Payouts and refunds are frozen until an admin verifies both players' claims and evidence.
+                        @if($battle->refund_status === 'pending')
+                            <span class="badge bg-warning text-dark ms-1">Refund Pending Verification</span>
+                        @endif
+                    </p>
+                </div>
+            </div>
+        </div>
+    @endif
+
     {{-- If Status is 'requested' and User is Creator: START Button --}}
     @if($battle->status === 'requested' && $isP1)
         <div class="ludo-action-alert-card mb-3 p-3 text-center">
@@ -216,8 +238,8 @@
                     Match Status: <strong class="text-warning text-capitalize">{{ $battle->status }}</strong>
                 </span>
 
-                @if($isParticipant && !in_array($battle->status, ['completed', 'cancelled']))
-                    {{-- Cancel Button opens Screenshot #5 Modal --}}
+                @if($isParticipant && in_array($battle->status, ['open', 'requested']) && !in_array($battle->review_status, ['under_review', 'disputed']) && $battle->refund_status !== 'pending')
+                    {{-- Cancel Button opens Screenshot #5 Modal (Only allowed before match starts) --}}
                     <button type="button" class="btn btn-sm btn-outline-danger rounded-pill px-3 py-1 fw-bold" style="font-size: 11px;" data-bs-toggle="modal" data-bs-target="#cancelReasonModal">
                         <i class="fa-solid fa-triangle-exclamation me-1"></i> Cancel Match
                     </button>
@@ -349,7 +371,7 @@
 
                         <div class="p-2 rounded-2" style="background: rgba(220, 38, 38, 0.15); border: 1px solid rgba(239, 68, 68, 0.3);">
                             <small class="text-danger d-block" style="font-size: 11px;">
-                                ⚠️ Both players' entry coins (🪙 {{ number_format($battle->entry_fee) }}) will be immediately refunded to wallet upon cancellation.
+                                ⚠️ Notice: Cancellation is strictly permitted prior to match start. Both participants' entry points (🪙 {{ number_format($battle->entry_fee) }}) are returned to wallet. Running matches require dispute verification.
                             </small>
                         </div>
                     </div>

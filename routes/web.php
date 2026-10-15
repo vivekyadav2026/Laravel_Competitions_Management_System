@@ -153,6 +153,9 @@ Route::middleware(['auth', 'ludo.admin'])->prefix('admin/ludo')->name('admin.lud
     Route::get('/matches/{id}', [LudoAdminController::class, 'matchShow'])->name('matches.show');
     Route::post('/matches/{id}/cancel', [LudoAdminController::class, 'matchCancel'])->name('matches.cancel');
     Route::post('/matches/{id}/resolve', [LudoAdminController::class, 'matchResolveResult'])->name('matches.resolve');
+    Route::post('/matches/{id}/refund/approve', [LudoAdminController::class, 'matchApproveRefund'])->name('matches.refund.approve');
+    Route::post('/matches/{id}/refund/reject', [LudoAdminController::class, 'matchRejectRefund'])->name('matches.refund.reject');
+    Route::get('/matches/{id}/evidence/{side}', [LudoAdminController::class, 'viewMatchEvidence'])->name('matches.evidence.view');
 
     // 5. Dispute Management
     Route::get('/disputes', [LudoAdminController::class, 'disputes'])->name('disputes.index');

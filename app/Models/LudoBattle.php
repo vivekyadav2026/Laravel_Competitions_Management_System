@@ -25,6 +25,14 @@ class LudoBattle extends Model
         'review_status',
         'creator_claimed_result',
         'joiner_claimed_result',
+        'creator_evidence_path',
+        'joiner_evidence_path',
+        'refund_status',
+        'refund_requested_by_id',
+        'refund_reason',
+        'refund_decision_reason',
+        'admin_reviewed_at',
+        'admin_reviewed_by_id',
         'submission_deadline_at',
         'room_code_expires_at',
         'cancellation_reason',
@@ -41,6 +49,7 @@ class LudoBattle extends Model
         'room_code_expires_at' => 'datetime',
         'started_at' => 'datetime',
         'completed_at' => 'datetime',
+        'admin_reviewed_at' => 'datetime',
     ];
 
 
@@ -66,6 +75,22 @@ class LudoBattle extends Model
     public function winner()
     {
         return $this->belongsTo(User::class, 'winner_id');
+    }
+
+    /**
+     * Player who requested the refund/cancellation
+     */
+    public function refundRequestedBy()
+    {
+        return $this->belongsTo(User::class, 'refund_requested_by_id');
+    }
+
+    /**
+     * Admin who reviewed/decided this battle
+     */
+    public function adminReviewedBy()
+    {
+        return $this->belongsTo(User::class, 'admin_reviewed_by_id');
     }
 
     /**
@@ -152,6 +177,6 @@ class LudoBattle extends Model
      */
     public function dispute()
     {
-        return $this->belongsTo(LudoDispute::class, 'dispute_id');
+        return $this->hasOne(LudoDispute::class, 'battle_id')->latestOfMany();
     }
 }

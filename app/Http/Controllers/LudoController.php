@@ -779,32 +779,97 @@ class LudoController extends Controller
                 return redirect()->route('ludo.battles')->with('error', 'This match is already finalized.');
             }
 
-            // Refund points to creator
-            if ($battle->creator) {
-                \App\Models\LudoLedgerTransaction::recordAdjustment(
-                    $battle->creator,
-                    $battle->entry_fee,
-                    'refund',
-                    "Match {$battle->battle_uid} cancelled: {$reason}",
-                    'successful'
-                );
+            // P0 state machine: In-progress matches CANNOT be cancelled directly by players
+            if ($battle->status === 'running') {
+                if ($request->expectsJson() || $request->ajax()) {
+                    return response()->json([
+                        'success' => false,
+                        'message' => 'Matches in progress cannot be cancelled directly. Please submit your match result or raise a dispute for administrative review.'
+                    ], 422);
+                }
+                return redirect()->back()->with('error', 'Matches in progress cannot be cancelled directly. Please submit your match result or raise a dispute for administrative review.');
             }
 
-            // Refund points to joiner if joined
+            // State machine: Under review or disputed matches are frozen
+            if (in_array($battle->review_status, ['under_review', 'disputed']) || $battle->refund_status === 'pending') {
+                if ($request->expectsJson() || $request->ajax()) {
+                    return response()->json([
+                        'success' => false,
+                        'message' => 'This match is currently under administrative review. Direct cancellation is disabled.'
+                    ], 422);
+                }
+                return redirect()->back()->with('error', 'This match is currently under administrative review. Direct cancellation is disabled.');
+            }
+
+            // Reject cancel from a player who already submitted a result
+            $userClaim = ($user->id === $battle->creator_id) ? $battle->creator_claimed_result : $battle->joiner_claimed_result;
+            if ($userClaim && $userClaim !== 'pending') {
+                if ($request->expectsJson() || $request->ajax()) {
+                    return response()->json([
+                        'success' => false,
+                        'message' => 'You have already submitted a result for this match. Cancellation is rejected.'
+                    ], 422);
+                }
+                return redirect()->back()->with('error', 'You have already submitted a result for this match. Cancellation is rejected.');
+            }
+
+            if (!in_array($battle->status, ['open', 'requested'])) {
+                if ($request->expectsJson() || $request->ajax()) {
+                    return response()->json(['success' => false, 'message' => 'This battle cannot be cancelled in its current state.'], 422);
+                }
+                return redirect()->back()->with('error', 'This battle cannot be cancelled in its current state.');
+            }
+
+            if ($battle->status === 'open' && $user->id !== $battle->creator_id) {
+                if ($request->expectsJson() || $request->ajax()) {
+                    return response()->json(['success' => false, 'message' => 'Only the battle creator can cancel an open battle.'], 403);
+                }
+                return redirect()->back()->with('error', 'Only the battle creator can cancel an open battle.');
+            }
+
+            // Refund points to creator (idempotent, guard against double refund)
+            if ($battle->creator) {
+                $alreadyRefundedCreator = \App\Models\LudoLedgerTransaction::where('user_id', $battle->creator_id)
+                    ->where('type', 'refund')
+                    ->where('description', 'like', "%{$battle->battle_uid}%")
+                    ->where('status', 'successful')
+                    ->exists();
+
+                if (!$alreadyRefundedCreator) {
+                    \App\Models\LudoLedgerTransaction::recordAdjustment(
+                        $battle->creator,
+                        $battle->entry_fee,
+                        'refund',
+                        "Match {$battle->battle_uid} cancelled: {$reason}",
+                        'successful'
+                    );
+                }
+            }
+
+            // Refund points to joiner if joined (idempotent, guard against double refund)
             if ($battle->joiner) {
-                \App\Models\LudoLedgerTransaction::recordAdjustment(
-                    $battle->joiner,
-                    $battle->entry_fee,
-                    'refund',
-                    "Match {$battle->battle_uid} cancelled: {$reason}",
-                    'successful'
-                );
+                $alreadyRefundedJoiner = \App\Models\LudoLedgerTransaction::where('user_id', $battle->joiner_id)
+                    ->where('type', 'refund')
+                    ->where('description', 'like', "%{$battle->battle_uid}%")
+                    ->where('status', 'successful')
+                    ->exists();
+
+                if (!$alreadyRefundedJoiner) {
+                    \App\Models\LudoLedgerTransaction::recordAdjustment(
+                        $battle->joiner,
+                        $battle->entry_fee,
+                        'refund',
+                        "Match {$battle->battle_uid} cancelled: {$reason}",
+                        'successful'
+                    );
+                }
             }
 
             $battle->update([
                 'status' => 'cancelled',
                 'cancellation_reason' => $reason,
                 'cancelled_by_id' => $user->id,
+                'refund_status' => 'approved',
                 'completed_at' => now(),
             ]);
 
@@ -867,6 +932,38 @@ class LudoController extends Controller
                 return redirect()->back()->with('error', 'Unauthorized: Only match participants can cancel.');
             }
 
+            if (in_array($battle->status, ['completed', 'cancelled'])) {
+                if ($request->expectsJson() || $request->ajax()) {
+                    return response()->json(['success' => false, 'message' => 'This match is already finalized.'], 422);
+                }
+                return redirect()->back()->with('error', 'This match is already finalized.');
+            }
+
+            if ($battle->status === 'running') {
+                if ($request->expectsJson() || $request->ajax()) {
+                    return response()->json([
+                        'success' => false,
+                        'message' => 'Matches in progress cannot be cancelled directly. Please submit your match result or raise a dispute for administrative review.'
+                    ], 422);
+                }
+                return redirect()->back()->with('error', 'Matches in progress cannot be cancelled directly.');
+            }
+
+            if (in_array($battle->review_status, ['under_review', 'disputed']) || $battle->refund_status === 'pending') {
+                if ($request->expectsJson() || $request->ajax()) {
+                    return response()->json(['success' => false, 'message' => 'This match is under administrative review. Direct cancellation is disabled.'], 422);
+                }
+                return redirect()->back()->with('error', 'This match is under administrative review.');
+            }
+
+            $userClaim = ($user->id === $battle->creator_id) ? $battle->creator_claimed_result : $battle->joiner_claimed_result;
+            if ($userClaim && $userClaim !== 'pending') {
+                if ($request->expectsJson() || $request->ajax()) {
+                    return response()->json(['success' => false, 'message' => 'You have already submitted a result for this match. Cancellation is rejected.'], 422);
+                }
+                return redirect()->back()->with('error', 'You have already submitted a result for this match.');
+            }
+
             if (!in_array($battle->status, ['open', 'requested'])) {
                 if ($request->expectsJson() || $request->ajax()) {
                     return response()->json(['success' => false, 'message' => 'This battle cannot be cancelled.'], 422);
@@ -874,30 +971,56 @@ class LudoController extends Controller
                 return redirect()->back()->with('error', 'This battle cannot be cancelled.');
             }
 
-            // Refund creator
-            \App\Models\LudoLedgerTransaction::recordAdjustment(
-                $battle->creator,
-                $battle->entry_fee,
-                'refund',
-                "Refund for cancelled Battle {$battle->battle_uid}",
-                'successful'
-            );
+            if ($battle->status === 'open' && $user->id !== $battle->creator_id) {
+                if ($request->expectsJson() || $request->ajax()) {
+                    return response()->json(['success' => false, 'message' => 'Only the battle creator can cancel an open battle.'], 403);
+                }
+                return redirect()->back()->with('error', 'Only the battle creator can cancel an open battle.');
+            }
 
-            // Refund joiner if present
+            // Refund creator (idempotent, guard against double refund)
+            if ($battle->creator) {
+                $alreadyRefundedCreator = \App\Models\LudoLedgerTransaction::where('user_id', $battle->creator_id)
+                    ->where('type', 'refund')
+                    ->where('description', 'like', "%{$battle->battle_uid}%")
+                    ->where('status', 'successful')
+                    ->exists();
+
+                if (!$alreadyRefundedCreator) {
+                    \App\Models\LudoLedgerTransaction::recordAdjustment(
+                        $battle->creator,
+                        $battle->entry_fee,
+                        'refund',
+                        "Refund for cancelled Battle {$battle->battle_uid}",
+                        'successful'
+                    );
+                }
+            }
+
+            // Refund joiner if present (idempotent, guard against double refund)
             if ($battle->joiner) {
-                \App\Models\LudoLedgerTransaction::recordAdjustment(
-                    $battle->joiner,
-                    $battle->entry_fee,
-                    'refund',
-                    "Refund for cancelled Battle {$battle->battle_uid}",
-                    'successful'
-                );
+                $alreadyRefundedJoiner = \App\Models\LudoLedgerTransaction::where('user_id', $battle->joiner_id)
+                    ->where('type', 'refund')
+                    ->where('description', 'like', "%{$battle->battle_uid}%")
+                    ->where('status', 'successful')
+                    ->exists();
+
+                if (!$alreadyRefundedJoiner) {
+                    \App\Models\LudoLedgerTransaction::recordAdjustment(
+                        $battle->joiner,
+                        $battle->entry_fee,
+                        'refund',
+                        "Refund for cancelled Battle {$battle->battle_uid}",
+                        'successful'
+                    );
+                }
             }
 
             $battle->update([
                 'status' => 'cancelled',
                 'cancellation_reason' => 'Cancelled by player',
                 'cancelled_by_id' => $user->id,
+                'refund_status' => 'approved',
                 'completed_at' => now(),
             ]);
 
@@ -1022,6 +1145,36 @@ class LudoController extends Controller
         });
         $filterRealUsers($openIdsQuery);
         $data['open_battle_ids'] = $openIdsQuery->pluck('id')->values()->all();
+
+        // Top open and requested battles with rendered HTML for instant dynamic lobby rendering without page refresh
+        $openBattlesQuery = LudoBattle::with(['creator', 'joiner'])
+            ->where(function ($q) use ($user) {
+                $q->where('status', 'open');
+                if ($user) {
+                    $q->orWhere(function ($sub) use ($user) {
+                        $sub->where('status', 'requested')
+                            ->where(function ($userSub) use ($user) {
+                                $userSub->where('creator_id', $user->id)
+                                        ->orWhere('joiner_id', $user->id);
+                            });
+                    });
+                }
+            });
+        $filterRealUsers($openBattlesQuery);
+
+        $openBattles = $openBattlesQuery->latest('created_at')->latest('id')->take(20)->get();
+
+        $data['open_battles'] = $openBattles->map(function ($b) {
+            return [
+                'id' => $b->id,
+                'battle_uid' => $b->battle_uid,
+                'status' => $b->status,
+                'entry_fee' => (int) $b->entry_fee,
+                'prize' => (int) $b->prize,
+                'creator_id' => $b->creator_id,
+                'card_html' => view('ludo.partials.open_battle_card', ['battle' => $b])->render(),
+            ];
+        })->values()->all();
 
         // Top running battles with rendered HTML for real-time appearance
         $runningQuery = LudoBattle::with(['creator', 'joiner'])
@@ -1948,6 +2101,7 @@ class LudoController extends Controller
         $validated = $request->validate([
             'result' => ['required', 'in:won,lost,cancelled'],
             'evidence' => ['nullable', 'file', 'mimes:jpg,jpeg,png,webp', 'max:5120'],
+            'reason' => ['nullable', 'string', 'max:500'],
         ]);
 
         $claimed = $validated['result'];
@@ -1964,10 +2118,29 @@ class LudoController extends Controller
             $isExpired = true;
         }
 
+        // Prevent player from flipping or modifying an already submitted claim
+        $existingClaim = $isCreator ? $battle->creator_claimed_result : $battle->joiner_claimed_result;
+        if ($existingClaim && $existingClaim !== 'pending') {
+            return redirect()->back()->with('error', 'You have already submitted your match result claim. Claims cannot be modified.');
+        }
+
         if ($isCreator) {
             $battle->creator_claimed_result = $claimed;
+            if ($evidencePath) {
+                $battle->creator_evidence_path = $evidencePath;
+            }
         } else {
             $battle->joiner_claimed_result = $claimed;
+            if ($evidencePath) {
+                $battle->joiner_evidence_path = $evidencePath;
+            }
+        }
+
+        // If player reports cancellation, set pending refund for admin verification
+        if ($claimed === 'cancelled') {
+            $battle->refund_status = 'pending';
+            $battle->refund_requested_by_id = $user->id;
+            $battle->refund_reason = $validated['reason'] ?? 'Player claimed match was cancelled or could not be completed';
         }
 
         // If deadline expired, do NOT automatically award win; flag for review
@@ -1992,13 +2165,33 @@ class LudoController extends Controller
                 $this->finalizeBattleVictory($battle, $battle->joiner_id, 'won');
                 return redirect()->back()->with('success', "Match completed! {$battle->joiner->name} won 🪙 {$battle->prize} virtual points.");
             } elseif ($creatorClaim === 'cancelled' && $joinerClaim === 'cancelled') {
-                // Both agreed to cancel/draw -> refund both
-                $this->refundBothPlayers($battle, 'Mutual cancellation');
-                return redirect()->back()->with('success', 'Match cancelled by mutual agreement. Both players refunded.');
+                // Both claimed cancelled during active match -> Freeze payout/refund, route to Admin Review
+                $battle->update([
+                    'review_status' => 'under_review',
+                    'refund_status' => 'pending',
+                    'refund_reason' => 'Both players reported cancellation during running match. Awaiting admin review and refund approval.',
+                ]);
+
+                $opponentId = $isCreator ? $battle->joiner_id : $battle->creator_id;
+                LudoDispute::firstOrCreate(
+                    ['battle_id' => $battle->id],
+                    [
+                        'dispute_uid' => 'DSP-' . strtoupper(Str::random(8)),
+                        'opened_by_user_id' => $user->id,
+                        'against_user_id' => $opponentId,
+                        'reason_category' => 'cancellation_claim',
+                        'description' => "Both players submitted cancellation claims during running match. Admin verification required to approve refund.",
+                        'status' => 'open',
+                        'evidence_path' => $evidencePath,
+                    ]
+                );
+
+                return redirect()->back()->with('warning', 'Cancellation claims submitted. Under administrative review: refunds stay frozen until verified and approved by admin.');
             } else {
-                // CONFLICT! (e.g. both claim 'won' or conflicting claims)
+                // CONFLICT! (e.g. both claim 'won' or one claims won and other claims cancelled)
                 $battle->update([
                     'review_status' => 'disputed',
+                    'refund_status' => ($creatorClaim === 'cancelled' || $joinerClaim === 'cancelled') ? 'pending' : 'none',
                 ]);
 
                 // Create an auto dispute record for admin review
@@ -2019,85 +2212,156 @@ class LudoController extends Controller
         }
 
         $battle->save();
+
+        if ($claimed === 'cancelled') {
+            return redirect()->back()->with('warning', 'Cancellation claim recorded. Awaiting opponent response and admin verification before any refund is processed.');
+        }
+
         return redirect()->back()->with('success', 'Result submitted. Waiting for opponent claim.');
     }
 
     /**
-     * Helper to credit winner safely
+     * Helper to credit winner safely (Atomic & Idempotent)
      */
     protected function finalizeBattleVictory(LudoBattle $battle, int $winnerId, string $finalResult)
     {
-        $winner = User::findOrFail($winnerId);
+        return DB::transaction(function () use ($battle, $winnerId, $finalResult) {
+            $lockedBattle = LudoBattle::lockForUpdate()->find($battle->id);
+            if (!$lockedBattle || in_array($lockedBattle->status, ['completed', 'cancelled'])) {
+                return;
+            }
 
-        $battle->update([
-            'status' => 'completed',
-            'winner_id' => $winnerId,
-            'final_result' => $finalResult,
-            'review_status' => 'auto_approved',
-            'completed_at' => now(),
-        ]);
+            // Mutual exclusion: Prevent prize payout if refund was already recorded in ledger
+            $alreadyRefunded = LudoLedgerTransaction::where('type', 'refund')
+                ->where('description', 'like', "%{$lockedBattle->battle_uid}%")
+                ->where('status', 'successful')
+                ->exists();
 
-        // Credit virtual prize pool to winner via atomic ledger
-        LudoLedgerTransaction::recordAdjustment(
-            $winner,
-            $battle->prize,
-            'prize_payout',
-            "Won Battle {$battle->battle_uid} (Prize: 🪙 {$battle->prize})",
-            'successful'
-        );
+            if ($alreadyRefunded) {
+                return;
+            }
 
-        // Notify winner
-        $winner->notify(new LudoInAppNotification(
-            "🏆 Victory in Battle {$battle->battle_uid}!",
-            "Congratulations! You won 🪙 {$battle->prize} virtual points.",
-            "match",
-            url('/history')
-        ));
+            // Check if prize payout was already recorded in ledger to prevent double-payout
+            $alreadyPaid = LudoLedgerTransaction::where('user_id', $winnerId)
+                ->where('type', 'prize_payout')
+                ->where('description', 'like', "%{$lockedBattle->battle_uid}%")
+                ->where('status', 'successful')
+                ->exists();
+
+            $lockedBattle->update([
+                'status' => 'completed',
+                'winner_id' => $winnerId,
+                'final_result' => $finalResult,
+                'review_status' => 'auto_approved',
+                'refund_status' => 'none',
+                'completed_at' => now(),
+            ]);
+
+            if (!$alreadyPaid) {
+                $winner = User::findOrFail($winnerId);
+
+                // Credit virtual prize pool to winner via atomic ledger
+                LudoLedgerTransaction::recordAdjustment(
+                    $winner,
+                    $lockedBattle->prize,
+                    'prize_payout',
+                    "Won Battle {$lockedBattle->battle_uid} (Prize: 🪙 {$lockedBattle->prize})",
+                    'successful'
+                );
+
+                // Notify winner
+                $winner->notify(new LudoInAppNotification(
+                    "🏆 Victory in Battle {$lockedBattle->battle_uid}!",
+                    "Congratulations! You won 🪙 {$lockedBattle->prize} virtual points.",
+                    "match",
+                    url('/history')
+                ));
+            }
+        });
     }
 
     /**
-     * Helper to refund both players on cancellation
+     * Helper to refund both players on cancellation (Atomic & Idempotent)
      */
     protected function refundBothPlayers(LudoBattle $battle, string $reason)
     {
-        $creator = User::findOrFail($battle->creator_id);
-        $joiner = User::findOrFail($battle->joiner_id);
+        return DB::transaction(function () use ($battle, $reason) {
+            $lockedBattle = LudoBattle::lockForUpdate()->find($battle->id);
+            if (!$lockedBattle || in_array($lockedBattle->status, ['completed', 'cancelled'])) {
+                return;
+            }
 
-        $battle->update([
-            'status' => 'cancelled',
-            'final_result' => 'cancelled',
-            'review_status' => 'auto_approved',
-            'completed_at' => now(),
-        ]);
+            // Mutual exclusion: Prevent refund if prize payout was already recorded in ledger
+            $alreadyPaid = LudoLedgerTransaction::where('type', 'prize_payout')
+                ->where('description', 'like', "%{$lockedBattle->battle_uid}%")
+                ->where('status', 'successful')
+                ->exists();
 
-        LudoLedgerTransaction::recordAdjustment(
-            $creator,
-            $battle->entry_fee,
-            'refund',
-            "Refund for Battle {$battle->battle_uid}: {$reason}",
-            'successful'
-        );
+            if ($alreadyPaid) {
+                return;
+            }
 
-        LudoLedgerTransaction::recordAdjustment(
-            $joiner,
-            $battle->entry_fee,
-            'refund',
-            "Refund for Battle {$battle->battle_uid}: {$reason}",
-            'successful'
-        );
+            $creator = User::find($lockedBattle->creator_id);
+            $joiner = User::find($lockedBattle->joiner_id);
 
-        $creator->notify(new LudoInAppNotification(
-            "🪙 Points Refunded",
-            "Battle {$battle->battle_uid} was cancelled ({$reason}). 🪙 {$battle->entry_fee} returned to wallet.",
-            "ledger",
-            url('/wallet')
-        ));
-        $joiner->notify(new LudoInAppNotification(
-            "🪙 Points Refunded",
-            "Battle {$battle->battle_uid} was cancelled ({$reason}). 🪙 {$battle->entry_fee} returned to wallet.",
-            "ledger",
-            url('/wallet')
-        ));
+            $lockedBattle->update([
+                'status' => 'cancelled',
+                'final_result' => 'cancelled',
+                'review_status' => 'verified',
+                'refund_status' => 'approved',
+                'completed_at' => now(),
+            ]);
+
+            if ($creator) {
+                $alreadyRefundedCreator = LudoLedgerTransaction::where('user_id', $creator->id)
+                    ->where('type', 'refund')
+                    ->where('description', 'like', "%{$lockedBattle->battle_uid}%")
+                    ->where('status', 'successful')
+                    ->exists();
+
+                if (!$alreadyRefundedCreator) {
+                    LudoLedgerTransaction::recordAdjustment(
+                        $creator,
+                        $lockedBattle->entry_fee,
+                        'refund',
+                        "Refund for Battle {$lockedBattle->battle_uid}: {$reason}",
+                        'successful'
+                    );
+
+                    $creator->notify(new LudoInAppNotification(
+                        "🪙 Points Refunded",
+                        "Battle {$lockedBattle->battle_uid} was cancelled ({$reason}). 🪙 {$lockedBattle->entry_fee} returned to wallet.",
+                        "ledger",
+                        url('/wallet')
+                    ));
+                }
+            }
+
+            if ($joiner) {
+                $alreadyRefundedJoiner = LudoLedgerTransaction::where('user_id', $joiner->id)
+                    ->where('type', 'refund')
+                    ->where('description', 'like', "%{$lockedBattle->battle_uid}%")
+                    ->where('status', 'successful')
+                    ->exists();
+
+                if (!$alreadyRefundedJoiner) {
+                    LudoLedgerTransaction::recordAdjustment(
+                        $joiner,
+                        $lockedBattle->entry_fee,
+                        'refund',
+                        "Refund for Battle {$lockedBattle->battle_uid}: {$reason}",
+                        'successful'
+                    );
+
+                    $joiner->notify(new LudoInAppNotification(
+                        "🪙 Points Refunded",
+                        "Battle {$lockedBattle->battle_uid} was cancelled ({$reason}). 🪙 {$lockedBattle->entry_fee} returned to wallet.",
+                        "ledger",
+                        url('/wallet')
+                    ));
+                }
+            }
+        });
     }
 
     /**

@@ -407,8 +407,7 @@ class BattleLifecycleComprehensiveTest extends TestCase
             'joiner_id' => $joiner->id,
             'entry_fee' => 100,
             'prize' => 190,
-            'status' => 'running',
-            'started_at' => now(),
+            'status' => 'requested',
         ]);
 
         // Simulate entry fees deducted during battle creation and joining

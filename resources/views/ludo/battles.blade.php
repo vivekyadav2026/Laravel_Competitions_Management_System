@@ -1154,7 +1154,7 @@ document.addEventListener('DOMContentLoaded', function () {
 
     // 5. Smart Real-time Lobby Polling (Rate-limited, pause on tab hidden)
     let isLobbyPolling = false;
-    const lobbySyncInterval = setInterval(async function () {
+    async function pollLobbyState() {
         if (document.hidden || isLobbyPolling) return;
         isLobbyPolling = true;
 
@@ -1216,7 +1216,7 @@ document.addEventListener('DOMContentLoaded', function () {
                     return;
                 }
 
-                // C. Synchronize Open Battles (Remove battles that were started or cancelled)
+                // C. Synchronize Open Battles (Add newly created battles, remove battles that were started or cancelled)
                 if (Array.isArray(data.open_battle_ids)) {
                     const openList = document.getElementById('open-battles-list');
                     if (openList) {
@@ -1227,6 +1227,34 @@ document.addEventListener('DOMContentLoaded', function () {
                                 card.remove();
                             }
                         });
+
+                        // Dynamically render newly created battles or update state without page reload
+                        if (Array.isArray(data.open_battles)) {
+                            data.open_battles.slice().reverse().forEach(item => {
+                                const existingCard = openList.querySelector(`.ludo-battle-card[data-battle-id="${item.id}"]`);
+                                if (!existingCard && item.card_html) {
+                                    const emptyEl = document.getElementById('open-battles-empty');
+                                    if (emptyEl) emptyEl.remove();
+
+                                    const tempDiv = document.createElement('div');
+                                    tempDiv.innerHTML = item.card_html.trim();
+                                    const newCard = tempDiv.firstElementChild;
+                                    if (newCard) {
+                                        openList.prepend(newCard);
+                                        applyCardStagger(openList);
+                                    }
+                                } else if (existingCard && item.card_html) {
+                                    // Update card state if changed (e.g. from open to requested)
+                                    const tempDiv = document.createElement('div');
+                                    tempDiv.innerHTML = item.card_html.trim();
+                                    const updatedCard = tempDiv.firstElementChild;
+                                    if (updatedCard && updatedCard.className !== existingCard.className) {
+                                        updatedCard.classList.add('ludo-card-animated');
+                                        existingCard.replaceWith(updatedCard);
+                                    }
+                                }
+                            });
+                        }
 
                         if (openList.querySelectorAll('.ludo-battle-card').length === 0 && !document.getElementById('open-battles-empty')) {
                             const emptyDiv = document.createElement('div');
@@ -1300,7 +1328,16 @@ document.addEventListener('DOMContentLoaded', function () {
         } finally {
             isLobbyPolling = false;
         }
-    }, 3000);
+    }
+
+    const lobbySyncInterval = setInterval(pollLobbyState, 3000);
+
+    // Fast wake-up when user tabs back into the browser
+    document.addEventListener('visibilitychange', function () {
+        if (!document.hidden) {
+            pollLobbyState();
+        }
+    });
 
     // Battle amount +50 / -50 steppers & quick chips & Est. Win Prize
     const battleInput = document.getElementById('ludoBattleAmountInput');

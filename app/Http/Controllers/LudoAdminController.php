@@ -846,7 +846,14 @@ class LudoAdminController extends Controller
      */
     public function matchShow($id)
     {
-        $match = LudoBattle::with(['creator', 'joiner', 'winner', 'dispute.evidences.user'])->findOrFail($id);
+        $match = LudoBattle::with([
+            'creator', 
+            'joiner', 
+            'winner', 
+            'refundRequestedBy',
+            'adminReviewedBy',
+            'dispute.evidences.user'
+        ])->findOrFail($id);
 
         $matchTransactions = LudoLedgerTransaction::with('user')
             ->where('description', 'like', "%{$match->battle_uid}%")
@@ -868,7 +875,7 @@ class LudoAdminController extends Controller
     }
 
     /**
-     * Cancel Match Administratively & Refund Both (Concurrency-safe)
+     * Cancel Match Administratively & Refund Both (Concurrency-safe & Idempotent)
      */
     public function matchCancel(Request $request, $id)
     {
@@ -887,6 +894,26 @@ class LudoAdminController extends Controller
 
             if ($match->status === 'completed') {
                 return redirect()->back()->with('error', 'Completed matches with finalized prize payouts cannot be cancelled.');
+            }
+
+            // Mutual exclusion: Prevent refund if prize payout already exists
+            $alreadyPaid = LudoLedgerTransaction::where('type', 'prize_payout')
+                ->where('description', 'like', "%{$match->battle_uid}%")
+                ->where('status', 'successful')
+                ->exists();
+
+            if ($alreadyPaid) {
+                return redirect()->back()->with('error', 'Cannot cancel or refund: A prize payout already exists in the ledger for this match.');
+            }
+
+            // Guard against duplicate refunds
+            $alreadyRefunded = LudoLedgerTransaction::where('type', 'refund')
+                ->where('description', 'like', "%{$match->battle_uid}%")
+                ->where('status', 'successful')
+                ->exists();
+
+            if ($alreadyRefunded) {
+                return redirect()->back()->with('error', 'A refund transaction already exists in the ledger for this match.');
             }
 
             // Refund creator
@@ -932,7 +959,11 @@ class LudoAdminController extends Controller
             $match->update([
                 'status' => 'cancelled',
                 'final_result' => 'cancelled',
-                'review_status' => 'auto_approved',
+                'review_status' => 'verified',
+                'refund_status' => 'approved',
+                'refund_decision_reason' => $validated['reason'],
+                'admin_reviewed_at' => now(),
+                'admin_reviewed_by_id' => Auth::id(),
                 'completed_at' => now(),
             ]);
 
@@ -957,7 +988,7 @@ class LudoAdminController extends Controller
     public function matchResolveResult(Request $request, $id)
     {
         $validated = $request->validate([
-            'decision' => ['required', 'in:award_creator,award_joiner,mark_verified'],
+            'decision' => ['required', 'in:award_creator,award_joiner,mark_verified,reject_result'],
             'reason' => ['required', 'string', 'min:5', 'max:1000'],
         ]);
 
@@ -965,9 +996,24 @@ class LudoAdminController extends Controller
             $match = LudoBattle::with(['creator', 'joiner', 'dispute'])->lockForUpdate()->findOrFail($id);
 
             if ($validated['decision'] === 'mark_verified') {
-                $match->update(['review_status' => 'verified']);
+                $match->update([
+                    'review_status' => 'verified',
+                    'admin_reviewed_at' => now(),
+                    'admin_reviewed_by_id' => Auth::id(),
+                ]);
                 LudoAdminAuditLog::log('match_verified', "Verified match {$match->battle_uid}. Reason: {$validated['reason']}", 'LudoBattle', $match->id);
                 return redirect()->back()->with('success', "Match {$match->battle_uid} marked as verified.");
+            }
+
+            if ($validated['decision'] === 'reject_result') {
+                $match->update([
+                    'review_status' => 'disputed',
+                    'refund_decision_reason' => $validated['reason'],
+                    'admin_reviewed_at' => now(),
+                    'admin_reviewed_by_id' => Auth::id(),
+                ]);
+                LudoAdminAuditLog::log('match_result_rejected', "Rejected result claim for match {$match->battle_uid}. Reason: {$validated['reason']}", 'LudoBattle', $match->id);
+                return redirect()->back()->with('warning', "Result claim for match {$match->battle_uid} was marked as rejected.");
             }
 
             if (in_array($match->status, ['completed', 'cancelled'])) {
@@ -978,6 +1024,24 @@ class LudoAdminController extends Controller
                 return redirect()->back()->with('error', 'Cannot award victory on an open match without an opponent.');
             }
 
+            // Check if prize has already been credited
+            $alreadyPaid = LudoLedgerTransaction::where('type', 'prize_payout')
+                ->where('description', 'like', "%{$match->battle_uid}%")
+                ->where('status', 'successful')
+                ->exists();
+            if ($alreadyPaid) {
+                return redirect()->back()->with('error', 'Prize payout has already been recorded for this match.');
+            }
+
+            // Check if already refunded
+            $alreadyRefunded = LudoLedgerTransaction::where('type', 'refund')
+                ->where('description', 'like', "%{$match->battle_uid}%")
+                ->where('status', 'successful')
+                ->exists();
+            if ($alreadyRefunded) {
+                return redirect()->back()->with('error', 'Cannot award victory: this match was already refunded.');
+            }
+
             $winner = $validated['decision'] === 'award_creator' ? $match->creator : $match->joiner;
 
             $match->update([
@@ -985,6 +1049,10 @@ class LudoAdminController extends Controller
                 'winner_id' => $winner->id,
                 'final_result' => 'won',
                 'review_status' => 'verified',
+                'refund_status' => 'rejected', // Any pending cancellation/refund request is formally rejected
+                'refund_decision_reason' => "Awarded victory to {$winner->name}: {$validated['reason']}",
+                'admin_reviewed_at' => now(),
+                'admin_reviewed_by_id' => Auth::id(),
                 'completed_at' => now(),
             ]);
 
@@ -1018,6 +1086,312 @@ class LudoAdminController extends Controller
 
             return redirect()->back()->with('success', "Match {$match->battle_uid} settled in favor of {$winner->name} and 🪙 {$match->prize} credited.");
         });
+    }
+
+    /**
+     * Approve an Eligible Cancellation / Refund Request (Admin Verification)
+     */
+    public function matchApproveRefund(Request $request, $id)
+    {
+        $validated = $request->validate([
+            'reason' => ['required', 'string', 'min:5', 'max:1000'],
+        ], [
+            'reason.required' => 'A mandatory rationale is required to approve a refund.',
+        ]);
+
+        return DB::transaction(function () use ($id, $validated) {
+            $match = LudoBattle::with(['creator', 'joiner', 'dispute'])->lockForUpdate()->findOrFail($id);
+
+            if ($match->status === 'completed') {
+                return redirect()->back()->with('error', 'Cannot refund a match that has already been completed with a prize payout.');
+            }
+
+            if ($match->status === 'cancelled' && $match->refund_status === 'approved') {
+                return redirect()->back()->with('error', 'This match has already been refunded.');
+            }
+
+            // Mutual exclusion: Prevent refund if prize payout already exists
+            $alreadyPaid = LudoLedgerTransaction::where('type', 'prize_payout')
+                ->where('description', 'like', "%{$match->battle_uid}%")
+                ->where('status', 'successful')
+                ->exists();
+
+            if ($alreadyPaid) {
+                return redirect()->back()->with('error', 'Cannot refund: A prize payout already exists in the ledger for this match.');
+            }
+
+            $alreadyRefunded = LudoLedgerTransaction::where('type', 'refund')
+                ->where('description', 'like', "%{$match->battle_uid}%")
+                ->where('status', 'successful')
+                ->exists();
+
+            if ($alreadyRefunded) {
+                return redirect()->back()->with('error', 'A refund transaction already exists in the ledger for this match.');
+            }
+
+            // Refund creator
+            if ($match->creator) {
+                LudoLedgerTransaction::recordAdjustment(
+                    $match->creator,
+                    $match->entry_fee,
+                    'refund',
+                    "Admin approved refund for {$match->battle_uid}: {$validated['reason']}",
+                    'successful',
+                    $validated['reason'],
+                    Auth::id()
+                );
+
+                $match->creator->notify(new LudoInAppNotification(
+                    "🪙 Refund Approved",
+                    "Your refund request for Battle {$match->battle_uid} was approved by Admin ({$validated['reason']}). 🪙 {$match->entry_fee} returned.",
+                    "ledger",
+                    url('/wallet')
+                ));
+            }
+
+            // Refund joiner if present
+            if ($match->joiner) {
+                LudoLedgerTransaction::recordAdjustment(
+                    $match->joiner,
+                    $match->entry_fee,
+                    'refund',
+                    "Admin approved refund for {$match->battle_uid}: {$validated['reason']}",
+                    'successful',
+                    $validated['reason'],
+                    Auth::id()
+                );
+
+                $match->joiner->notify(new LudoInAppNotification(
+                    "🪙 Refund Approved",
+                    "Your refund request for Battle {$match->battle_uid} was approved by Admin ({$validated['reason']}). 🪙 {$match->entry_fee} returned.",
+                    "ledger",
+                    url('/wallet')
+                ));
+            }
+
+            $match->update([
+                'status' => 'cancelled',
+                'final_result' => 'cancelled',
+                'review_status' => 'verified',
+                'refund_status' => 'approved',
+                'refund_decision_reason' => $validated['reason'],
+                'admin_reviewed_at' => now(),
+                'admin_reviewed_by_id' => Auth::id(),
+                'completed_at' => now(),
+            ]);
+
+            if ($match->dispute && $match->dispute->status !== 'resolved') {
+                $match->dispute->update([
+                    'status' => 'resolved',
+                    'admin_decision_reason' => "Refund approved: {$validated['reason']}",
+                    'resolved_by_admin_id' => Auth::id(),
+                    'resolved_at' => now(),
+                ]);
+            }
+
+            LudoAdminAuditLog::log('refund_approved', "Approved refund for match {$match->battle_uid}. Reason: {$validated['reason']}", 'LudoBattle', $match->id);
+
+            return redirect()->back()->with('success', "Refund of 🪙 {$match->entry_fee} approved and credited to players via ledger.");
+        });
+    }
+
+    /**
+     * Reject an Ineligible Refund Request (Admin Verification with Explicit Resolution Action)
+     */
+    public function matchRejectRefund(Request $request, $id)
+    {
+        $validated = $request->validate([
+            'reason' => ['required', 'string', 'min:5', 'max:1000'],
+            'next_action' => ['nullable', 'string', 'in:award_creator,award_joiner,resume_match,forfeit_stakes,hold_review'],
+        ], [
+            'reason.required' => 'A mandatory reason is required to reject a refund request.',
+        ]);
+
+        $nextAction = $validated['next_action'] ?? 'hold_review';
+
+        return DB::transaction(function () use ($id, $validated, $nextAction) {
+            $match = LudoBattle::with(['creator', 'joiner', 'dispute'])->lockForUpdate()->findOrFail($id);
+
+            if ($match->status === 'cancelled' && $match->refund_status === 'approved') {
+                return redirect()->back()->with('error', 'Cannot reject refund for an already refunded match.');
+            }
+
+            // Handle explicit next action
+            if (in_array($nextAction, ['award_creator', 'award_joiner'])) {
+                if (in_array($match->status, ['completed', 'cancelled'])) {
+                    return redirect()->back()->with('error', 'This match has already been finalized.');
+                }
+
+                $alreadyPaid = LudoLedgerTransaction::where('type', 'prize_payout')
+                    ->where('description', 'like', "%{$match->battle_uid}%")
+                    ->where('status', 'successful')
+                    ->exists();
+
+                if ($alreadyPaid) {
+                    return redirect()->back()->with('error', 'Cannot award victory: Prize payout already exists in the ledger.');
+                }
+
+                $alreadyRefunded = LudoLedgerTransaction::where('type', 'refund')
+                    ->where('description', 'like', "%{$match->battle_uid}%")
+                    ->where('status', 'successful')
+                    ->exists();
+
+                if ($alreadyRefunded) {
+                    return redirect()->back()->with('error', 'Cannot award victory: This match was already refunded.');
+                }
+
+                $winner = ($nextAction === 'award_creator') ? $match->creator : $match->joiner;
+                if (!$winner) {
+                    return redirect()->back()->with('error', 'Cannot award victory to a non-existent player.');
+                }
+
+                $match->update([
+                    'status' => 'completed',
+                    'winner_id' => $winner->id,
+                    'final_result' => 'won',
+                    'review_status' => 'verified',
+                    'refund_status' => 'rejected',
+                    'refund_decision_reason' => "Refund rejected and victory awarded to {$winner->name}: {$validated['reason']}",
+                    'admin_reviewed_at' => now(),
+                    'admin_reviewed_by_id' => Auth::id(),
+                    'completed_at' => now(),
+                ]);
+
+                LudoLedgerTransaction::recordAdjustment(
+                    $winner,
+                    $match->prize,
+                    'prize_payout',
+                    "Won Battle {$match->battle_uid} (Admin Resolution: {$validated['reason']})",
+                    'successful',
+                    $validated['reason'],
+                    Auth::id()
+                );
+
+                $winner->notify(new LudoInAppNotification(
+                    "🏆 Victory Awarded by Admin",
+                    "Admin reviewed Battle {$match->battle_uid} and awarded victory to you! 🪙 {$match->prize} virtual points credited.",
+                    "match",
+                    url('/history')
+                ));
+
+                if ($match->dispute && $match->dispute->status !== 'resolved') {
+                    $match->dispute->update([
+                        'status' => 'resolved',
+                        'admin_decision_reason' => "Refund rejected & awarded to {$winner->name}: {$validated['reason']}",
+                        'resolved_by_admin_id' => Auth::id(),
+                        'resolved_at' => now(),
+                    ]);
+                }
+
+                LudoAdminAuditLog::log('refund_rejected_and_awarded', "Rejected refund and awarded match {$match->battle_uid} to {$winner->name} (#{$winner->id}). Reason: {$validated['reason']}", 'LudoBattle', $match->id);
+
+                return redirect()->back()->with('success', "Refund rejected and victory awarded to {$winner->name} with 🪙 {$match->prize} virtual points credited.");
+            } elseif ($nextAction === 'forfeit_stakes') {
+                if (in_array($match->status, ['completed', 'cancelled'])) {
+                    return redirect()->back()->with('error', 'This match has already been finalized.');
+                }
+
+                $match->update([
+                    'status' => 'cancelled',
+                    'final_result' => 'cancelled',
+                    'review_status' => 'verified',
+                    'refund_status' => 'rejected',
+                    'refund_decision_reason' => "Refund rejected and stakes forfeited due to violation: {$validated['reason']}",
+                    'admin_reviewed_at' => now(),
+                    'admin_reviewed_by_id' => Auth::id(),
+                    'completed_at' => now(),
+                ]);
+
+                if ($match->dispute && $match->dispute->status !== 'resolved') {
+                    $match->dispute->update([
+                        'status' => 'rejected',
+                        'admin_decision_reason' => "Stakes forfeited: {$validated['reason']}",
+                        'resolved_by_admin_id' => Auth::id(),
+                        'resolved_at' => now(),
+                    ]);
+                }
+
+                LudoAdminAuditLog::log('refund_rejected_forfeit', "Refund rejected and stakes forfeited for match {$match->battle_uid}. Reason: {$validated['reason']}", 'LudoBattle', $match->id);
+
+                return redirect()->back()->with('warning', "Refund rejected. Stakes forfeited and match closed without payout.");
+            } elseif ($nextAction === 'resume_match') {
+                $match->update([
+                    'review_status' => 'verified',
+                    'refund_status' => 'rejected',
+                    'refund_decision_reason' => "Refund rejected & match resumed: {$validated['reason']}",
+                    'admin_reviewed_at' => now(),
+                    'admin_reviewed_by_id' => Auth::id(),
+                ]);
+
+                if ($match->dispute && $match->dispute->status !== 'resolved') {
+                    $match->dispute->update([
+                        'status' => 'resolved',
+                        'admin_decision_reason' => "Match resumed: {$validated['reason']}",
+                        'resolved_by_admin_id' => Auth::id(),
+                        'resolved_at' => now(),
+                    ]);
+                }
+
+                LudoAdminAuditLog::log('refund_rejected_resumed', "Refund rejected and match {$match->battle_uid} resumed. Reason: {$validated['reason']}", 'LudoBattle', $match->id);
+
+                return redirect()->back()->with('info', "Refund rejected and dispute cleared. Match resumed for legitimate play.");
+            } else {
+                // Default: hold_review
+                $match->update([
+                    'refund_status' => 'rejected',
+                    'refund_decision_reason' => $validated['reason'],
+                    'admin_reviewed_at' => now(),
+                    'admin_reviewed_by_id' => Auth::id(),
+                ]);
+
+                if ($match->dispute && $match->dispute->status !== 'resolved') {
+                    $match->dispute->update([
+                        'status' => 'rejected',
+                        'admin_decision_reason' => "Refund request rejected: {$validated['reason']}",
+                        'resolved_by_admin_id' => Auth::id(),
+                        'resolved_at' => now(),
+                    ]);
+                }
+
+                if ($match->refund_requested_by_id) {
+                    $requester = User::find($match->refund_requested_by_id);
+                    if ($requester) {
+                        $requester->notify(new LudoInAppNotification(
+                            "⚠️ Refund Request Rejected",
+                            "Your refund request for Battle {$match->battle_uid} was rejected by Admin. Reason: {$validated['reason']}",
+                            "match",
+                            url('/history')
+                        ));
+                    }
+                }
+
+                LudoAdminAuditLog::log('refund_rejected', "Rejected refund for match {$match->battle_uid}. Reason: {$validated['reason']}", 'LudoBattle', $match->id);
+
+                return redirect()->back()->with('warning', "Refund request for match {$match->battle_uid} was rejected. Stakes remain held under administrative review.");
+            }
+        });
+    }
+
+    /**
+     * Securely View / Stream Uploaded Match Evidence Screenshot (Admin Only)
+     */
+    public function viewMatchEvidence($id, $side = 'creator')
+    {
+        $match = LudoBattle::findOrFail($id);
+        $path = $side === 'joiner' ? $match->joiner_evidence_path : $match->creator_evidence_path;
+
+        if (!$path || !Storage::disk('local')->exists($path)) {
+            abort(404, 'Match evidence screenshot not found on disk.');
+        }
+
+        $fullPath = Storage::disk('local')->path($path);
+        $mime = mime_content_type($fullPath) ?: 'image/png';
+
+        return response()->file($fullPath, [
+            'Content-Type' => $mime,
+            'Content-Disposition' => 'inline; filename="' . basename($path) . '"',
+            'X-Robots-Tag' => 'noindex, nofollow',
+        ]);
     }
 
     /**

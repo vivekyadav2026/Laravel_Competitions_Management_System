@@ -239,33 +239,7 @@ class MalikLudoCompleteWorkflowTest extends TestCase
         $this->opponent->refresh();
         $this->assertEquals(900, $this->opponent->coins);
 
-        // 3. Creator clicks START
-        $response = $this->actingAs($this->creator)->post("/battles/{$battle->id}/start");
-        $response->assertRedirect(route('ludo.battles.view', $battle->id));
-
-        $battle->refresh();
-        $this->assertEquals('running', $battle->status);
-        $this->assertNotNull($battle->room_code_expires_at);
-
-        // 4. Set Ludo King Room Code
-        $response = $this->actingAs($this->creator)->post("/battles/{$battle->id}/room-code", [
-            'room_code' => '05839201',
-        ]);
-        $response->assertSessionHas('success');
-
-        $battle->refresh();
-        $this->assertEquals('05839201', $battle->room_code);
-
-        // 5. View Match Arena Screen (Screenshot #4)
-        $response = $this->actingAs($this->creator)->get("/battles/{$battle->id}");
-        $response->assertStatus(200);
-        $response->assertSee('05839201');
-        $response->assertSee('Rahul Sharma');
-        $response->assertSee('Aman Verma');
-        $response->assertSee('Cancel Match');
-        $response->assertSee('Ludo King');
-
-        // 6. Cancel match with specific reason (Screenshot #5 Reason: "Opponent Abusing")
+        // Cancel match with specific reason while in requested state before match starts
         $response = $this->actingAs($this->opponent)->post("/battles/{$battle->id}/cancel-with-reason", [
             'reason' => 'Opponent Abusing',
         ]);
