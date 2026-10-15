@@ -104,11 +104,12 @@ class LoginRegisterAndQrPaymentTest extends TestCase
 
         $response = $this->post('/register', $payload);
 
-        $response->assertRedirect('/showlogin');
+        $response->assertRedirect('/');
         $response->assertSessionHas('message');
 
         $newUser = User::where('email', 'amitabh@example.com')->first();
         $this->assertNotNull($newUser);
+        $this->assertAuthenticatedAs($newUser);
         $this->assertEquals('9123456780', $newUser->phone);
         $this->assertEquals('Amitabh Bachchan', $newUser->name);
         $this->assertStringStartsWith('LUDO', $newUser->player_uid);

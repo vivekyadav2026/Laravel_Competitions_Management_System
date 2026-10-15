@@ -146,7 +146,7 @@ class LudoTournamentTest extends TestCase
             'referral_code' => $refCode,
         ]);
 
-        $response->assertRedirect('/showlogin');
+        $response->assertRedirect('/');
 
         $referredUser = User::where('email', $newEmail)->first();
         $this->assertNotNull($referredUser);

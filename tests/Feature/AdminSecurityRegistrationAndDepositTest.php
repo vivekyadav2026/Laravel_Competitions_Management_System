@@ -55,9 +55,9 @@ class AdminSecurityRegistrationAndDepositTest extends TestCase
     }
 
     /**
-     * PART 1: Registration must redirect to Login and leave user unauthenticated.
+     * PART 1: Successful registration auto-logs in and directs player straight to user panel / game lobby.
      */
-    public function test_successful_registration_redirects_to_login_and_leaves_user_unauthenticated(): void
+    public function test_successful_registration_auto_authenticates_and_redirects_to_user_panel(): void
     {
         $uniquePhone = '98' . random_int(10000000, 99999999);
         $uniqueEmail = 'player_' . Str::random(8) . '@fsaludotest.com';
@@ -69,27 +69,18 @@ class AdminSecurityRegistrationAndDepositTest extends TestCase
             'password' => 'SecurePass123',
         ]);
 
-        // Must redirect to login page
-        $response->assertRedirect('/showlogin');
-        $response->assertSessionHas('success', 'Registration successful. Please log in with your registered credentials.');
+        // Must redirect to user panel (route 'ludo.home' or '/')
+        $response->assertRedirect('/');
 
-        // User must NOT be logged in automatically
-        $this->assertGuest();
-
-        // User must exist in database with active status and player role
+        // User must be logged in automatically
         $newUser = User::where('email', $uniqueEmail)->first();
         $this->assertNotNull($newUser);
+        $this->assertAuthenticatedAs($newUser);
+
+        // User must exist in database with active status and player role
         $this->assertEquals('active', $newUser->status);
         $this->assertEquals('player', $newUser->role);
         $this->assertTrue(Hash::check('SecurePass123', $newUser->password));
-
-        // User can now log in manually
-        $loginResponse = $this->post('/login', [
-            'email' => $uniqueEmail,
-            'password' => 'SecurePass123',
-        ]);
-        $loginResponse->assertRedirect('/');
-        $this->assertAuthenticatedAs($newUser);
     }
 
     public function test_registration_rejects_duplicate_email_or_phone(): void

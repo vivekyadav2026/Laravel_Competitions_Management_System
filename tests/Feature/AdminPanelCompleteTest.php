@@ -416,7 +416,7 @@ class AdminPanelCompleteTest extends TestCase
             'password' => 'secret1234',
             'password_confirmation' => 'secret1234',
             'referral_code' => $referrerCode,
-        ])->assertRedirect('/showlogin');
+        ])->assertRedirect('/');
 
         // Referrer received 75 points (configured in admin)
         $this->assertEquals(175, (float) $referrer->fresh()->coins);

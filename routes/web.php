@@ -27,6 +27,7 @@ Route::get('/tournaments', [LudoController::class, 'tournaments'])->name('ludo.t
 // Authentication routes
 Route::get('/showregister', [AuthController::class, 'showRegister'])->name('register');
 Route::get('/sign-up', [AuthController::class, 'showRegister']);
+Route::get('/register', [AuthController::class, 'showRegister']);
 Route::post('/register', [AuthController::class, 'register']);
 Route::get('/showlogin', [AuthController::class, 'showLogin'])->name('login');
 Route::post('/login', [AuthController::class, 'login'])->name('login.post');

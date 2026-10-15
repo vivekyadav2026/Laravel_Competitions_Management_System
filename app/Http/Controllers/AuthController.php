@@ -45,7 +45,7 @@ class AuthController extends Controller
         }
 
         try {
-            \Illuminate\Support\Facades\DB::transaction(function () use ($request, $cleanPhone) {
+            $newUser = \Illuminate\Support\Facades\DB::transaction(function () use ($request, $cleanPhone) {
                 // Generate a unique referral code and player UID for new player
                 $uniqueRefCode = strtoupper(\Illuminate\Support\Str::random(6));
                 while (User::where('referral_code', $uniqueRefCode)->exists()) {
@@ -53,8 +53,10 @@ class AuthController extends Controller
                 }
 
                 $referrer = null;
+                $cleanRefCode = null;
                 if ($request->filled('referral_code')) {
-                    $referrer = User::where('referral_code', trim($request->referral_code))->first();
+                    $cleanRefCode = strtoupper(trim($request->referral_code));
+                    $referrer = User::where('referral_code', $cleanRefCode)->first();
                 }
 
                 $newUser = User::create([
@@ -94,7 +96,7 @@ class AuthController extends Controller
                     \App\Models\LudoReferral::create([
                         'referrer_id' => $referrer->id,
                         'referred_user_id' => $newUser->id,
-                        'referral_code' => trim($request->referral_code),
+                        'referral_code' => $cleanRefCode ?: $referrer->referral_code,
                         'status' => 'eligible',
                         'reward_points' => $rewardPoints,
                         'rewarded_at' => now(),
@@ -110,15 +112,30 @@ class AuthController extends Controller
                     );
                     $referrer->increment('referral_balance', (float) $rewardPoints);
                 }
+
+                return $newUser;
             });
 
-            return redirect()->route('login')
-                ->with('success', 'Registration successful. Please log in with your registered credentials.')
-                ->with('message', 'Registration successful. Please log in with your registered credentials.');
+            // Automatically log the newly registered user in directly into the user panel
+            Auth::login($newUser, true);
+            $request->session()->regenerate();
+
+            // Sanitize intended destination to prevent player redirecting to admin
+            $redirectUrl = session()->pull('url.intended');
+            if ($redirectUrl) {
+                $parsed = parse_url($redirectUrl);
+                $path = $parsed['path'] ?? '';
+                if (str_starts_with($path, '/admin') || str_contains($path, 'admin/')) {
+                    $redirectUrl = null;
+                }
+            }
+
+            return redirect()->to($redirectUrl ?: route('ludo.home'))
+                ->with('success', '🎉 Welcome to ' . config('ludo.brand_name', 'Fsaludoclub') . '! Your account has been created and you are now logged in.')
+                ->with('message', 'Registration successful!');
         } catch (Exception $e) {
             return redirect()->back()->with('error', $e->getMessage())->withInput();
         }
-
     }
 
     protected function ensureDefaultAdminUser(): void
@@ -359,8 +376,10 @@ class AuthController extends Controller
                 }
 
                 $referrer = null;
+                $cleanRefCode = null;
                 if ($request->filled('referral_code')) {
-                    $referrer = User::where('referral_code', trim($request->referral_code))->first();
+                    $cleanRefCode = strtoupper(trim($request->referral_code));
+                    $referrer = User::where('referral_code', $cleanRefCode)->first();
                 }
 
                 $email = 'player_' . $cleanPhone . '@fsaludoclub.com';
@@ -410,7 +429,7 @@ class AuthController extends Controller
                     \App\Models\LudoReferral::create([
                         'referrer_id' => $referrer->id,
                         'referred_user_id' => $newUser->id,
-                        'referral_code' => trim($request->referral_code),
+                        'referral_code' => $cleanRefCode ?: $referrer->referral_code,
                         'status' => 'eligible',
                         'reward_points' => $rewardPoints,
                         'rewarded_at' => now(),

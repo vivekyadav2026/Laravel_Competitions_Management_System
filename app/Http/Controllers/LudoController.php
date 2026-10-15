@@ -1100,6 +1100,8 @@ class LudoController extends Controller
             'referralCode' => $referralCode,
             'shareUrl' => $shareUrl,
             'commission' => $commission,
+            'rewardPoints' => (int) LudoSetting::get('referral_reward_points', 50),
+            'welcomeBonus' => (int) LudoSetting::get('welcome_bonus_points', 100),
             'totalReferrals' => $totalReferrals,
             'totalEligibleRewards' => $totalEligibleRewards,
             'referrals' => $referrals,

@@ -34,7 +34,7 @@ class DataIntegrityAndSyncTest extends TestCase
             'password_confirmation' => 'secret1234',
         ]);
 
-        $response->assertRedirect('/showlogin');
+        $response->assertRedirect('/');
         $response->assertSessionHas('message');
 
         $user = User::where('email', $email)->first();
@@ -75,7 +75,7 @@ class DataIntegrityAndSyncTest extends TestCase
             'referral_code' => $referrerCode,
         ]);
 
-        $response->assertRedirect('/showlogin');
+        $response->assertRedirect('/');
 
         // Referrer should be credited 50 points
         $this->assertEquals(250, $referrer->fresh()->coins);

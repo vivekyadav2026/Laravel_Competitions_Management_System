@@ -20,7 +20,7 @@
             <div class="ludo-reward-table">
                 <div class="ludo-reward-row">
                     <span class="text-light">1 Eligible Referral</span>
-                    <span class="text-warning fw-bold">+50 🪙 Virtual Points</span>
+                    <span class="text-warning fw-bold">+{{ $rewardPoints ?? 50 }} 🪙 Virtual Points</span>
                 </div>
                 <div class="ludo-reward-row">
                     <span class="text-light">Tournament Commission</span>
@@ -62,7 +62,7 @@
                 <span>Invite Friends (Share Link)</span>
             </button>
 
-            <a href="https://api.whatsapp.com/send?text={{ urlencode('Play ' . config('ludo.brand_name', 'Fsaludoclub') . ' with me! Use my referral code ' . $referralCode . ' to get 100 bonus tournament points: ' . $shareUrl) }}" 
+            <a href="https://api.whatsapp.com/send?text={{ urlencode('Play ' . config('ludo.brand_name', 'Fsaludoclub') . ' with me! Use my referral code ' . $referralCode . ' to get ' . ($welcomeBonus ?? 100) . ' bonus tournament points: ' . $shareUrl) }}" 
                target="_blank" 
                class="ludo-btn-invite">
                 <i class="fa-brands fa-whatsapp fs-4"></i>
