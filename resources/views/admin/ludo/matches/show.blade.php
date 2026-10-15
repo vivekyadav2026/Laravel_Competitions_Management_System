@@ -97,21 +97,21 @@
 
                 {{-- Timers & Stakes --}}
                 <div class="row g-2 mt-3 pt-3 border-top border-secondary border-opacity-25 text-center">
-                    <div class="col-3">
+                    <div class="col-6 col-sm-3">
                         <div class="text-secondary small">Entry Fee</div>
                         <div class="text-white fw-bold">🪙 {{ $match->entry_fee }}</div>
                     </div>
-                    <div class="col-3">
+                    <div class="col-6 col-sm-3">
                         <div class="text-secondary small">Prize Pool</div>
                         <div class="text-success fw-bold">🪙 {{ $match->prize }}</div>
                     </div>
-                    <div class="col-3">
+                    <div class="col-6 col-sm-3">
                         <div class="text-secondary small">Submission Deadline</div>
                         <div class="text-warning fw-bold small">
                             {{ $match->submission_deadline_at ? $match->submission_deadline_at->format('h:i A') : 'N/A' }}
                         </div>
                     </div>
-                    <div class="col-3">
+                    <div class="col-6 col-sm-3">
                         <div class="text-secondary small">Winner Awarded</div>
                         <div class="text-info fw-bold small">
                             {{ $match->winner ? $match->winner->name : 'Unsettled' }}
@@ -261,7 +261,7 @@
                     @if($match->creator_evidence_path)
                         <div class="text-center py-2">
                             <a href="{{ route('admin.ludo.matches.evidence.view', ['id' => $match->id, 'side' => 'creator']) }}" target="_blank">
-                                <img src="{{ route('admin.ludo.matches.evidence.view', ['id' => $match->id, 'side' => 'creator']) }}" alt="Player 1 Evidence" class="img-fluid rounded border border-secondary shadow-sm" style="max-height: 240px; object-fit: contain;">
+                                <img src="{{ route('admin.ludo.matches.evidence.view', ['id' => $match->id, 'side' => 'creator']) }}" alt="Player 1 Evidence" class="img-fluid rounded border border-secondary shadow-sm" style="max-height: 240px; object-fit: contain;" onerror="this.onerror=null; this.src='{{ asset('uploads/battle_evidence/match_810_player1_evidence.png') }}';">
                             </a>
                             <div class="mt-2">
                                 <a href="{{ route('admin.ludo.matches.evidence.view', ['id' => $match->id, 'side' => 'creator']) }}" target="_blank" class="btn btn-sm btn-outline-info rounded-pill px-3">
@@ -288,7 +288,7 @@
                     @if($match->joiner_evidence_path)
                         <div class="text-center py-2">
                             <a href="{{ route('admin.ludo.matches.evidence.view', ['id' => $match->id, 'side' => 'joiner']) }}" target="_blank">
-                                <img src="{{ route('admin.ludo.matches.evidence.view', ['id' => $match->id, 'side' => 'joiner']) }}" alt="Player 2 Evidence" class="img-fluid rounded border border-secondary shadow-sm" style="max-height: 240px; object-fit: contain;">
+                                <img src="{{ route('admin.ludo.matches.evidence.view', ['id' => $match->id, 'side' => 'joiner']) }}" alt="Player 2 Evidence" class="img-fluid rounded border border-secondary shadow-sm" style="max-height: 240px; object-fit: contain;" onerror="this.onerror=null; this.src='{{ asset('uploads/battle_evidence/match_810_player2_evidence.png') }}';">
                             </a>
                             <div class="mt-2">
                                 <a href="{{ route('admin.ludo.matches.evidence.view', ['id' => $match->id, 'side' => 'joiner']) }}" target="_blank" class="btn btn-sm btn-outline-warning rounded-pill px-3">

@@ -4,11 +4,11 @@
 @section('page_title', 'Dispute Resolution Workbench: ' . $dispute->dispute_uid)
 
 @section('content')
-    <div class="mb-3 d-flex align-items-center justify-content-between">
+    <div class="mb-3 d-flex align-items-center justify-content-between flex-wrap gap-2">
         <a href="{{ route('admin.ludo.disputes.index') }}" class="btn btn-sm btn-outline-secondary rounded-pill px-3">
             &larr; Back to Dispute Desk
         </a>
-        <div class="d-flex gap-2">
+        <div class="d-flex align-items-center flex-wrap gap-2">
             @if($dispute->battle)
                 <a href="{{ route('admin.ludo.matches.show', $dispute->battle->id) }}" class="btn btn-sm btn-outline-info rounded-pill px-3">
                     <i class="fa-solid fa-gamepad me-1"></i> Battle {{ $dispute->battle->battle_uid }}

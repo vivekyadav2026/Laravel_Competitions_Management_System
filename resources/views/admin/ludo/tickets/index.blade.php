@@ -41,7 +41,7 @@
                     <input type="text" name="search" class="form-control bg-dark text-light border-secondary" placeholder="Search Ticket UID, Subject, Player..." value="{{ request('search') }}">
                 </div>
             </div>
-            <div class="col-6 col-md-2">
+            <div class="col-6 col-sm-4 col-md-2">
                 <select name="status" class="form-select form-select-sm bg-dark text-light border-secondary">
                     <option value="">All Statuses</option>
                     <option value="open" {{ request('status') === 'open' ? 'selected' : '' }}>Open</option>
@@ -51,18 +51,7 @@
                     <option value="closed" {{ request('status') === 'closed' ? 'selected' : '' }}>Closed</option>
                 </select>
             </div>
-            <div class="col-6 col-md-2">
-                <select name="category" class="form-select form-select-sm bg-dark text-light border-secondary">
-                    <option value="">All Categories</option>
-                    <option value="battle_issue" {{ request('category') === 'battle_issue' ? 'selected' : '' }}>Battle / Match Issue</option>
-                    <option value="deposit_wallet" {{ request('category') === 'deposit_wallet' ? 'selected' : '' }}>Points / Wallet</option>
-                    <option value="account_profile" {{ request('category') === 'account_profile' ? 'selected' : '' }}>Account / Profile</option>
-                    <option value="kyc_issue" {{ request('category') === 'kyc_issue' ? 'selected' : '' }}>KYC Verification</option>
-                    <option value="technical_bug" {{ request('category') === 'technical_bug' ? 'selected' : '' }}>Technical Bug</option>
-                    <option value="other" {{ request('category') === 'other' ? 'selected' : '' }}>Other</option>
-                </select>
-            </div>
-            <div class="col-6 col-md-2">
+            <div class="col-6 col-sm-4 col-md-2">
                 <select name="priority" class="form-select form-select-sm bg-dark text-light border-secondary">
                     <option value="">All Priorities</option>
                     <option value="normal" {{ request('priority') === 'normal' ? 'selected' : '' }}>Normal</option>
@@ -70,9 +59,20 @@
                     <option value="urgent" {{ request('priority') === 'urgent' ? 'selected' : '' }}>Urgent</option>
                 </select>
             </div>
-            <div class="col-6 col-md-2 d-flex gap-2">
+            <div class="col-12 col-sm-4 col-md-2">
+                <select name="category" class="form-select form-select-sm bg-dark text-light border-secondary">
+                    <option value="">All Categories</option>
+                    <option value="battle_issue" {{ request('category') === 'battle_issue' ? 'selected' : '' }}>Battle / Match</option>
+                    <option value="deposit_wallet" {{ request('category') === 'deposit_wallet' ? 'selected' : '' }}>Points / Wallet</option>
+                    <option value="account_profile" {{ request('category') === 'account_profile' ? 'selected' : '' }}>Account / Profile</option>
+                    <option value="kyc_issue" {{ request('category') === 'kyc_issue' ? 'selected' : '' }}>KYC Verification</option>
+                    <option value="technical_bug" {{ request('category') === 'technical_bug' ? 'selected' : '' }}>Technical Bug</option>
+                    <option value="other" {{ request('category') === 'other' ? 'selected' : '' }}>Other</option>
+                </select>
+            </div>
+            <div class="col-12 col-sm-12 col-md-2 d-flex gap-2">
                 <button type="submit" class="btn btn-sm btn-info rounded-pill px-3 fw-bold flex-grow-1">Filter</button>
-                <a href="{{ route('admin.ludo.tickets.index') }}" class="btn btn-sm btn-outline-secondary rounded-pill px-2">Reset</a>
+                <a href="{{ route('admin.ludo.tickets.index') }}" class="btn btn-sm btn-outline-secondary rounded-pill px-3">Reset</a>
             </div>
         </form>
 

@@ -13,7 +13,7 @@
                     <input type="text" name="search" class="form-control bg-dark text-light border-secondary" placeholder="Search by Dispute UID or Battle UID..." value="{{ request('search') }}">
                 </div>
             </div>
-            <div class="col-6 col-md-3">
+            <div class="col-12 col-sm-6 col-md-4">
                 <select name="status" class="form-select form-select-sm bg-dark text-light border-secondary">
                     <option value="">All Statuses</option>
                     <option value="open" {{ request('status') === 'open' ? 'selected' : '' }}>Open (Awaiting Inspection)</option>
@@ -23,9 +23,9 @@
                     <option value="rejected" {{ request('status') === 'rejected' ? 'selected' : '' }}>Rejected</option>
                 </select>
             </div>
-            <div class="col-6 col-md-4 d-flex gap-2">
+            <div class="col-12 col-sm-6 col-md-3 d-flex gap-2">
                 <button type="submit" class="btn btn-sm btn-info rounded-pill px-3 fw-bold flex-grow-1">Filter Disputes</button>
-                <a href="{{ route('admin.ludo.disputes.index') }}" class="btn btn-sm btn-outline-secondary rounded-pill px-2">Reset</a>
+                <a href="{{ route('admin.ludo.disputes.index') }}" class="btn btn-sm btn-outline-secondary rounded-pill px-3">Reset</a>
             </div>
         </form>
 

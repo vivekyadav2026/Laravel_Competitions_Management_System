@@ -1,0 +1,1522 @@
+{
+  "timestamp": "2026-10-15T19:29:22.190Z",
+  "shellTests": {
+    "initialSidebarPos": {
+      "left": -285,
+      "right": -17,
+      "width": 268
+    },
+    "openSidebarPos": {
+      "left": 0,
+      "isOpenClass": true,
+      "backdropShown": true,
+      "bodyLocked": true
+    },
+    "closedSidebarPos": {
+      "left": -285,
+      "isOpenClass": false,
+      "bodyLocked": false
+    },
+    "closedViaBtn": true,
+    "dropdownPos": {
+      "left": 10,
+      "right": 365,
+      "width": 355,
+      "windowWidth": 375,
+      "isWithinViewport": true
+    }
+  },
+  "screens": [
+    {
+      "id": "login",
+      "name": "Admin Login",
+      "path": "/admin/login",
+      "viewports": {
+        "mobile_320": {
+          "status": 200,
+          "isPass": true,
+          "scrollWidth": 320,
+          "windowWidth": 320,
+          "overflowDiff": 0,
+          "overflowingElements": []
+        },
+        "mobile_360": {
+          "status": 200,
+          "isPass": true,
+          "scrollWidth": 360,
+          "windowWidth": 360,
+          "overflowDiff": 0,
+          "overflowingElements": []
+        },
+        "mobile_375": {
+          "status": 200,
+          "isPass": true,
+          "scrollWidth": 375,
+          "windowWidth": 375,
+          "overflowDiff": 0,
+          "overflowingElements": []
+        },
+        "mobile_390": {
+          "status": 200,
+          "isPass": true,
+          "scrollWidth": 390,
+          "windowWidth": 390,
+          "overflowDiff": 0,
+          "overflowingElements": []
+        },
+        "mobile_430": {
+          "status": 200,
+          "isPass": true,
+          "scrollWidth": 430,
+          "windowWidth": 430,
+          "overflowDiff": 0,
+          "overflowingElements": []
+        },
+        "tablet_768": {
+          "status": 200,
+          "isPass": true,
+          "scrollWidth": 768,
+          "windowWidth": 768,
+          "overflowDiff": 0,
+          "overflowingElements": []
+        },
+        "tablet_1024": {
+          "status": 200,
+          "isPass": true,
+          "scrollWidth": 1024,
+          "windowWidth": 1024,
+          "overflowDiff": 0,
+          "overflowingElements": []
+        },
+        "desktop_1280": {
+          "status": 200,
+          "isPass": true,
+          "scrollWidth": 1280,
+          "windowWidth": 1280,
+          "overflowDiff": 0,
+          "overflowingElements": []
+        }
+      }
+    },
+    {
+      "id": "dashboard",
+      "name": "Admin Dashboard",
+      "path": "/admin/ludo/dashboard",
+      "viewports": {
+        "mobile_320": {
+          "status": 200,
+          "isPass": true,
+          "scrollWidth": 320,
+          "windowWidth": 320,
+          "overflowDiff": 0,
+          "overflowingElements": []
+        },
+        "mobile_360": {
+          "status": 200,
+          "isPass": true,
+          "scrollWidth": 360,
+          "windowWidth": 360,
+          "overflowDiff": 0,
+          "overflowingElements": []
+        },
+        "mobile_375": {
+          "status": 200,
+          "isPass": true,
+          "scrollWidth": 375,
+          "windowWidth": 375,
+          "overflowDiff": 0,
+          "overflowingElements": []
+        },
+        "mobile_390": {
+          "status": 200,
+          "isPass": true,
+          "scrollWidth": 390,
+          "windowWidth": 390,
+          "overflowDiff": 0,
+          "overflowingElements": []
+        },
+        "mobile_430": {
+          "status": 200,
+          "isPass": true,
+          "scrollWidth": 430,
+          "windowWidth": 430,
+          "overflowDiff": 0,
+          "overflowingElements": []
+        },
+        "tablet_768": {
+          "status": 200,
+          "isPass": true,
+          "scrollWidth": 768,
+          "windowWidth": 768,
+          "overflowDiff": 0,
+          "overflowingElements": []
+        },
+        "tablet_1024": {
+          "status": 200,
+          "isPass": true,
+          "scrollWidth": 1024,
+          "windowWidth": 1024,
+          "overflowDiff": 0,
+          "overflowingElements": []
+        },
+        "desktop_1280": {
+          "status": 200,
+          "isPass": true,
+          "scrollWidth": 1280,
+          "windowWidth": 1280,
+          "overflowDiff": 0,
+          "overflowingElements": []
+        }
+      }
+    },
+    {
+      "id": "users_index",
+      "name": "User Management",
+      "path": "/admin/ludo/users",
+      "viewports": {
+        "mobile_320": {
+          "status": 200,
+          "isPass": true,
+          "scrollWidth": 320,
+          "windowWidth": 320,
+          "overflowDiff": 0,
+          "overflowingElements": []
+        },
+        "mobile_360": {
+          "status": 200,
+          "isPass": true,
+          "scrollWidth": 360,
+          "windowWidth": 360,
+          "overflowDiff": 0,
+          "overflowingElements": []
+        },
+        "mobile_375": {
+          "status": 200,
+          "isPass": true,
+          "scrollWidth": 375,
+          "windowWidth": 375,
+          "overflowDiff": 0,
+          "overflowingElements": []
+        },
+        "mobile_390": {
+          "status": 200,
+          "isPass": true,
+          "scrollWidth": 390,
+          "windowWidth": 390,
+          "overflowDiff": 0,
+          "overflowingElements": []
+        },
+        "mobile_430": {
+          "status": 200,
+          "isPass": true,
+          "scrollWidth": 430,
+          "windowWidth": 430,
+          "overflowDiff": 0,
+          "overflowingElements": []
+        },
+        "tablet_768": {
+          "status": 200,
+          "isPass": true,
+          "scrollWidth": 768,
+          "windowWidth": 768,
+          "overflowDiff": 0,
+          "overflowingElements": []
+        },
+        "tablet_1024": {
+          "status": 200,
+          "isPass": true,
+          "scrollWidth": 1024,
+          "windowWidth": 1024,
+          "overflowDiff": 0,
+          "overflowingElements": []
+        },
+        "desktop_1280": {
+          "status": 200,
+          "isPass": true,
+          "scrollWidth": 1280,
+          "windowWidth": 1280,
+          "overflowDiff": 0,
+          "overflowingElements": []
+        }
+      }
+    },
+    {
+      "id": "users_show",
+      "name": "User Profile & History",
+      "path": "/admin/ludo/users/1",
+      "viewports": {
+        "mobile_320": {
+          "status": 200,
+          "isPass": true,
+          "scrollWidth": 320,
+          "windowWidth": 320,
+          "overflowDiff": 0,
+          "overflowingElements": []
+        },
+        "mobile_360": {
+          "status": 200,
+          "isPass": true,
+          "scrollWidth": 360,
+          "windowWidth": 360,
+          "overflowDiff": 0,
+          "overflowingElements": []
+        },
+        "mobile_375": {
+          "status": 200,
+          "isPass": true,
+          "scrollWidth": 375,
+          "windowWidth": 375,
+          "overflowDiff": 0,
+          "overflowingElements": []
+        },
+        "mobile_390": {
+          "status": 200,
+          "isPass": true,
+          "scrollWidth": 390,
+          "windowWidth": 390,
+          "overflowDiff": 0,
+          "overflowingElements": []
+        },
+        "mobile_430": {
+          "status": 200,
+          "isPass": true,
+          "scrollWidth": 430,
+          "windowWidth": 430,
+          "overflowDiff": 0,
+          "overflowingElements": []
+        },
+        "tablet_768": {
+          "status": 200,
+          "isPass": true,
+          "scrollWidth": 768,
+          "windowWidth": 768,
+          "overflowDiff": 0,
+          "overflowingElements": []
+        },
+        "tablet_1024": {
+          "status": 200,
+          "isPass": true,
+          "scrollWidth": 1024,
+          "windowWidth": 1024,
+          "overflowDiff": 0,
+          "overflowingElements": []
+        },
+        "desktop_1280": {
+          "status": 200,
+          "isPass": true,
+          "scrollWidth": 1280,
+          "windowWidth": 1280,
+          "overflowDiff": 0,
+          "overflowingElements": []
+        }
+      }
+    },
+    {
+      "id": "matches_index",
+      "name": "Matches & Battles Index",
+      "path": "/admin/ludo/matches",
+      "viewports": {
+        "mobile_320": {
+          "status": 200,
+          "isPass": true,
+          "scrollWidth": 320,
+          "windowWidth": 320,
+          "overflowDiff": 0,
+          "overflowingElements": []
+        },
+        "mobile_360": {
+          "status": 200,
+          "isPass": true,
+          "scrollWidth": 360,
+          "windowWidth": 360,
+          "overflowDiff": 0,
+          "overflowingElements": []
+        },
+        "mobile_375": {
+          "status": 200,
+          "isPass": true,
+          "scrollWidth": 375,
+          "windowWidth": 375,
+          "overflowDiff": 0,
+          "overflowingElements": []
+        },
+        "mobile_390": {
+          "status": 200,
+          "isPass": true,
+          "scrollWidth": 390,
+          "windowWidth": 390,
+          "overflowDiff": 0,
+          "overflowingElements": []
+        },
+        "mobile_430": {
+          "status": 200,
+          "isPass": true,
+          "scrollWidth": 430,
+          "windowWidth": 430,
+          "overflowDiff": 0,
+          "overflowingElements": []
+        },
+        "tablet_768": {
+          "status": 200,
+          "isPass": true,
+          "scrollWidth": 768,
+          "windowWidth": 768,
+          "overflowDiff": 0,
+          "overflowingElements": []
+        },
+        "tablet_1024": {
+          "status": 200,
+          "isPass": true,
+          "scrollWidth": 1024,
+          "windowWidth": 1024,
+          "overflowDiff": 0,
+          "overflowingElements": []
+        },
+        "desktop_1280": {
+          "status": 200,
+          "isPass": true,
+          "scrollWidth": 1280,
+          "windowWidth": 1280,
+          "overflowDiff": 0,
+          "overflowingElements": []
+        }
+      }
+    },
+    {
+      "id": "matches_show",
+      "name": "Match Details Desk",
+      "path": "/admin/ludo/matches/1",
+      "viewports": {
+        "mobile_320": {
+          "status": 200,
+          "isPass": true,
+          "scrollWidth": 320,
+          "windowWidth": 320,
+          "overflowDiff": 0,
+          "overflowingElements": []
+        },
+        "mobile_360": {
+          "status": 200,
+          "isPass": true,
+          "scrollWidth": 360,
+          "windowWidth": 360,
+          "overflowDiff": 0,
+          "overflowingElements": []
+        },
+        "mobile_375": {
+          "status": 200,
+          "isPass": true,
+          "scrollWidth": 375,
+          "windowWidth": 375,
+          "overflowDiff": 0,
+          "overflowingElements": []
+        },
+        "mobile_390": {
+          "status": 200,
+          "isPass": true,
+          "scrollWidth": 390,
+          "windowWidth": 390,
+          "overflowDiff": 0,
+          "overflowingElements": []
+        },
+        "mobile_430": {
+          "status": 200,
+          "isPass": true,
+          "scrollWidth": 430,
+          "windowWidth": 430,
+          "overflowDiff": 0,
+          "overflowingElements": []
+        },
+        "tablet_768": {
+          "status": 200,
+          "isPass": true,
+          "scrollWidth": 768,
+          "windowWidth": 768,
+          "overflowDiff": 0,
+          "overflowingElements": []
+        },
+        "tablet_1024": {
+          "status": 200,
+          "isPass": true,
+          "scrollWidth": 1024,
+          "windowWidth": 1024,
+          "overflowDiff": 0,
+          "overflowingElements": []
+        },
+        "desktop_1280": {
+          "status": 200,
+          "isPass": true,
+          "scrollWidth": 1280,
+          "windowWidth": 1280,
+          "overflowDiff": 0,
+          "overflowingElements": []
+        }
+      }
+    },
+    {
+      "id": "tournaments_index",
+      "name": "Tournaments Management",
+      "path": "/admin/ludo/tournaments",
+      "viewports": {
+        "mobile_320": {
+          "status": 200,
+          "isPass": true,
+          "scrollWidth": 320,
+          "windowWidth": 320,
+          "overflowDiff": 0,
+          "overflowingElements": []
+        },
+        "mobile_360": {
+          "status": 200,
+          "isPass": true,
+          "scrollWidth": 360,
+          "windowWidth": 360,
+          "overflowDiff": 0,
+          "overflowingElements": []
+        },
+        "mobile_375": {
+          "status": 200,
+          "isPass": true,
+          "scrollWidth": 375,
+          "windowWidth": 375,
+          "overflowDiff": 0,
+          "overflowingElements": []
+        },
+        "mobile_390": {
+          "status": 200,
+          "isPass": true,
+          "scrollWidth": 390,
+          "windowWidth": 390,
+          "overflowDiff": 0,
+          "overflowingElements": []
+        },
+        "mobile_430": {
+          "status": 200,
+          "isPass": true,
+          "scrollWidth": 430,
+          "windowWidth": 430,
+          "overflowDiff": 0,
+          "overflowingElements": []
+        },
+        "tablet_768": {
+          "status": 200,
+          "isPass": true,
+          "scrollWidth": 768,
+          "windowWidth": 768,
+          "overflowDiff": 0,
+          "overflowingElements": []
+        },
+        "tablet_1024": {
+          "status": 200,
+          "isPass": true,
+          "scrollWidth": 1024,
+          "windowWidth": 1024,
+          "overflowDiff": 0,
+          "overflowingElements": []
+        },
+        "desktop_1280": {
+          "status": 200,
+          "isPass": true,
+          "scrollWidth": 1280,
+          "windowWidth": 1280,
+          "overflowDiff": 0,
+          "overflowingElements": []
+        }
+      }
+    },
+    {
+      "id": "tournaments_show",
+      "name": "Tournament Bracket Desk",
+      "path": "/admin/ludo/tournaments/1",
+      "viewports": {
+        "mobile_320": {
+          "status": 200,
+          "isPass": true,
+          "scrollWidth": 320,
+          "windowWidth": 320,
+          "overflowDiff": 0,
+          "overflowingElements": []
+        },
+        "mobile_360": {
+          "status": 200,
+          "isPass": true,
+          "scrollWidth": 360,
+          "windowWidth": 360,
+          "overflowDiff": 0,
+          "overflowingElements": []
+        },
+        "mobile_375": {
+          "status": 200,
+          "isPass": true,
+          "scrollWidth": 375,
+          "windowWidth": 375,
+          "overflowDiff": 0,
+          "overflowingElements": []
+        },
+        "mobile_390": {
+          "status": 200,
+          "isPass": true,
+          "scrollWidth": 390,
+          "windowWidth": 390,
+          "overflowDiff": 0,
+          "overflowingElements": []
+        },
+        "mobile_430": {
+          "status": 200,
+          "isPass": true,
+          "scrollWidth": 430,
+          "windowWidth": 430,
+          "overflowDiff": 0,
+          "overflowingElements": []
+        },
+        "tablet_768": {
+          "status": 200,
+          "isPass": true,
+          "scrollWidth": 768,
+          "windowWidth": 768,
+          "overflowDiff": 0,
+          "overflowingElements": []
+        },
+        "tablet_1024": {
+          "status": 200,
+          "isPass": true,
+          "scrollWidth": 1024,
+          "windowWidth": 1024,
+          "overflowDiff": 0,
+          "overflowingElements": []
+        },
+        "desktop_1280": {
+          "status": 200,
+          "isPass": true,
+          "scrollWidth": 1280,
+          "windowWidth": 1280,
+          "overflowDiff": 0,
+          "overflowingElements": []
+        }
+      }
+    },
+    {
+      "id": "disputes_index",
+      "name": "Dispute Desk Index",
+      "path": "/admin/ludo/disputes",
+      "viewports": {
+        "mobile_320": {
+          "status": 200,
+          "isPass": true,
+          "scrollWidth": 320,
+          "windowWidth": 320,
+          "overflowDiff": 0,
+          "overflowingElements": []
+        },
+        "mobile_360": {
+          "status": 200,
+          "isPass": true,
+          "scrollWidth": 360,
+          "windowWidth": 360,
+          "overflowDiff": 0,
+          "overflowingElements": []
+        },
+        "mobile_375": {
+          "status": 200,
+          "isPass": true,
+          "scrollWidth": 375,
+          "windowWidth": 375,
+          "overflowDiff": 0,
+          "overflowingElements": []
+        },
+        "mobile_390": {
+          "status": 200,
+          "isPass": true,
+          "scrollWidth": 390,
+          "windowWidth": 390,
+          "overflowDiff": 0,
+          "overflowingElements": []
+        },
+        "mobile_430": {
+          "status": 200,
+          "isPass": true,
+          "scrollWidth": 430,
+          "windowWidth": 430,
+          "overflowDiff": 0,
+          "overflowingElements": []
+        },
+        "tablet_768": {
+          "status": 200,
+          "isPass": true,
+          "scrollWidth": 768,
+          "windowWidth": 768,
+          "overflowDiff": 0,
+          "overflowingElements": []
+        },
+        "tablet_1024": {
+          "status": 200,
+          "isPass": true,
+          "scrollWidth": 1024,
+          "windowWidth": 1024,
+          "overflowDiff": 0,
+          "overflowingElements": []
+        },
+        "desktop_1280": {
+          "status": 200,
+          "isPass": true,
+          "scrollWidth": 1280,
+          "windowWidth": 1280,
+          "overflowDiff": 0,
+          "overflowingElements": []
+        }
+      }
+    },
+    {
+      "id": "disputes_show",
+      "name": "Dispute Resolution Desk",
+      "path": "/admin/ludo/disputes/66",
+      "viewports": {
+        "mobile_320": {
+          "status": 200,
+          "isPass": true,
+          "scrollWidth": 320,
+          "windowWidth": 320,
+          "overflowDiff": 0,
+          "overflowingElements": []
+        },
+        "mobile_360": {
+          "status": 200,
+          "isPass": true,
+          "scrollWidth": 360,
+          "windowWidth": 360,
+          "overflowDiff": 0,
+          "overflowingElements": []
+        },
+        "mobile_375": {
+          "status": 200,
+          "isPass": true,
+          "scrollWidth": 375,
+          "windowWidth": 375,
+          "overflowDiff": 0,
+          "overflowingElements": []
+        },
+        "mobile_390": {
+          "status": 200,
+          "isPass": true,
+          "scrollWidth": 390,
+          "windowWidth": 390,
+          "overflowDiff": 0,
+          "overflowingElements": []
+        },
+        "mobile_430": {
+          "status": 200,
+          "isPass": true,
+          "scrollWidth": 430,
+          "windowWidth": 430,
+          "overflowDiff": 0,
+          "overflowingElements": []
+        },
+        "tablet_768": {
+          "status": 200,
+          "isPass": true,
+          "scrollWidth": 768,
+          "windowWidth": 768,
+          "overflowDiff": 0,
+          "overflowingElements": []
+        },
+        "tablet_1024": {
+          "status": 200,
+          "isPass": true,
+          "scrollWidth": 1024,
+          "windowWidth": 1024,
+          "overflowDiff": 0,
+          "overflowingElements": []
+        },
+        "desktop_1280": {
+          "status": 200,
+          "isPass": true,
+          "scrollWidth": 1280,
+          "windowWidth": 1280,
+          "overflowDiff": 0,
+          "overflowingElements": []
+        }
+      }
+    },
+    {
+      "id": "kyc_index",
+      "name": "KYC Document Desk",
+      "path": "/admin/ludo/kyc",
+      "viewports": {
+        "mobile_320": {
+          "status": 200,
+          "isPass": true,
+          "scrollWidth": 320,
+          "windowWidth": 320,
+          "overflowDiff": 0,
+          "overflowingElements": []
+        },
+        "mobile_360": {
+          "status": 200,
+          "isPass": true,
+          "scrollWidth": 360,
+          "windowWidth": 360,
+          "overflowDiff": 0,
+          "overflowingElements": []
+        },
+        "mobile_375": {
+          "status": 200,
+          "isPass": true,
+          "scrollWidth": 375,
+          "windowWidth": 375,
+          "overflowDiff": 0,
+          "overflowingElements": []
+        },
+        "mobile_390": {
+          "status": 200,
+          "isPass": true,
+          "scrollWidth": 390,
+          "windowWidth": 390,
+          "overflowDiff": 0,
+          "overflowingElements": []
+        },
+        "mobile_430": {
+          "status": 200,
+          "isPass": true,
+          "scrollWidth": 430,
+          "windowWidth": 430,
+          "overflowDiff": 0,
+          "overflowingElements": []
+        },
+        "tablet_768": {
+          "status": 200,
+          "isPass": true,
+          "scrollWidth": 768,
+          "windowWidth": 768,
+          "overflowDiff": 0,
+          "overflowingElements": []
+        },
+        "tablet_1024": {
+          "status": 200,
+          "isPass": true,
+          "scrollWidth": 1024,
+          "windowWidth": 1024,
+          "overflowDiff": 0,
+          "overflowingElements": []
+        },
+        "desktop_1280": {
+          "status": 200,
+          "isPass": true,
+          "scrollWidth": 1280,
+          "windowWidth": 1280,
+          "overflowDiff": 0,
+          "overflowingElements": []
+        }
+      }
+    },
+    {
+      "id": "tickets_index",
+      "name": "Support Tickets Desk",
+      "path": "/admin/ludo/tickets",
+      "viewports": {
+        "mobile_320": {
+          "status": 200,
+          "isPass": true,
+          "scrollWidth": 320,
+          "windowWidth": 320,
+          "overflowDiff": 0,
+          "overflowingElements": []
+        },
+        "mobile_360": {
+          "status": 200,
+          "isPass": true,
+          "scrollWidth": 360,
+          "windowWidth": 360,
+          "overflowDiff": 0,
+          "overflowingElements": []
+        },
+        "mobile_375": {
+          "status": 200,
+          "isPass": true,
+          "scrollWidth": 375,
+          "windowWidth": 375,
+          "overflowDiff": 0,
+          "overflowingElements": []
+        },
+        "mobile_390": {
+          "status": 200,
+          "isPass": true,
+          "scrollWidth": 390,
+          "windowWidth": 390,
+          "overflowDiff": 0,
+          "overflowingElements": []
+        },
+        "mobile_430": {
+          "status": 200,
+          "isPass": true,
+          "scrollWidth": 430,
+          "windowWidth": 430,
+          "overflowDiff": 0,
+          "overflowingElements": []
+        },
+        "tablet_768": {
+          "status": 200,
+          "isPass": true,
+          "scrollWidth": 768,
+          "windowWidth": 768,
+          "overflowDiff": 0,
+          "overflowingElements": []
+        },
+        "tablet_1024": {
+          "status": 200,
+          "isPass": true,
+          "scrollWidth": 1024,
+          "windowWidth": 1024,
+          "overflowDiff": 0,
+          "overflowingElements": []
+        },
+        "desktop_1280": {
+          "status": 200,
+          "isPass": true,
+          "scrollWidth": 1280,
+          "windowWidth": 1280,
+          "overflowDiff": 0,
+          "overflowingElements": []
+        }
+      }
+    },
+    {
+      "id": "tickets_show",
+      "name": "Support Ticket Discussion",
+      "path": "/admin/ludo/tickets/77",
+      "viewports": {
+        "mobile_320": {
+          "status": 200,
+          "isPass": true,
+          "scrollWidth": 320,
+          "windowWidth": 320,
+          "overflowDiff": 0,
+          "overflowingElements": []
+        },
+        "mobile_360": {
+          "status": 200,
+          "isPass": true,
+          "scrollWidth": 360,
+          "windowWidth": 360,
+          "overflowDiff": 0,
+          "overflowingElements": []
+        },
+        "mobile_375": {
+          "status": 200,
+          "isPass": true,
+          "scrollWidth": 375,
+          "windowWidth": 375,
+          "overflowDiff": 0,
+          "overflowingElements": []
+        },
+        "mobile_390": {
+          "status": 200,
+          "isPass": true,
+          "scrollWidth": 390,
+          "windowWidth": 390,
+          "overflowDiff": 0,
+          "overflowingElements": []
+        },
+        "mobile_430": {
+          "status": 200,
+          "isPass": true,
+          "scrollWidth": 430,
+          "windowWidth": 430,
+          "overflowDiff": 0,
+          "overflowingElements": []
+        },
+        "tablet_768": {
+          "status": 200,
+          "isPass": true,
+          "scrollWidth": 768,
+          "windowWidth": 768,
+          "overflowDiff": 0,
+          "overflowingElements": []
+        },
+        "tablet_1024": {
+          "status": 200,
+          "isPass": true,
+          "scrollWidth": 1024,
+          "windowWidth": 1024,
+          "overflowDiff": 0,
+          "overflowingElements": []
+        },
+        "desktop_1280": {
+          "status": 200,
+          "isPass": true,
+          "scrollWidth": 1280,
+          "windowWidth": 1280,
+          "overflowDiff": 0,
+          "overflowingElements": []
+        }
+      }
+    },
+    {
+      "id": "ledger_index",
+      "name": "Points Ledger Desk",
+      "path": "/admin/ludo/ledger",
+      "viewports": {
+        "mobile_320": {
+          "status": 200,
+          "isPass": true,
+          "scrollWidth": 320,
+          "windowWidth": 320,
+          "overflowDiff": 0,
+          "overflowingElements": []
+        },
+        "mobile_360": {
+          "status": 200,
+          "isPass": true,
+          "scrollWidth": 360,
+          "windowWidth": 360,
+          "overflowDiff": 0,
+          "overflowingElements": []
+        },
+        "mobile_375": {
+          "status": 200,
+          "isPass": true,
+          "scrollWidth": 375,
+          "windowWidth": 375,
+          "overflowDiff": 0,
+          "overflowingElements": []
+        },
+        "mobile_390": {
+          "status": 200,
+          "isPass": true,
+          "scrollWidth": 390,
+          "windowWidth": 390,
+          "overflowDiff": 0,
+          "overflowingElements": []
+        },
+        "mobile_430": {
+          "status": 200,
+          "isPass": true,
+          "scrollWidth": 430,
+          "windowWidth": 430,
+          "overflowDiff": 0,
+          "overflowingElements": []
+        },
+        "tablet_768": {
+          "status": 200,
+          "isPass": true,
+          "scrollWidth": 768,
+          "windowWidth": 768,
+          "overflowDiff": 0,
+          "overflowingElements": []
+        },
+        "tablet_1024": {
+          "status": 200,
+          "isPass": true,
+          "scrollWidth": 1024,
+          "windowWidth": 1024,
+          "overflowDiff": 0,
+          "overflowingElements": []
+        },
+        "desktop_1280": {
+          "status": 200,
+          "isPass": true,
+          "scrollWidth": 1280,
+          "windowWidth": 1280,
+          "overflowDiff": 0,
+          "overflowingElements": []
+        }
+      }
+    },
+    {
+      "id": "deposits_index",
+      "name": "UPI QR Deposit Desk",
+      "path": "/admin/ludo/deposits",
+      "viewports": {
+        "mobile_320": {
+          "status": 200,
+          "isPass": true,
+          "scrollWidth": 320,
+          "windowWidth": 320,
+          "overflowDiff": 0,
+          "overflowingElements": []
+        },
+        "mobile_360": {
+          "status": 200,
+          "isPass": true,
+          "scrollWidth": 360,
+          "windowWidth": 360,
+          "overflowDiff": 0,
+          "overflowingElements": []
+        },
+        "mobile_375": {
+          "status": 200,
+          "isPass": true,
+          "scrollWidth": 375,
+          "windowWidth": 375,
+          "overflowDiff": 0,
+          "overflowingElements": []
+        },
+        "mobile_390": {
+          "status": 200,
+          "isPass": true,
+          "scrollWidth": 390,
+          "windowWidth": 390,
+          "overflowDiff": 0,
+          "overflowingElements": []
+        },
+        "mobile_430": {
+          "status": 200,
+          "isPass": true,
+          "scrollWidth": 430,
+          "windowWidth": 430,
+          "overflowDiff": 0,
+          "overflowingElements": []
+        },
+        "tablet_768": {
+          "status": 200,
+          "isPass": true,
+          "scrollWidth": 768,
+          "windowWidth": 768,
+          "overflowDiff": 0,
+          "overflowingElements": []
+        },
+        "tablet_1024": {
+          "status": 200,
+          "isPass": true,
+          "scrollWidth": 1024,
+          "windowWidth": 1024,
+          "overflowDiff": 0,
+          "overflowingElements": []
+        },
+        "desktop_1280": {
+          "status": 200,
+          "isPass": true,
+          "scrollWidth": 1280,
+          "windowWidth": 1280,
+          "overflowDiff": 0,
+          "overflowingElements": []
+        }
+      }
+    },
+    {
+      "id": "withdrawals_index",
+      "name": "Withdrawal Payout Desk",
+      "path": "/admin/ludo/withdrawals",
+      "viewports": {
+        "mobile_320": {
+          "status": 200,
+          "isPass": true,
+          "scrollWidth": 320,
+          "windowWidth": 320,
+          "overflowDiff": 0,
+          "overflowingElements": []
+        },
+        "mobile_360": {
+          "status": 200,
+          "isPass": true,
+          "scrollWidth": 360,
+          "windowWidth": 360,
+          "overflowDiff": 0,
+          "overflowingElements": []
+        },
+        "mobile_375": {
+          "status": 200,
+          "isPass": true,
+          "scrollWidth": 375,
+          "windowWidth": 375,
+          "overflowDiff": 0,
+          "overflowingElements": []
+        },
+        "mobile_390": {
+          "status": 200,
+          "isPass": true,
+          "scrollWidth": 390,
+          "windowWidth": 390,
+          "overflowDiff": 0,
+          "overflowingElements": []
+        },
+        "mobile_430": {
+          "status": 200,
+          "isPass": true,
+          "scrollWidth": 430,
+          "windowWidth": 430,
+          "overflowDiff": 0,
+          "overflowingElements": []
+        },
+        "tablet_768": {
+          "status": 200,
+          "isPass": true,
+          "scrollWidth": 768,
+          "windowWidth": 768,
+          "overflowDiff": 0,
+          "overflowingElements": []
+        },
+        "tablet_1024": {
+          "status": 200,
+          "isPass": true,
+          "scrollWidth": 1024,
+          "windowWidth": 1024,
+          "overflowDiff": 0,
+          "overflowingElements": []
+        },
+        "desktop_1280": {
+          "status": 200,
+          "isPass": true,
+          "scrollWidth": 1280,
+          "windowWidth": 1280,
+          "overflowDiff": 0,
+          "overflowingElements": []
+        }
+      }
+    },
+    {
+      "id": "referrals_index",
+      "name": "Referral Management Desk",
+      "path": "/admin/ludo/referrals",
+      "viewports": {
+        "mobile_320": {
+          "status": 200,
+          "isPass": true,
+          "scrollWidth": 320,
+          "windowWidth": 320,
+          "overflowDiff": 0,
+          "overflowingElements": []
+        },
+        "mobile_360": {
+          "status": 200,
+          "isPass": true,
+          "scrollWidth": 360,
+          "windowWidth": 360,
+          "overflowDiff": 0,
+          "overflowingElements": []
+        },
+        "mobile_375": {
+          "status": 200,
+          "isPass": true,
+          "scrollWidth": 375,
+          "windowWidth": 375,
+          "overflowDiff": 0,
+          "overflowingElements": []
+        },
+        "mobile_390": {
+          "status": 200,
+          "isPass": true,
+          "scrollWidth": 390,
+          "windowWidth": 390,
+          "overflowDiff": 0,
+          "overflowingElements": []
+        },
+        "mobile_430": {
+          "status": 200,
+          "isPass": true,
+          "scrollWidth": 430,
+          "windowWidth": 430,
+          "overflowDiff": 0,
+          "overflowingElements": []
+        },
+        "tablet_768": {
+          "status": 200,
+          "isPass": true,
+          "scrollWidth": 768,
+          "windowWidth": 768,
+          "overflowDiff": 0,
+          "overflowingElements": []
+        },
+        "tablet_1024": {
+          "status": 200,
+          "isPass": true,
+          "scrollWidth": 1024,
+          "windowWidth": 1024,
+          "overflowDiff": 0,
+          "overflowingElements": []
+        },
+        "desktop_1280": {
+          "status": 200,
+          "isPass": true,
+          "scrollWidth": 1280,
+          "windowWidth": 1280,
+          "overflowDiff": 0,
+          "overflowingElements": []
+        }
+      }
+    },
+    {
+      "id": "reports_index",
+      "name": "Reports & Analytics",
+      "path": "/admin/ludo/reports",
+      "viewports": {
+        "mobile_320": {
+          "status": 200,
+          "isPass": true,
+          "scrollWidth": 320,
+          "windowWidth": 320,
+          "overflowDiff": 0,
+          "overflowingElements": []
+        },
+        "mobile_360": {
+          "status": 200,
+          "isPass": true,
+          "scrollWidth": 360,
+          "windowWidth": 360,
+          "overflowDiff": 0,
+          "overflowingElements": []
+        },
+        "mobile_375": {
+          "status": 200,
+          "isPass": true,
+          "scrollWidth": 375,
+          "windowWidth": 375,
+          "overflowDiff": 0,
+          "overflowingElements": []
+        },
+        "mobile_390": {
+          "status": 200,
+          "isPass": true,
+          "scrollWidth": 390,
+          "windowWidth": 390,
+          "overflowDiff": 0,
+          "overflowingElements": []
+        },
+        "mobile_430": {
+          "status": 200,
+          "isPass": true,
+          "scrollWidth": 430,
+          "windowWidth": 430,
+          "overflowDiff": 0,
+          "overflowingElements": []
+        },
+        "tablet_768": {
+          "status": 200,
+          "isPass": true,
+          "scrollWidth": 768,
+          "windowWidth": 768,
+          "overflowDiff": 0,
+          "overflowingElements": []
+        },
+        "tablet_1024": {
+          "status": 200,
+          "isPass": true,
+          "scrollWidth": 1024,
+          "windowWidth": 1024,
+          "overflowDiff": 0,
+          "overflowingElements": []
+        },
+        "desktop_1280": {
+          "status": 200,
+          "isPass": true,
+          "scrollWidth": 1280,
+          "windowWidth": 1280,
+          "overflowDiff": 0,
+          "overflowingElements": []
+        }
+      }
+    },
+    {
+      "id": "audit_index",
+      "name": "Administrative Audit Trail",
+      "path": "/admin/ludo/audit-logs",
+      "viewports": {
+        "mobile_320": {
+          "status": 200,
+          "isPass": true,
+          "scrollWidth": 320,
+          "windowWidth": 320,
+          "overflowDiff": 0,
+          "overflowingElements": []
+        },
+        "mobile_360": {
+          "status": 200,
+          "isPass": true,
+          "scrollWidth": 360,
+          "windowWidth": 360,
+          "overflowDiff": 0,
+          "overflowingElements": []
+        },
+        "mobile_375": {
+          "status": 200,
+          "isPass": true,
+          "scrollWidth": 375,
+          "windowWidth": 375,
+          "overflowDiff": 0,
+          "overflowingElements": []
+        },
+        "mobile_390": {
+          "status": 200,
+          "isPass": true,
+          "scrollWidth": 390,
+          "windowWidth": 390,
+          "overflowDiff": 0,
+          "overflowingElements": []
+        },
+        "mobile_430": {
+          "status": 200,
+          "isPass": true,
+          "scrollWidth": 430,
+          "windowWidth": 430,
+          "overflowDiff": 0,
+          "overflowingElements": []
+        },
+        "tablet_768": {
+          "status": 200,
+          "isPass": true,
+          "scrollWidth": 768,
+          "windowWidth": 768,
+          "overflowDiff": 0,
+          "overflowingElements": []
+        },
+        "tablet_1024": {
+          "status": 200,
+          "isPass": true,
+          "scrollWidth": 1024,
+          "windowWidth": 1024,
+          "overflowDiff": 0,
+          "overflowingElements": []
+        },
+        "desktop_1280": {
+          "status": 200,
+          "isPass": true,
+          "scrollWidth": 1280,
+          "windowWidth": 1280,
+          "overflowDiff": 0,
+          "overflowingElements": []
+        }
+      }
+    },
+    {
+      "id": "content_index",
+      "name": "CMS & Rules Content Editor",
+      "path": "/admin/ludo/content",
+      "viewports": {
+        "mobile_320": {
+          "status": 200,
+          "isPass": true,
+          "scrollWidth": 320,
+          "windowWidth": 320,
+          "overflowDiff": 0,
+          "overflowingElements": []
+        },
+        "mobile_360": {
+          "status": 200,
+          "isPass": true,
+          "scrollWidth": 360,
+          "windowWidth": 360,
+          "overflowDiff": 0,
+          "overflowingElements": []
+        },
+        "mobile_375": {
+          "status": 200,
+          "isPass": true,
+          "scrollWidth": 375,
+          "windowWidth": 375,
+          "overflowDiff": 0,
+          "overflowingElements": []
+        },
+        "mobile_390": {
+          "status": 200,
+          "isPass": true,
+          "scrollWidth": 390,
+          "windowWidth": 390,
+          "overflowDiff": 0,
+          "overflowingElements": []
+        },
+        "mobile_430": {
+          "status": 200,
+          "isPass": true,
+          "scrollWidth": 430,
+          "windowWidth": 430,
+          "overflowDiff": 0,
+          "overflowingElements": []
+        },
+        "tablet_768": {
+          "status": 200,
+          "isPass": true,
+          "scrollWidth": 768,
+          "windowWidth": 768,
+          "overflowDiff": 0,
+          "overflowingElements": []
+        },
+        "tablet_1024": {
+          "status": 200,
+          "isPass": true,
+          "scrollWidth": 1024,
+          "windowWidth": 1024,
+          "overflowDiff": 0,
+          "overflowingElements": []
+        },
+        "desktop_1280": {
+          "status": 200,
+          "isPass": true,
+          "scrollWidth": 1280,
+          "windowWidth": 1280,
+          "overflowDiff": 0,
+          "overflowingElements": []
+        }
+      }
+    },
+    {
+      "id": "settings_index",
+      "name": "Platform Settings Desk",
+      "path": "/admin/ludo/settings",
+      "viewports": {
+        "mobile_320": {
+          "status": 200,
+          "isPass": true,
+          "scrollWidth": 320,
+          "windowWidth": 320,
+          "overflowDiff": 0,
+          "overflowingElements": []
+        },
+        "mobile_360": {
+          "status": 200,
+          "isPass": true,
+          "scrollWidth": 360,
+          "windowWidth": 360,
+          "overflowDiff": 0,
+          "overflowingElements": []
+        },
+        "mobile_375": {
+          "status": 200,
+          "isPass": true,
+          "scrollWidth": 375,
+          "windowWidth": 375,
+          "overflowDiff": 0,
+          "overflowingElements": []
+        },
+        "mobile_390": {
+          "status": 200,
+          "isPass": true,
+          "scrollWidth": 390,
+          "windowWidth": 390,
+          "overflowDiff": 0,
+          "overflowingElements": []
+        },
+        "mobile_430": {
+          "status": 200,
+          "isPass": true,
+          "scrollWidth": 430,
+          "windowWidth": 430,
+          "overflowDiff": 0,
+          "overflowingElements": []
+        },
+        "tablet_768": {
+          "status": 200,
+          "isPass": true,
+          "scrollWidth": 768,
+          "windowWidth": 768,
+          "overflowDiff": 0,
+          "overflowingElements": []
+        },
+        "tablet_1024": {
+          "status": 200,
+          "isPass": true,
+          "scrollWidth": 1024,
+          "windowWidth": 1024,
+          "overflowDiff": 0,
+          "overflowingElements": []
+        },
+        "desktop_1280": {
+          "status": 200,
+          "isPass": true,
+          "scrollWidth": 1280,
+          "windowWidth": 1280,
+          "overflowDiff": 0,
+          "overflowingElements": []
+        }
+      }
+    }
+  ]
+}

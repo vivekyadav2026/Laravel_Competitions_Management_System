@@ -86,7 +86,7 @@
                     <input type="text" name="search" class="form-control bg-dark text-light border-secondary" placeholder="Search by referral code, referrer, or referred user..." value="{{ request('search') }}">
                 </div>
             </div>
-            <div class="col-6 col-md-2">
+            <div class="col-12 col-sm-6 col-md-2">
                 <select name="status" class="form-select form-select-sm bg-dark text-light border-secondary">
                     <option value="">All Statuses</option>
                     <option value="eligible" {{ request('status') === 'eligible' ? 'selected' : '' }}>Eligible (Rewarded)</option>
@@ -94,15 +94,15 @@
                     <option value="revoked" {{ request('status') === 'revoked' ? 'selected' : '' }}>Revoked</option>
                 </select>
             </div>
-            <div class="col-6 col-md-2">
-                <input type="date" name="from" class="form-control form-control-sm bg-dark text-light border-secondary" value="{{ request('from') }}">
+            <div class="col-6 col-sm-3 col-md-2">
+                <input type="date" name="from" class="form-control form-control-sm bg-dark text-light border-secondary" value="{{ request('from') }}" title="From Date">
             </div>
-            <div class="col-6 col-md-2">
-                <input type="date" name="to" class="form-control form-control-sm bg-dark text-light border-secondary" value="{{ request('to') }}">
+            <div class="col-6 col-sm-3 col-md-2">
+                <input type="date" name="to" class="form-control form-control-sm bg-dark text-light border-secondary" value="{{ request('to') }}" title="To Date">
             </div>
-            <div class="col-6 col-md-2 d-flex gap-2">
+            <div class="col-12 col-sm-6 col-md-2 d-flex gap-2">
                 <button type="submit" class="btn btn-sm btn-info rounded-pill px-3 fw-bold flex-grow-1">Filter</button>
-                <a href="{{ route('admin.ludo.referrals.index') }}" class="btn btn-sm btn-outline-secondary rounded-pill px-2">Reset</a>
+                <a href="{{ route('admin.ludo.referrals.index') }}" class="btn btn-sm btn-outline-secondary rounded-pill px-3">Reset</a>
             </div>
         </form>
 

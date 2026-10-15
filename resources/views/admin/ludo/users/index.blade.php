@@ -13,14 +13,14 @@
                     <input type="text" name="search" class="form-control bg-dark text-light border-secondary" placeholder="Search by name, email, UID, phone..." value="{{ request('search') }}">
                 </div>
             </div>
-            <div class="col-6 col-md-2">
+            <div class="col-6 col-sm-4 col-md-2">
                 <select name="status" class="form-select form-select-sm bg-dark text-light border-secondary">
                     <option value="">All Statuses</option>
                     <option value="active" {{ request('status') === 'active' ? 'selected' : '' }}>Active</option>
                     <option value="suspended" {{ request('status') === 'suspended' ? 'selected' : '' }}>Suspended</option>
                 </select>
             </div>
-            <div class="col-6 col-md-2">
+            <div class="col-6 col-sm-4 col-md-2">
                 <select name="role" class="form-select form-select-sm bg-dark text-light border-secondary">
                     <option value="">All Roles</option>
                     <option value="normal" {{ request('role') === 'normal' ? 'selected' : '' }}>Player (Normal)</option>
@@ -30,7 +30,7 @@
                     <option value="moderator" {{ request('role') === 'moderator' ? 'selected' : '' }}>Moderator</option>
                 </select>
             </div>
-            <div class="col-6 col-md-2">
+            <div class="col-6 col-sm-4 col-md-2">
                 <select name="kyc_status" class="form-select form-select-sm bg-dark text-light border-secondary">
                     <option value="">All KYC</option>
                     <option value="verified" {{ request('kyc_status') === 'verified' ? 'selected' : '' }}>Verified</option>
@@ -39,9 +39,9 @@
                     <option value="rejected" {{ request('kyc_status') === 'rejected' ? 'selected' : '' }}>Rejected</option>
                 </select>
             </div>
-            <div class="col-6 col-md-2 d-flex gap-2">
+            <div class="col-6 col-sm-12 col-md-2 d-flex gap-2">
                 <button type="submit" class="btn btn-sm btn-info rounded-pill px-3 fw-bold flex-grow-1">Filter</button>
-                <a href="{{ route('admin.ludo.users.index') }}" class="btn btn-sm btn-outline-secondary rounded-pill px-2">Reset</a>
+                <a href="{{ route('admin.ludo.users.index') }}" class="btn btn-sm btn-outline-secondary rounded-pill px-3">Reset</a>
             </div>
         </form>
 

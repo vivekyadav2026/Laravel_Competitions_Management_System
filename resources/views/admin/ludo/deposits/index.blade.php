@@ -61,7 +61,7 @@
                     <input type="text" name="search" class="form-control bg-dark text-light border-secondary border-opacity-50" placeholder="Search by UTR, UID, Name, Phone..." value="{{ request('search') }}">
                 </div>
             </div>
-            <div class="col-6 col-md-2">
+            <div class="col-6 col-sm-6 col-md-2">
                 <select name="status" class="form-select bg-dark text-light border-secondary border-opacity-50">
                     <option value="">All Statuses</option>
                     <option value="pending" {{ request('status') === 'pending' ? 'selected' : '' }}>Pending Only</option>
@@ -69,24 +69,22 @@
                     <option value="rejected" {{ request('status') === 'rejected' ? 'selected' : '' }}>Rejected Only</option>
                 </select>
             </div>
-            <div class="col-6 col-md-2">
+            <div class="col-6 col-sm-3 col-md-2">
                 <input type="date" name="from" class="form-control bg-dark text-light border-secondary border-opacity-50" value="{{ request('from') }}" title="From Date">
             </div>
-            <div class="col-6 col-md-2">
+            <div class="col-6 col-sm-3 col-md-2">
                 <input type="date" name="to" class="form-control bg-dark text-light border-secondary border-opacity-50" value="{{ request('to') }}" title="To Date">
             </div>
-            <div class="col-6 col-md-1">
-                <button type="submit" class="btn btn-primary w-100 fw-bold px-0">
-                    <i class="fa-solid fa-filter"></i> Filter
+            <div class="col-12 col-sm-12 col-md-3 d-flex gap-2">
+                <button type="submit" class="btn btn-primary fw-bold flex-grow-1">
+                    <i class="fa-solid fa-filter me-1"></i> Filter
                 </button>
-            </div>
-            @if(request()->hasAny(['search', 'status', 'from', 'to']))
-                <div class="col-12 col-md-2">
-                    <a href="{{ route('admin.ludo.deposits.index') }}" class="btn btn-outline-secondary w-100">
+                @if(request()->hasAny(['search', 'status', 'from', 'to']))
+                    <a href="{{ route('admin.ludo.deposits.index') }}" class="btn btn-outline-secondary px-3">
                         Clear
                     </a>
-                </div>
-            @endif
+                @endif
+            </div>
         </form>
     </div>
 
@@ -147,13 +145,14 @@
                                                     <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
                                                 </div>
                                                 <div class="modal-body text-center p-3">
-                                                    <img src="{{ asset('storage/' . $dep->screenshot_path) }}" alt="Receipt" class="img-fluid rounded border border-secondary shadow-sm mb-2" style="max-height: 450px;">
+                                                    @php $receiptUrl = \App\Services\FileUploadService::url($dep->screenshot_path); @endphp
+                                                    <img src="{{ $receiptUrl }}" alt="Receipt" class="img-fluid rounded border border-secondary shadow-sm mb-2" style="max-height: 55vh; object-fit: contain;">
                                                     <div class="small text-secondary">
                                                         UTR: <strong class="text-warning font-monospace">{{ $dep->utr_number }}</strong> &bull; Amount: <strong class="text-success">₹{{ number_format($dep->amount) }}</strong>
                                                     </div>
                                                 </div>
                                                 <div class="modal-footer border-secondary border-opacity-50 justify-content-between">
-                                                    <a href="{{ asset('storage/' . $dep->screenshot_path) }}" target="_blank" class="btn btn-sm btn-outline-info">
+                                                    <a href="{{ $receiptUrl }}" target="_blank" class="btn btn-sm btn-outline-info">
                                                         <i class="fa-solid fa-arrow-up-right-from-square me-1"></i> Open Original
                                                     </a>
                                                     <button type="button" class="btn btn-sm btn-secondary" data-bs-dismiss="modal">Close</button>

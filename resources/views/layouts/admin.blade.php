@@ -41,6 +41,7 @@
         /* Sidebar Styling */
         .admin-sidebar {
             width: 268px;
+            box-sizing: border-box;
             background: linear-gradient(180deg, #0b1224 0%, #050811 100%);
             border-right: 1px solid var(--admin-border);
             display: flex;
@@ -140,7 +141,18 @@
             display: flex;
             flex-direction: column;
             min-width: 0;
+            width: calc(100% - 268px);
+            max-width: calc(100% - 268px);
             background: var(--admin-bg);
+            overflow-x: clip;
+        }
+
+        @media (max-width: 991px) {
+            .admin-main {
+                width: 100%;
+                max-width: 100%;
+                overflow-x: clip;
+            }
         }
 
         .admin-topbar {
@@ -159,6 +171,8 @@
         .admin-content {
             padding: 25px;
             flex-grow: 1;
+            min-width: 0;
+            max-width: 100%;
         }
 
         /* Card System */
@@ -168,6 +182,8 @@
             border-radius: 12px;
             padding: 20px;
             box-shadow: 0 4px 16px rgba(0, 0, 0, 0.25);
+            min-width: 0;
+            max-width: 100%;
         }
 
         .admin-card-header {
@@ -269,14 +285,175 @@
             background: rgba(56, 189, 248, 0.1) !important;
         }
 
+        /* Mobile Sidebar & Backdrop */
+        .admin-sidebar-backdrop {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100vw;
+            height: 100vh;
+            background: rgba(0, 0, 0, 0.75);
+            backdrop-filter: blur(3px);
+            z-index: 1040;
+            transition: opacity 0.25s ease;
+        }
+
+        .admin-sidebar-backdrop.show {
+            display: block;
+        }
+
+        body.admin-sidebar-open {
+            overflow: hidden;
+        }
+
         @media (max-width: 991px) {
             .admin-sidebar {
                 position: fixed;
-                left: -260px;
-                transition: left 0.3s ease;
+                left: -285px;
+                top: 0;
+                bottom: 0;
+                height: 100vh;
+                max-height: 100vh;
+                overflow-y: auto;
+                z-index: 1050;
+                transition: left 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+                box-shadow: none;
             }
             .admin-sidebar.show {
                 left: 0;
+                box-shadow: 10px 0 30px rgba(0, 0, 0, 0.85);
+            }
+        }
+
+        /* Mobile Topbar, Cards & Content */
+        .admin-topbar-title {
+            font-size: 15px;
+            font-weight: 700;
+            color: #fff;
+            margin: 0;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            max-width: 150px;
+        }
+
+        @media (min-width: 576px) {
+            .admin-topbar-title {
+                max-width: 340px;
+                font-size: 16px;
+            }
+        }
+
+        @media (min-width: 992px) {
+            .admin-topbar-title {
+                max-width: none;
+            }
+        }
+
+        @media (max-width: 767px) {
+            .row {
+                --bs-gutter-x: 0.75rem;
+            }
+            .admin-topbar {
+                height: 56px;
+                padding: 0 12px;
+            }
+            .admin-content {
+                padding: 14px 12px;
+            }
+            .admin-card {
+                padding: 14px 12px;
+                border-radius: 10px;
+            }
+            .admin-card-header {
+                flex-wrap: wrap;
+                gap: 8px;
+                margin-bottom: 12px;
+                padding-bottom: 10px;
+            }
+            .admin-stat-card {
+                padding: 12px 10px;
+            }
+            .admin-stat-val {
+                font-size: 20px;
+            }
+            .admin-stat-title {
+                font-size: 10.5px;
+            }
+            .admin-stat-icon {
+                font-size: 18px;
+                right: 10px;
+                top: 10px;
+                opacity: 0.15;
+            }
+        }
+
+        @media (max-width: 575px) {
+            .admin-notification-dropdown {
+                width: calc(100vw - 20px) !important;
+                max-width: calc(100vw - 20px) !important;
+                position: fixed !important;
+                top: 60px !important;
+                left: 10px !important;
+                right: 10px !important;
+                transform: none !important;
+            }
+        }
+
+        /* Global Responsive Pagination */
+        .pagination {
+            flex-wrap: wrap;
+            gap: 4px;
+            margin-bottom: 0;
+            justify-content: center;
+        }
+        .page-link {
+            font-size: 11.5px;
+            padding: 4px 8px;
+            background-color: #0b1224;
+            border-color: rgba(255, 255, 255, 0.12);
+            color: var(--admin-text-muted);
+            border-radius: 6px !important;
+        }
+        .page-item.active .page-link {
+            background-color: var(--admin-accent-blue);
+            border-color: var(--admin-accent-blue);
+            color: #040811;
+            font-weight: 700;
+        }
+        .page-item.disabled .page-link {
+            background-color: rgba(255, 255, 255, 0.03);
+            border-color: rgba(255, 255, 255, 0.05);
+            color: rgba(255, 255, 255, 0.25);
+        }
+
+        /* Smooth Table Scrolling */
+        .table-responsive {
+            -webkit-overflow-scrolling: touch;
+            border-radius: 8px;
+            width: 100%;
+            max-width: 100%;
+            overflow-x: auto;
+        }
+
+        /* Responsive Modal Sizing */
+        .modal-dialog {
+            margin: 0.5rem auto;
+            max-width: calc(100% - 1rem);
+        }
+        @media (min-width: 576px) {
+            .modal-dialog {
+                max-width: 500px;
+                margin: 1.75rem auto;
+            }
+        }
+        @media (min-width: 992px) {
+            .modal-dialog.modal-lg {
+                max-width: 800px;
+            }
+            .modal-dialog.modal-xl {
+                max-width: 1140px;
             }
         }
     </style>
@@ -284,14 +461,20 @@
 </head>
 <body>
 
+    {{-- Sidebar Mobile Backdrop Overlay --}}
+    <div class="admin-sidebar-backdrop" id="sidebarBackdrop"></div>
+
     {{-- Sidebar Navigation --}}
     <aside class="admin-sidebar" id="adminSidebar">
         <div class="admin-sidebar-header">
             <img src="{{ asset('assets/images/fsaludoclub-logo.png') }}" alt="{{ config('ludo.brand_name', 'Fsaludoclub') }}" class="admin-sidebar-logo">
-            <div>
-                <h5 class="admin-sidebar-brand">{{ strtoupper(config('ludo.brand_name', 'FSALUDOCLUB')) }}</h5>
+            <div class="flex-grow-1 min-w-0">
+                <h5 class="admin-sidebar-brand text-truncate">{{ strtoupper(config('ludo.brand_name', 'FSALUDOCLUB')) }}</h5>
                 <span class="admin-sidebar-tag"><i class="fa-solid fa-crown me-1"></i> Admin Console</span>
             </div>
+            <button type="button" class="btn btn-sm btn-outline-secondary d-lg-none ms-auto text-light border-0" id="sidebarCloseBtn" aria-label="Close Navigation">
+                <i class="fa-solid fa-xmark fs-5"></i>
+            </button>
         </div>
 
         <ul class="admin-nav-list">
@@ -414,17 +597,17 @@
     <div class="admin-main">
         {{-- Topbar --}}
         <header class="admin-topbar">
-            <div class="d-flex align-items-center gap-3">
-                <button class="btn btn-outline-secondary btn-sm d-lg-none" id="sidebarToggleBtn">
+            <div class="d-flex align-items-center gap-2 gap-sm-3 min-w-0" style="flex: 1 1 auto; overflow: hidden;">
+                <button class="btn btn-outline-secondary btn-sm d-lg-none flex-shrink-0" id="sidebarToggleBtn" aria-label="Open Navigation">
                     <i class="fa-solid fa-bars"></i>
                 </button>
-                <h6 class="mb-0 fw-bold text-white">@yield('page_title', 'Overview')</h6>
+                <h6 class="mb-0 fw-bold text-white text-truncate admin-topbar-title">@yield('page_title', 'Overview')</h6>
             </div>
 
-            <div class="d-flex align-items-center gap-3">
+            <div class="d-flex align-items-center gap-2 gap-sm-3 flex-shrink-0 ms-2">
                 {{-- Pending Activities Notification Bell Dropdown --}}
                 <div class="dropdown me-1">
-                    <button class="btn btn-outline-secondary position-relative rounded-pill px-3 py-1 d-flex align-items-center gap-2" id="adminNotificationsMenuBtn" data-bs-toggle="dropdown" aria-expanded="false" title="Pending Operational Activities">
+                    <button class="btn btn-outline-secondary position-relative rounded-pill px-2 px-sm-3 py-1 d-flex align-items-center gap-1 gap-sm-2" id="adminNotificationsMenuBtn" data-bs-toggle="dropdown" aria-expanded="false" title="Pending Operational Activities">
                         <i class="fa-solid fa-bell text-warning"></i>
                         <span class="d-none d-sm-inline small text-light fw-semibold">Alerts</span>
                         @if(($totalPendingNotifications ?? 0) > 0)
@@ -435,7 +618,7 @@
                             <span class="badge rounded-pill bg-secondary bg-opacity-50 text-white" id="adminPendingBadge" style="font-size: 10px;">0</span>
                         @endif
                     </button>
-                    <div class="dropdown-menu dropdown-menu-end p-0 shadow-lg border-warning border-opacity-25" style="width: 380px; max-width: 92vw; background: #0c1427; border-radius: 14px; overflow: hidden;" aria-labelledby="adminNotificationsMenuBtn">
+                    <div class="dropdown-menu dropdown-menu-end p-0 shadow-lg border-warning border-opacity-25 admin-notification-dropdown" style="width: 380px; max-width: 92vw; background: #0c1427; border-radius: 14px; overflow: hidden;" aria-labelledby="adminNotificationsMenuBtn">
                         {{-- Dropdown Header --}}
                         <div class="p-3 border-bottom border-secondary border-opacity-25 d-flex justify-content-between align-items-center" style="background: rgba(212, 175, 55, 0.08);">
                             <div>
@@ -543,9 +726,55 @@
     {{-- Bootstrap JS --}}
     <script src="{{ asset('js/bootstrap.bundle.min.js') }}"></script>
     <script>
-        document.getElementById('sidebarToggleBtn')?.addEventListener('click', function() {
-            document.getElementById('adminSidebar')?.classList.toggle('show');
-        });
+        (function() {
+            var sidebar = document.getElementById('adminSidebar');
+            var backdrop = document.getElementById('sidebarBackdrop');
+            var toggleBtn = document.getElementById('sidebarToggleBtn');
+            var closeBtn = document.getElementById('sidebarCloseBtn');
+
+            function openSidebar() {
+                if (sidebar) sidebar.classList.add('show');
+                if (backdrop) backdrop.classList.add('show');
+                document.body.classList.add('admin-sidebar-open');
+            }
+
+            function closeSidebar() {
+                if (sidebar) sidebar.classList.remove('show');
+                if (backdrop) backdrop.classList.remove('show');
+                document.body.classList.remove('admin-sidebar-open');
+            }
+
+            toggleBtn?.addEventListener('click', function(e) {
+                e.preventDefault();
+                e.stopPropagation();
+                if (sidebar?.classList.contains('show')) {
+                    closeSidebar();
+                } else {
+                    openSidebar();
+                }
+            });
+
+            closeBtn?.addEventListener('click', function(e) {
+                e.preventDefault();
+                closeSidebar();
+            });
+
+            backdrop?.addEventListener('click', function() {
+                closeSidebar();
+            });
+
+            document.addEventListener('keydown', function(e) {
+                if (e.key === 'Escape' && sidebar?.classList.contains('show')) {
+                    closeSidebar();
+                }
+            });
+
+            window.addEventListener('resize', function() {
+                if (window.innerWidth >= 992 && sidebar?.classList.contains('show')) {
+                    closeSidebar();
+                }
+            });
+        })();
 
         // Real-time live polling for Admin pending notifications
         function pollAdminPendingActivities() {

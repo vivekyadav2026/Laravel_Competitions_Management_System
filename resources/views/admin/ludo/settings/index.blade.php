@@ -5,7 +5,7 @@
 
 @section('content')
     <div class="admin-card mb-4" style="max-width: 960px;">
-        <h5 class="text-white fw-bold mb-3 border-bottom border-secondary border-opacity-25 pb-2 d-flex align-items-center justify-content-between">
+        <h5 class="text-white fw-bold mb-3 border-bottom border-secondary border-opacity-25 pb-2 d-flex flex-wrap align-items-center justify-content-between gap-2">
             <span><i class="fa-solid fa-sliders text-warning me-2"></i> Platform & Payment Configuration Desk</span>
             <a href="{{ route('admin.ludo.deposits.index') }}" class="btn btn-sm btn-outline-info rounded-pill px-3 py-1 fw-bold">
                 <i class="fa-solid fa-receipt me-1"></i> View Deposit Desk
@@ -95,7 +95,7 @@
 
             {{-- SECTION 2: DYNAMIC BATTLE COMMISSION CONFIGURATION --}}
             <div class="mb-4 p-3 rounded-3" style="background: rgba(22, 33, 62, 0.7); border: 1.5px solid rgba(212, 175, 55, 0.35);">
-                <div class="d-flex justify-content-between align-items-center mb-2">
+                <div class="d-flex flex-wrap justify-content-between align-items-center gap-2 mb-2">
                     <h6 class="text-warning fw-bold text-uppercase mb-0" style="letter-spacing: 0.5px;">
                         <i class="fa-solid fa-percent me-1"></i> 2. Dynamic Game Commission & Prize Pool Rules
                     </h6>
@@ -152,7 +152,7 @@
                                 <input type="number" id="testEntryFee" class="form-control bg-dark text-light border-secondary font-monospace" value="100" min="10" step="10">
                             </div>
                         </div>
-                        <div class="col-12 col-sm-8 text-sm-end small">
+                        <div class="col-12 col-sm-8 text-sm-end small d-flex flex-wrap gap-2 align-items-center justify-content-sm-end">
                             <span class="text-light">Total Pool: <strong id="previewPool" class="text-white">🪙 200</strong></span> &bull;
                             <span class="text-danger">Commission: <strong id="previewCommission">🪙 10</strong></span> &bull;
                             <span class="text-success">Winner Prize: <strong id="previewPrize" class="fs-6">🪙 190</strong></span>
@@ -216,7 +216,7 @@
                     <div class="col-12 col-md-5 text-center">
                         <div class="p-2 bg-white rounded-3 d-inline-block shadow" style="max-width: 140px;">
                             @if(!empty($settings['upi_qr_image']))
-                                <img src="{{ asset('storage/' . $settings['upi_qr_image']) }}" alt="Active QR Code" class="img-fluid rounded" style="max-height: 120px;">
+                                <img src="{{ \App\Services\FileUploadService::url($settings['upi_qr_image']) }}" alt="Active QR Code" class="img-fluid rounded" style="max-height: 120px;">
                             @else
                                 <img src="https://api.qrserver.com/v1/create-qr-code/?size=120x120&data={{ urlencode('upi://pay?pa=' . $settings['upi_id'] . '&pn=' . $settings['upi_payee_name']) }}" alt="Dynamic QR" class="img-fluid rounded" style="max-height: 120px;">
                             @endif
@@ -228,19 +228,38 @@
                 </div>
 
                 {{-- Instructions in English and Hindi --}}
-                <div class="row g-3">
+                <div class="row g-3 mb-3">
                     <div class="col-12 col-md-6">
                         <label class="form-label text-white small fw-bold">Player Deposit Instructions (English)</label>
-                        <textarea name="upi_instructions_en" rows="4" class="form-control bg-dark text-light border-secondary small">{{ $settings['upi_instructions_en'] ?? '' }}</textarea>
+                        <textarea name="upi_instructions_en" rows="3" class="form-control bg-dark text-light border-secondary small">{{ $settings['upi_instructions_en'] ?? '' }}</textarea>
                     </div>
                     <div class="col-12 col-md-6">
                         <label class="form-label text-white small fw-bold">Player Deposit Instructions (Hindi)</label>
-                        <textarea name="upi_instructions_hi" rows="4" class="form-control bg-dark text-light border-secondary small">{{ $settings['upi_instructions_hi'] ?? '' }}</textarea>
+                        <textarea name="upi_instructions_hi" rows="3" class="form-control bg-dark text-light border-secondary small">{{ $settings['upi_instructions_hi'] ?? '' }}</textarea>
+                    </div>
+                </div>
+
+                {{-- Free Virtual Points Reload (Sandbox Mode) --}}
+                <div class="p-3 rounded-3 mt-2" style="background: rgba(14, 20, 44, 0.6); border: 1px dashed rgba(245, 158, 11, 0.3);">
+                    <div class="d-flex justify-content-between align-items-center mb-2">
+                        <label class="form-label text-warning small fw-bold mb-0">
+                            <i class="fa-solid fa-flask me-1"></i> Free Virtual Points Reload (Sandbox / Demo Testing Mode)
+                        </label>
+                        <span class="badge {{ ($settings['virtual_points_reload_enabled'] ?? 'off') === 'on' ? 'bg-warning text-dark' : 'bg-success' }} px-2 py-0" style="font-size: 10px;">
+                            {{ ($settings['virtual_points_reload_enabled'] ?? 'off') === 'on' ? 'DEMO ACTIVE' : 'LOCKED (STRICT PAYMENT)' }}
+                        </span>
+                    </div>
+                    <select name="virtual_points_reload_enabled" class="form-select bg-dark text-light border-secondary small mb-1">
+                        <option value="off" {{ ($settings['virtual_points_reload_enabled'] ?? 'off') === 'off' ? 'selected' : '' }}>Off — Strict Production Mode (Players MUST pay via UPI QR to get coins)</option>
+                        <option value="on" {{ ($settings['virtual_points_reload_enabled'] ?? 'off') === 'on' ? 'selected' : '' }}>On — Sandbox / Testing Mode (Show "+ Add Virtual Points" button on wallet)</option>
+                    </select>
+                    <div class="text-secondary small" style="font-size: 11px;">
+                        <i class="fa-solid fa-shield-halved text-info me-1"></i> When OFF (Recommended for production), the "+ Add Virtual Points" free reload card is completely hidden from players, preventing anyone from getting coins without transferring real money.
                     </div>
                 </div>
             </div>
 
-            <div class="d-flex justify-content-between align-items-center pt-2">
+            <div class="d-flex flex-wrap gap-2 justify-content-between align-items-center pt-2">
                 <button type="submit" class="btn btn-warning rounded-pill px-4 fw-bold">
                     <i class="fa-solid fa-save me-1"></i> Save Platform Configurations
                 </button>

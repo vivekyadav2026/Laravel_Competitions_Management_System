@@ -122,6 +122,24 @@
             transform: translateY(-1px);
             box-shadow: 0 8px 25px rgba(212, 175, 55, 0.5);
         }
+
+        @media (max-width: 480px) {
+            .admin-auth-container {
+                padding: 16px 12px;
+            }
+            .admin-auth-card {
+                padding: 30px 16px 20px;
+                border-radius: 16px;
+            }
+            .admin-badge-pill {
+                font-size: 0.68rem;
+                padding: 4px 12px;
+                letter-spacing: 0.8px;
+            }
+            .admin-auth-logo {
+                max-width: 170px;
+            }
+        }
     </style>
 </head>
 <body class="admin-auth-body">

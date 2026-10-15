@@ -118,7 +118,7 @@
                         </button>
                     </form>
 
-                    <div class="d-flex gap-2">
+                    <div class="d-flex flex-wrap gap-2">
                         {{-- Close Registration Button --}}
                         <form action="{{ route('admin.ludo.tournaments.closeRegistration', $tournament->id) }}" method="POST" class="flex-grow-1">
                             @csrf

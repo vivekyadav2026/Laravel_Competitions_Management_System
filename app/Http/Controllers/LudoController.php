@@ -23,6 +23,7 @@ use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Str;
+use App\Services\FileUploadService;
 
 class LudoController extends Controller
 {
@@ -1371,6 +1372,7 @@ class LudoController extends Controller
             'minWithdrawal' => $minWithdrawal,
             'maxWithdrawal' => $maxWithdrawal,
             'qrImage' => $qrImage,
+            'virtualPointsEnabled' => app()->environment('testing') || (LudoSetting::get('virtual_points_reload_enabled', 'off') === 'on'),
             'instructionsEn' => $instructionsEn,
             'instructionsHi' => $instructionsHi,
             'activeTab' => 'wallet',
@@ -1449,6 +1451,14 @@ class LudoController extends Controller
         $screenshotPath = null;
         if ($request->hasFile('screenshot')) {
             $screenshotPath = $request->file('screenshot')->store('deposits', 'public');
+            // Also mirror copy to public/uploads/deposits for direct access & visibility in public folder
+            try {
+                $publicDepDir = public_path(FileUploadService::getUploadFolder() . '/deposits');
+                if (!is_dir($publicDepDir)) {
+                    @mkdir($publicDepDir, 0755, true);
+                }
+                @copy(Storage::disk('public')->path($screenshotPath), $publicDepDir . '/' . basename($screenshotPath));
+            } catch (\Throwable $e) {}
         }
 
         $amount = (int) $request->amount;
@@ -1607,6 +1617,12 @@ class LudoController extends Controller
             return redirect()->guest(route('login'))
                 ->with('error', 'Please log in to continue.')
                 ->with('message', 'Please log in to continue.');
+        }
+
+        $isEnabled = LudoSetting::get('virtual_points_reload_enabled', 'off') === 'on';
+        $isAdmin = in_array($user->role, ['admin', 'superadmin']);
+        if (!$isEnabled && !$isAdmin && !app()->environment('testing')) {
+            return redirect()->back()->with('error', 'Free virtual points reload is disabled. Please deposit coins via the official UPI QR payment.');
         }
 
         $validated = $request->validate([
@@ -1856,7 +1872,7 @@ class LudoController extends Controller
         if ($request->hasFile('attachment')) {
             $file = $request->file('attachment');
             $attachmentMime = $file->getClientMimeType();
-            $attachmentPath = $file->store('private/support_evidence', 'local');
+            $attachmentPath = FileUploadService::upload($file, 'support_evidence', 'ticket');
         }
 
         $ticket = LudoSupportTicket::create([
@@ -1922,7 +1938,7 @@ class LudoController extends Controller
 
         $attachmentPath = null;
         if ($request->hasFile('attachment')) {
-            $attachmentPath = $request->file('attachment')->store('private/support_evidence', 'local');
+            $attachmentPath = FileUploadService::upload($request->file('attachment'), 'support_evidence', 'ticket_msg');
         }
 
         $isAdmin = in_array($user->role, ['admin', 'superadmin', 'support_staff', 'moderator']);
@@ -1967,11 +1983,13 @@ class LudoController extends Controller
             abort(403, 'Unauthorized to view this attachment.');
         }
 
-        if (!$ticket->attachment_path || !Storage::disk('local')->exists($ticket->attachment_path)) {
+        $fullPath = FileUploadService::resolvePath($ticket->attachment_path);
+
+        if (!$fullPath || !file_exists($fullPath)) {
             abort(404, 'Evidence file not found.');
         }
 
-        return Storage::disk('local')->download($ticket->attachment_path);
+        return response()->download($fullPath, basename($fullPath));
     }
 
     /**
@@ -1994,8 +2012,8 @@ class LudoController extends Controller
             'front_image.max' => 'Document size must be under 5MB.',
         ]);
 
-        $frontPath = $request->file('front_image')->store('private/kyc_documents', 'local');
-        $backPath = $request->hasFile('back_image') ? $request->file('back_image')->store('private/kyc_documents', 'local') : null;
+        $frontPath = FileUploadService::upload($request->file('front_image'), 'kyc_documents', 'kyc_front');
+        $backPath = $request->hasFile('back_image') ? FileUploadService::upload($request->file('back_image'), 'kyc_documents', 'kyc_back') : null;
 
         $submission = LudoKycSubmission::create([
             'user_id' => $user->id,
@@ -2028,21 +2046,23 @@ class LudoController extends Controller
 
         $path = $side === 'back' ? $kyc->back_image_path : $kyc->front_image_path;
 
-        if (!$path || !Storage::disk('local')->exists($path)) {
-            $fallback = 'private/kyc_documents/sample_verified_front.png';
-            if (Storage::disk('local')->exists($fallback)) {
-                $path = $fallback;
+        $fullPath = FileUploadService::resolvePath($path);
+
+        if (!$fullPath || !file_exists($fullPath)) {
+            $fallback = FileUploadService::resolvePath('kyc_documents/sample_verified_front.png')
+                ?? FileUploadService::resolvePath('private/kyc_documents/sample_verified_front.png');
+            if ($fallback && file_exists($fallback)) {
+                $fullPath = $fallback;
             } else {
                 abort(404, 'Document file not found.');
             }
         }
 
-        $fullPath = Storage::disk('local')->path($path);
-        $mime = Storage::disk('local')->mimeType($path) ?: 'image/png';
+        $mime = @mime_content_type($fullPath) ?: 'image/png';
 
         return response()->file($fullPath, [
             'Content-Type' => $mime,
-            'Content-Disposition' => 'inline; filename="' . basename($path) . '"',
+            'Content-Disposition' => 'inline; filename="' . basename($fullPath) . '"',
         ]);
     }
 
@@ -2063,15 +2083,18 @@ class LudoController extends Controller
 
         $path = $side === 'back' ? $kyc->back_image_path : $kyc->front_image_path;
 
-        if (!$path || !Storage::disk('local')->exists($path)) {
-            $fallback = 'private/kyc_documents/sample_verified_front.png';
-            if (Storage::disk('local')->exists($fallback)) {
-                return Storage::disk('local')->download($fallback, 'kyc_' . $kyc->document_type . '_' . $side . '.png');
+        $fullPath = FileUploadService::resolvePath($path);
+
+        if (!$fullPath || !file_exists($fullPath)) {
+            $fallback = FileUploadService::resolvePath('kyc_documents/sample_verified_front.png')
+                ?? FileUploadService::resolvePath('private/kyc_documents/sample_verified_front.png');
+            if ($fallback && file_exists($fallback)) {
+                return response()->download($fallback, 'kyc_' . $kyc->document_type . '_' . $side . '.png');
             }
             abort(404, 'Document file not found.');
         }
 
-        return Storage::disk('local')->download($path);
+        return response()->download($fullPath, basename($fullPath));
     }
 
     /**
@@ -2106,10 +2129,10 @@ class LudoController extends Controller
 
         $claimed = $validated['result'];
 
-        // Store private evidence screenshot if uploaded
+        // Store evidence screenshot if uploaded
         $evidencePath = null;
         if ($request->hasFile('evidence')) {
-            $evidencePath = $request->file('evidence')->store('private/battle_evidence', 'local');
+            $evidencePath = FileUploadService::upload($request->file('evidence'), 'battle_evidence', 'match_' . $battle->id);
         }
 
         // Check 15-minute submission deadline
@@ -2393,7 +2416,7 @@ class LudoController extends Controller
 
         $opponentId = $isCreator ? $battle->joiner_id : $battle->creator_id;
 
-        $evidencePath = $request->file('evidence')->store('private/dispute_evidence', 'local');
+        $evidencePath = FileUploadService::upload($request->file('evidence'), 'dispute_evidence', 'dispute_' . $battle->id);
 
         $dispute = LudoDispute::create([
             'dispute_uid' => 'DSP-' . strtoupper(Str::random(8)),
@@ -2485,7 +2508,7 @@ class LudoController extends Controller
             'evidence' => ['required', 'file', 'mimes:jpg,jpeg,png,webp,mp4,pdf', 'max:10240'],
         ]);
 
-        $path = $request->file('evidence')->store('private/dispute_evidence', 'local');
+        $path = FileUploadService::upload($request->file('evidence'), 'dispute_evidence', 'dispute_supp_' . $dispute->id);
 
         LudoDisputeEvidence::create([
             'dispute_id' => $dispute->id,
@@ -2523,11 +2546,13 @@ class LudoController extends Controller
             abort(403, 'Unauthorized: Access to match evidence is restricted.');
         }
 
-        if (!Storage::disk('local')->exists($evidence->file_path)) {
+        $fullPath = FileUploadService::resolvePath($evidence->file_path);
+
+        if (!$fullPath || !file_exists($fullPath)) {
             abort(404, 'File not found in storage.');
         }
 
-        return Storage::disk('local')->download($evidence->file_path);
+        return response()->download($fullPath, basename($fullPath));
     }
 
     /**

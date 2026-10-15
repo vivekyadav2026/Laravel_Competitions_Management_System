@@ -15,17 +15,17 @@
         {{-- Profile Card --}}
         <div class="col-12 col-lg-8">
             <div class="admin-card h-100">
-                <div class="d-flex align-items-center justify-content-between mb-3 border-bottom border-secondary border-opacity-25 pb-3">
-                    <div class="d-flex align-items-center gap-3">
-                        <div class="rounded-circle d-flex align-items-center justify-content-center bg-dark text-info fw-bold fs-4 border border-info" style="width: 54px; height: 54px;">
+                <div class="d-flex align-items-center justify-content-between flex-wrap gap-2 mb-3 border-bottom border-secondary border-opacity-25 pb-3">
+                    <div class="d-flex align-items-center gap-2 gap-sm-3 min-w-0">
+                        <div class="rounded-circle d-flex align-items-center justify-content-center bg-dark text-info fw-bold fs-4 border border-info flex-shrink-0" style="width: 50px; height: 50px;">
                             {{ substr($user->name, 0, 1) }}
                         </div>
-                        <div>
-                            <h5 class="text-white fw-bold mb-0">{{ $user->name }}</h5>
+                        <div class="min-w-0">
+                            <h5 class="text-white fw-bold mb-0 text-truncate" style="max-width: 160px;">{{ $user->name }}</h5>
                             <span class="text-secondary small font-monospace">UID: {{ $user->player_uid ?? 'LUDO' . str_pad($user->id, 5, '0', STR_PAD_LEFT) }}</span>
                         </div>
                     </div>
-                    <div class="text-end">
+                    <div class="text-sm-end">
                         <span class="badge {{ $user->status === 'active' ? 'bg-success' : 'bg-danger' }} fs-6 mb-1">
                             {{ strtoupper($user->status) }}
                         </span>
@@ -36,11 +36,11 @@
                 <div class="row g-3">
                     <div class="col-6 col-md-3">
                         <div class="text-secondary small">Email</div>
-                        <div class="text-white small fw-bold">{{ $user->email }}</div>
+                        <div class="text-white small fw-bold text-break">{{ $user->email }}</div>
                     </div>
                     <div class="col-6 col-md-3">
                         <div class="text-secondary small">Phone</div>
-                        <div class="text-white small fw-bold">{{ $user->phone ?? 'Not set' }}</div>
+                        <div class="text-white small fw-bold text-break">{{ $user->phone ?? 'Not set' }}</div>
                     </div>
                     <div class="col-6 col-md-3">
                         <div class="text-secondary small">Virtual Balance</div>
@@ -443,7 +443,7 @@
                                             </span>
                                         </td>
                                         <td>
-                                            <a href="{{ route('ludo.dispute.view', $disp->id) }}" class="btn btn-sm btn-outline-info rounded-pill py-0 px-2" style="font-size: 10px;">
+                                            <a href="{{ route('admin.ludo.disputes.show', $disp->id) }}" class="btn btn-sm btn-outline-info rounded-pill py-0 px-2" style="font-size: 10px;">
                                                 View &rarr;
                                             </a>
                                         </td>
@@ -490,7 +490,7 @@
                                             </span>
                                         </td>
                                         <td>
-                                            <a href="{{ route('ludo.ticket.view', $t->id) }}" class="btn btn-sm btn-outline-info rounded-pill py-0 px-2" style="font-size: 10px;">
+                                            <a href="{{ route('admin.ludo.tickets.show', $t->id) }}" class="btn btn-sm btn-outline-info rounded-pill py-0 px-2" style="font-size: 10px;">
                                                 Reply &rarr;
                                             </a>
                                         </td>

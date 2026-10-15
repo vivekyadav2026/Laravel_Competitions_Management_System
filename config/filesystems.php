@@ -44,6 +44,14 @@ return [
             'throw' => false,
         ],
 
+        'uploads' => [
+            'driver' => 'local',
+            'root' => public_path(env('UPLOAD_FOLDER', 'uploads')),
+            'url' => env('APP_URL') . '/' . env('UPLOAD_FOLDER', 'uploads'),
+            'visibility' => 'public',
+            'throw' => false,
+        ],
+
         's3' => [
             'driver' => 's3',
             'key' => env('AWS_ACCESS_KEY_ID'),
@@ -55,8 +63,14 @@ return [
             'use_path_style_endpoint' => env('AWS_USE_PATH_STYLE_ENDPOINT', false),
             'throw' => false,
         ],
-
     ],
+
+    /*
+    |--------------------------------------------------------------------------
+    | Configurable Upload Directory (Inside public/)
+    |--------------------------------------------------------------------------
+    */
+    'upload_folder' => env('UPLOAD_FOLDER', 'uploads'),
 
     /*
     |--------------------------------------------------------------------------

@@ -24,6 +24,7 @@ use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Str;
+use App\Services\FileUploadService;
 use Symfony\Component\HttpFoundation\StreamedResponse;
 
 class LudoAdminController extends Controller
@@ -1380,16 +1381,21 @@ class LudoAdminController extends Controller
         $match = LudoBattle::findOrFail($id);
         $path = $side === 'joiner' ? $match->joiner_evidence_path : $match->creator_evidence_path;
 
-        if (!$path || !Storage::disk('local')->exists($path)) {
+        if (!$path) {
             abort(404, 'Match evidence screenshot not found on disk.');
         }
 
-        $fullPath = Storage::disk('local')->path($path);
-        $mime = mime_content_type($fullPath) ?: 'image/png';
+        $fullPath = FileUploadService::resolvePath($path);
+
+        if (!$fullPath || !file_exists($fullPath)) {
+            abort(404, 'Match evidence screenshot not found on disk.');
+        }
+
+        $mime = @mime_content_type($fullPath) ?: 'image/png';
 
         return response()->file($fullPath, [
             'Content-Type' => $mime,
-            'Content-Disposition' => 'inline; filename="' . basename($path) . '"',
+            'Content-Disposition' => 'inline; filename="' . basename($fullPath) . '"',
             'X-Robots-Tag' => 'noindex, nofollow',
         ]);
     }
@@ -2117,6 +2123,7 @@ class LudoAdminController extends Controller
             'upi_qr_image' => LudoSetting::get('upi_qr_image', null),
             'upi_instructions_en' => LudoSetting::get('upi_instructions_en', "1. Scan the QR code using Google Pay, PhonePe, Paytm, or BHIM.\n2. Pay the exact coins amount.\n3. Copy the 12-digit UTR/Reference number.\n4. Enter the UTR and upload payment screenshot below."),
             'upi_instructions_hi' => LudoSetting::get('upi_instructions_hi', "1. किसी भी UPI ऐप (Paytm, PhonePe, GPay) से QR कोड स्कैन करें।\n2. सटीक राशि का भुगतान करें।\n3. 12 अंकों का UTR / रेफ़रंस नंबर कॉपी करें।\n4. नीचे UTR दर्ज करें और रसीद अपलोड करें।"),
+            'virtual_points_reload_enabled' => LudoSetting::get('virtual_points_reload_enabled', 'off'),
         ];
 
         return view('admin.ludo.settings.index', [
@@ -2154,6 +2161,7 @@ class LudoAdminController extends Controller
 
             // UPI & QR Validation
             'upi_deposits_enabled' => ['nullable', 'in:on,off'],
+            'virtual_points_reload_enabled' => ['nullable', 'in:on,off'],
             'upi_payee_name' => ['nullable', 'string', 'max:100'],
             'upi_id' => ['nullable', 'string', 'max:100'],
             'upi_min_deposit' => ['nullable', 'integer', 'min:10', 'max:10000'],
@@ -2337,14 +2345,31 @@ class LudoAdminController extends Controller
         if (!is_dir($dir)) {
             @mkdir($dir, 0755, true);
         }
-        $placeholder = $dir . '/sample_verified_front.png';
-        if (!file_exists($placeholder)) {
-            $png = base64_decode('iVBORw0KGgoAAAANSUhEUgAAAMgAAABkCAYAAADDhn8LAAAACXBIWXMAAAsTAAALEwEAmpwYAAAAGXRFWHRTb2Z0d2FyZQBBZG9iZSBJbWFnZVJlYWR5ccllPAAAAGhJREFUeNrswTEBAAAAwqD1T20MH6AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAOBvAiEAAAFtUvJ3AAAAAElFTkSuQmCC');
-            @file_put_contents($placeholder, $png);
-            @file_put_contents($dir . '/sample_verified_back.png', $png);
-            @file_put_contents($dir . '/sample_pending_front.png', $png);
-            @file_put_contents($dir . '/sample_pending_back.png', $png);
-            @file_put_contents($dir . '/sample_rejected_front.png', $png);
+        $publicKycDir = public_path(FileUploadService::getUploadFolder() . '/kyc_documents');
+        $privateKycDir = storage_path('app/private/kyc_documents');
+        if (!is_dir($publicKycDir)) {
+            @mkdir($publicKycDir, 0755, true);
+        }
+        if (!is_dir($privateKycDir)) {
+            @mkdir($privateKycDir, 0755, true);
+        }
+
+        $frontPlaceholder = $publicKycDir . '/sample_verified_front.png';
+        if (!file_exists($frontPlaceholder) || filesize($frontPlaceholder) < 1000) {
+            if (file_exists($privateKycDir . '/sample_verified_front.png') && filesize($privateKycDir . '/sample_verified_front.png') >= 1000) {
+                @copy($privateKycDir . '/sample_verified_front.png', $frontPlaceholder);
+                @copy($privateKycDir . '/sample_verified_back.png', $publicKycDir . '/sample_verified_back.png');
+                @copy($privateKycDir . '/sample_pending_front.png', $publicKycDir . '/sample_pending_front.png');
+                @copy($privateKycDir . '/sample_pending_back.png', $publicKycDir . '/sample_pending_back.png');
+                @copy($privateKycDir . '/sample_rejected_front.png', $publicKycDir . '/sample_rejected_front.png');
+            }
+        }
+        if (file_exists($frontPlaceholder) && filesize($frontPlaceholder) >= 1000) {
+            @copy($frontPlaceholder, $privateKycDir . '/sample_verified_front.png');
+            @copy($publicKycDir . '/sample_verified_back.png', $privateKycDir . '/sample_verified_back.png');
+            @copy($publicKycDir . '/sample_pending_front.png', $privateKycDir . '/sample_pending_front.png');
+            @copy($publicKycDir . '/sample_pending_back.png', $privateKycDir . '/sample_pending_back.png');
+            @copy($publicKycDir . '/sample_rejected_front.png', $privateKycDir . '/sample_rejected_front.png');
         }
 
         // 1. Synchronize Verified Users who have no approved submission

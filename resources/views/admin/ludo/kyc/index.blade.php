@@ -53,7 +53,7 @@
                     <input type="text" name="search" class="form-control bg-dark text-light border-secondary" placeholder="Search by Document Number or Player..." value="{{ request('search') }}">
                 </div>
             </div>
-            <div class="col-6 col-md-3">
+            <div class="col-6 col-sm-6 col-md-3">
                 <select name="status" class="form-select form-select-sm bg-dark text-light border-secondary">
                     <option value="">All Statuses</option>
                     <option value="pending" {{ request('status') === 'pending' ? 'selected' : '' }}>Pending Review</option>
@@ -61,7 +61,7 @@
                     <option value="rejected" {{ request('status') === 'rejected' ? 'selected' : '' }}>Rejected</option>
                 </select>
             </div>
-            <div class="col-6 col-md-3">
+            <div class="col-6 col-sm-6 col-md-3">
                 <select name="document_type" class="form-select form-select-sm bg-dark text-light border-secondary">
                     <option value="">All Document Types</option>
                     <option value="aadhaar" {{ request('document_type') === 'aadhaar' ? 'selected' : '' }}>Aadhaar Card</option>
@@ -72,7 +72,7 @@
             </div>
             <div class="col-12 col-md-2 d-flex gap-2">
                 <button type="submit" class="btn btn-sm btn-info rounded-pill px-3 fw-bold flex-grow-1">Filter</button>
-                <a href="{{ route('admin.ludo.kyc.index') }}" class="btn btn-sm btn-outline-secondary rounded-pill px-2">Reset</a>
+                <a href="{{ route('admin.ludo.kyc.index') }}" class="btn btn-sm btn-outline-secondary rounded-pill px-3">Reset</a>
             </div>
         </form>
 
@@ -262,27 +262,27 @@
                     </div>
 
                     {{-- Single View (Front or Back) Container --}}
-                    <div id="kycSingleViewContainer" class="p-2 text-center rounded-3 position-relative overflow-hidden" style="background: #040814; min-height: 380px; max-height: 480px; border: 1px dashed rgba(255,255,255,0.15);">
-                        <div class="d-flex align-items-center justify-content-center h-100 w-100 overflow-auto" id="kycImageScrollBox" style="max-height: 460px;">
-                            <img src="" id="kycMainPreviewImg" class="img-fluid rounded shadow" style="max-height: 440px; object-fit: contain; transform-origin: center center; transition: transform 0.2s ease;" alt="KYC Document Preview">
+                    <div id="kycSingleViewContainer" class="p-2 text-center rounded-3 position-relative overflow-hidden" style="background: #040814; min-height: 240px; max-height: 55vh; border: 1px dashed rgba(255,255,255,0.15);">
+                        <div class="d-flex align-items-center justify-content-center h-100 w-100 overflow-auto" id="kycImageScrollBox" style="max-height: 52vh;">
+                            <img src="" id="kycMainPreviewImg" class="img-fluid rounded shadow" style="max-height: 50vh; object-fit: contain; transform-origin: center center; transition: transform 0.2s ease;" alt="KYC Document Preview" onerror="this.onerror=null; this.src='{{ asset('uploads/kyc_documents/sample_verified_front.png') }}';">
                         </div>
                         <div class="position-absolute bottom-0 start-0 m-2 px-2 py-1 rounded bg-dark bg-opacity-75 text-light" style="font-size: 10px;" id="kycCurrentSideIndicator">
                             Front Side Document
                         </div>
                     </div>
 
-                    {{-- Dual View Container (Both Front & Back side-by-side) --}}
+                    {{-- Dual View Container (Both Front & Back) --}}
                     <div id="kycDualViewContainer" class="row g-2 d-none">
-                        <div class="col-6">
+                        <div class="col-12 col-sm-6">
                             <div class="p-2 text-center rounded-3" style="background: #040814; border: 1px dashed rgba(255,255,255,0.15);">
                                 <div class="small text-secondary mb-1 fw-bold">Front Side</div>
-                                <img src="" id="kycDualFrontImg" class="img-fluid rounded" style="max-height: 360px; object-fit: contain;" alt="Front Document">
+                                <img src="" id="kycDualFrontImg" class="img-fluid rounded" style="max-height: 300px; object-fit: contain;" alt="Front Document" onerror="this.onerror=null; this.src='{{ asset('uploads/kyc_documents/sample_verified_front.png') }}';">
                             </div>
                         </div>
-                        <div class="col-6">
+                        <div class="col-12 col-sm-6">
                             <div class="p-2 text-center rounded-3" style="background: #040814; border: 1px dashed rgba(255,255,255,0.15);">
                                 <div class="small text-secondary mb-1 fw-bold">Back Side</div>
-                                <img src="" id="kycDualBackImg" class="img-fluid rounded" style="max-height: 360px; object-fit: contain;" alt="Back Document">
+                                <img src="" id="kycDualBackImg" class="img-fluid rounded" style="max-height: 300px; object-fit: contain;" alt="Back Document" onerror="this.onerror=null; this.src='{{ asset('uploads/kyc_documents/sample_verified_back.png') }}';">
                             </div>
                         </div>
                     </div>

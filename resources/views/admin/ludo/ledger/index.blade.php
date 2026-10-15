@@ -42,11 +42,11 @@
 
     {{-- Authorized Balance Adjustment Panel --}}
     <div class="admin-card mb-4">
-        <div class="d-flex align-items-center justify-content-between mb-3 border-bottom border-secondary border-opacity-25 pb-2">
+        <div class="d-flex align-items-center justify-content-between flex-wrap gap-2 mb-3 border-bottom border-secondary border-opacity-25 pb-2">
             <h6 class="text-white fw-bold mb-0">
                 <i class="fa-solid fa-coins text-warning me-1"></i> Authorized Virtual-Points Balance Adjustment
             </h6>
-            <span class="badge bg-dark border border-warning text-warning" style="font-size: 10px;">Non-Cash Virtual Points Only &bull; Row-Locked Atomic Ledger</span>
+            <span class="badge bg-dark border border-warning text-warning text-wrap text-start" style="font-size: 10px; line-height: 1.4;">Non-Cash Virtual Points Only &bull; Row-Locked Atomic Ledger</span>
         </div>
 
         <form action="{{ route('admin.ludo.ledger.adjust') }}" method="POST" class="row g-2 align-items-end">
@@ -85,7 +85,7 @@
                     <input type="text" name="search" class="form-control bg-dark text-light border-secondary" placeholder="Tx UID, player name, email..." value="{{ request('search') }}">
                 </div>
             </div>
-            <div class="col-6 col-md-2">
+            <div class="col-6 col-sm-6 col-md-2">
                 <select name="type" class="form-select form-select-sm bg-dark text-light border-secondary">
                     <option value="">All Types</option>
                     <option value="deposit" {{ request('type') === 'deposit' ? 'selected' : '' }}>Deposit (Reload)</option>
@@ -96,7 +96,7 @@
                     <option value="admin_adjustment" {{ request('type') === 'admin_adjustment' ? 'selected' : '' }}>Admin Adjustment</option>
                 </select>
             </div>
-            <div class="col-6 col-md-2">
+            <div class="col-6 col-sm-6 col-md-2">
                 <select name="status" class="form-select form-select-sm bg-dark text-light border-secondary">
                     <option value="">All Statuses</option>
                     <option value="successful" {{ request('status') === 'successful' ? 'selected' : '' }}>Successful</option>
@@ -104,15 +104,15 @@
                     <option value="pending" {{ request('status') === 'pending' ? 'selected' : '' }}>Pending</option>
                 </select>
             </div>
-            <div class="col-6 col-md-2">
+            <div class="col-6 col-sm-3 col-md-2">
                 <input type="date" name="from" class="form-control form-control-sm bg-dark text-light border-secondary" value="{{ request('from') }}" title="From Date">
             </div>
-            <div class="col-6 col-md-1">
+            <div class="col-6 col-sm-3 col-md-1">
                 <input type="date" name="to" class="form-control form-control-sm bg-dark text-light border-secondary" value="{{ request('to') }}" title="To Date">
             </div>
-            <div class="col-12 col-md-2 d-flex gap-2">
+            <div class="col-12 col-sm-6 col-md-2 d-flex gap-2">
                 <button type="submit" class="btn btn-sm btn-info rounded-pill px-3 fw-bold flex-grow-1">Filter</button>
-                <a href="{{ route('admin.ludo.ledger.index') }}" class="btn btn-sm btn-outline-secondary rounded-pill px-2">Reset</a>
+                <a href="{{ route('admin.ludo.ledger.index') }}" class="btn btn-sm btn-outline-secondary rounded-pill px-3">Reset</a>
             </div>
         </form>
 

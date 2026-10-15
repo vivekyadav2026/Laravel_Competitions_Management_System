@@ -9,7 +9,7 @@
         <div class="row g-3 align-items-center">
             <div class="col-12 col-xl-7">
                 <form action="{{ route('admin.ludo.reports.index') }}" method="GET" class="row g-2 align-items-center">
-                    <div class="col-6 col-md-3">
+                    <div class="col-12 col-sm-6 col-md-3">
                         <select name="period" class="form-select form-select-sm bg-dark text-light border-secondary">
                             <option value="all" {{ ($period ?? 'all') === 'all' ? 'selected' : '' }}>All Time</option>
                             <option value="today" {{ ($period ?? '') === 'today' ? 'selected' : '' }}>Today</option>
@@ -18,15 +18,15 @@
                             <option value="custom" {{ ($period ?? '') === 'custom' ? 'selected' : '' }}>Custom Range</option>
                         </select>
                     </div>
-                    <div class="col-6 col-md-3">
-                        <input type="date" name="from" class="form-control form-control-sm bg-dark text-light border-secondary" value="{{ $from ?? '' }}">
+                    <div class="col-6 col-sm-3 col-md-3">
+                        <input type="date" name="from" class="form-control form-control-sm bg-dark text-light border-secondary" value="{{ $from ?? '' }}" title="From Date">
                     </div>
-                    <div class="col-6 col-md-3">
-                        <input type="date" name="to" class="form-control form-control-sm bg-dark text-light border-secondary" value="{{ $to ?? '' }}">
+                    <div class="col-6 col-sm-3 col-md-3">
+                        <input type="date" name="to" class="form-control form-control-sm bg-dark text-light border-secondary" value="{{ $to ?? '' }}" title="To Date">
                     </div>
-                    <div class="col-6 col-md-3 d-flex gap-1">
+                    <div class="col-12 col-sm-6 col-md-3 d-flex gap-1">
                         <button type="submit" class="btn btn-sm btn-warning rounded-pill px-3 fw-bold flex-grow-1">Filter</button>
-                        <a href="{{ route('admin.ludo.reports.index') }}" class="btn btn-sm btn-outline-secondary rounded-pill px-2">Reset</a>
+                        <a href="{{ route('admin.ludo.reports.index') }}" class="btn btn-sm btn-outline-secondary rounded-pill px-3">Reset</a>
                     </div>
                 </form>
             </div>

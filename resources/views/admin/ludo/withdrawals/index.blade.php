@@ -10,8 +10,8 @@
             Review incoming withdrawal requests, copy player UPI / Bank coordinates, transfer funds, and enter payout reference (UTR) to mark as settled.
         </div>
         <div class="d-flex gap-2">
-            <span class="badge bg-warning bg-opacity-10 text-warning border border-warning border-opacity-25 px-3 py-2 small d-inline-flex align-items-center gap-2">
-                <i class="fa-solid fa-bolt"></i> Instant Player Settlement Workflow Active
+            <span class="badge bg-warning bg-opacity-10 text-warning border border-warning border-opacity-25 px-2 py-1 small text-wrap text-start" style="line-height: 1.4;">
+                <i class="fa-solid fa-bolt me-1"></i> Instant Player Settlement Workflow Active
             </span>
         </div>
     </div>
@@ -65,7 +65,7 @@
                     <input type="text" name="search" class="form-control bg-dark text-light border-secondary border-opacity-50" placeholder="Search by UID, UPI, Player, UTR..." value="{{ request('search') }}">
                 </div>
             </div>
-            <div class="col-6 col-md-3">
+            <div class="col-12 col-sm-6 col-md-3">
                 <select name="status" class="form-select bg-dark text-light border-secondary border-opacity-50">
                     <option value="">All Statuses</option>
                     <option value="pending" {{ request('status') === 'pending' ? 'selected' : '' }}>Pending Only</option>
@@ -73,18 +73,16 @@
                     <option value="rejected" {{ request('status') === 'rejected' ? 'selected' : '' }}>Rejected Only</option>
                 </select>
             </div>
-            <div class="col-6 col-md-2">
-                <button type="submit" class="btn btn-warning w-100 fw-bold">
+            <div class="col-12 col-sm-6 col-md-3 d-flex gap-2">
+                <button type="submit" class="btn btn-warning fw-bold flex-grow-1">
                     <i class="fa-solid fa-filter me-1"></i> Filter
                 </button>
-            </div>
-            @if(request()->hasAny(['search', 'status']))
-                <div class="col-12 col-md-2">
-                    <a href="{{ route('admin.ludo.withdrawals.index') }}" class="btn btn-outline-secondary w-100">
+                @if(request()->hasAny(['search', 'status']))
+                    <a href="{{ route('admin.ludo.withdrawals.index') }}" class="btn btn-outline-secondary px-3">
                         Clear
                     </a>
-                </div>
-            @endif
+                @endif
+            </div>
         </form>
     </div>
 

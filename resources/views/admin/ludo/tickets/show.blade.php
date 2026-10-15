@@ -4,11 +4,11 @@
 @section('page_title', 'Support Helpdesk Ticket: ' . $ticket->ticket_uid)
 
 @section('content')
-    <div class="mb-3 d-flex align-items-center justify-content-between">
+    <div class="mb-3 d-flex align-items-center justify-content-between flex-wrap gap-2">
         <a href="{{ route('admin.ludo.tickets.index') }}" class="btn btn-sm btn-outline-secondary rounded-pill px-3">
             &larr; Back to Support Desk
         </a>
-        <div class="d-flex gap-2">
+        <div class="d-flex align-items-center flex-wrap gap-2">
             <span class="badge {{ $ticket->priority === 'urgent' ? 'bg-danger' : 'bg-secondary' }} fs-6 text-uppercase">
                 {{ $ticket->priority }} Priority
             </span>

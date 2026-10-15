@@ -13,7 +13,7 @@
                     <input type="text" name="search" class="form-control bg-dark text-light border-secondary" placeholder="Battle UID, room code, player..." value="{{ request('search') }}">
                 </div>
             </div>
-            <div class="col-6 col-md-2">
+            <div class="col-6 col-sm-6 col-md-2">
                 <select name="status" class="form-select form-select-sm bg-dark text-light border-secondary">
                     <option value="">All Statuses</option>
                     <option value="open" {{ request('status') === 'open' ? 'selected' : '' }}>Open</option>
@@ -22,24 +22,24 @@
                     <option value="cancelled" {{ request('status') === 'cancelled' ? 'selected' : '' }}>Cancelled</option>
                 </select>
             </div>
-            <div class="col-6 col-md-2">
+            <div class="col-6 col-sm-6 col-md-2">
                 <select name="review_status" class="form-select form-select-sm bg-dark text-light border-secondary">
                     <option value="">All Reviews</option>
-                    <option value="under_review" {{ request('review_status') === 'under_review' ? 'selected' : '' }}>Under Review (Overdue/Late)</option>
+                    <option value="under_review" {{ request('review_status') === 'under_review' ? 'selected' : '' }}>Under Review</option>
                     <option value="disputed" {{ request('review_status') === 'disputed' ? 'selected' : '' }}>Disputed</option>
                     <option value="auto_approved" {{ request('review_status') === 'auto_approved' ? 'selected' : '' }}>Auto Approved</option>
                     <option value="verified" {{ request('review_status') === 'verified' ? 'selected' : '' }}>Verified</option>
                 </select>
             </div>
-            <div class="col-6 col-md-2">
+            <div class="col-6 col-sm-3 col-md-2">
                 <input type="date" name="from" class="form-control form-control-sm bg-dark text-light border-secondary" value="{{ request('from') }}" title="From Date">
             </div>
-            <div class="col-6 col-md-1">
+            <div class="col-6 col-sm-3 col-md-1">
                 <input type="date" name="to" class="form-control form-control-sm bg-dark text-light border-secondary" value="{{ request('to') }}" title="To Date">
             </div>
-            <div class="col-12 col-md-2 d-flex gap-2">
+            <div class="col-12 col-sm-6 col-md-2 d-flex gap-2">
                 <button type="submit" class="btn btn-sm btn-info rounded-pill px-3 fw-bold flex-grow-1">Filter</button>
-                <a href="{{ route('admin.ludo.matches.index') }}" class="btn btn-sm btn-outline-secondary rounded-pill px-2">Reset</a>
+                <a href="{{ route('admin.ludo.matches.index') }}" class="btn btn-sm btn-outline-secondary rounded-pill px-3">Reset</a>
             </div>
         </form>
 

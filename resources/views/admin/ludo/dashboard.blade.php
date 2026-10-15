@@ -13,7 +13,7 @@
                 </div>
                 <span class="text-secondary" style="font-size: 11px;">Filter dashboard metrics by period</span>
             </div>
-            <div class="col-6 col-md-2">
+            <div class="col-12 col-sm-6 col-md-2">
                 <select name="period" class="form-select form-select-sm bg-dark text-light border-secondary">
                     <option value="all" {{ ($period ?? 'all') === 'all' ? 'selected' : '' }}>All Time</option>
                     <option value="today" {{ ($period ?? '') === 'today' ? 'selected' : '' }}>Today</option>
@@ -22,15 +22,15 @@
                     <option value="custom" {{ ($period ?? '') === 'custom' ? 'selected' : '' }}>Custom Range</option>
                 </select>
             </div>
-            <div class="col-6 col-md-2">
-                <input type="date" name="from" class="form-control form-control-sm bg-dark text-light border-secondary" value="{{ $from ?? '' }}" placeholder="From">
+            <div class="col-6 col-sm-3 col-md-2">
+                <input type="date" name="from" class="form-control form-control-sm bg-dark text-light border-secondary" value="{{ $from ?? '' }}" placeholder="From" title="From Date">
             </div>
-            <div class="col-6 col-md-2">
-                <input type="date" name="to" class="form-control form-control-sm bg-dark text-light border-secondary" value="{{ $to ?? '' }}" placeholder="To">
+            <div class="col-6 col-sm-3 col-md-2">
+                <input type="date" name="to" class="form-control form-control-sm bg-dark text-light border-secondary" value="{{ $to ?? '' }}" placeholder="To" title="To Date">
             </div>
-            <div class="col-6 col-md-3 d-flex gap-2">
+            <div class="col-12 col-sm-6 col-md-3 d-flex gap-2">
                 <button type="submit" class="btn btn-sm btn-warning rounded-pill px-3 fw-bold flex-grow-1">Apply Filter</button>
-                <a href="{{ route('admin.ludo.dashboard') }}" class="btn btn-sm btn-outline-secondary rounded-pill px-2">Reset</a>
+                <a href="{{ route('admin.ludo.dashboard') }}" class="btn btn-sm btn-outline-secondary rounded-pill px-3">Reset</a>
             </div>
         </form>
     </div>

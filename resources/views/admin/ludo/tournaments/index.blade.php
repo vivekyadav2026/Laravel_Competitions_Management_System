@@ -4,7 +4,7 @@
 @section('page_title', 'Tournaments & Brackets')
 
 @section('content')
-    <div class="d-flex align-items-center justify-content-between mb-3">
+    <div class="d-flex align-items-center justify-content-between flex-wrap gap-2 mb-3">
         <h5 class="text-white fw-bold mb-0">Tournaments Management</h5>
         <button type="button" class="btn btn-sm btn-warning rounded-pill px-3 fw-bold" data-bs-toggle="modal" data-bs-target="#createTournamentModal">
             <i class="fa-solid fa-plus me-1"></i> Create Tournament
@@ -96,7 +96,7 @@
                         </div>
 
                         <div class="row g-2 mb-2">
-                            <div class="col-6">
+                            <div class="col-12 col-sm-6">
                                 <label class="form-label text-light fw-bold small">Capacity (Bracket Size)</label>
                                 <select name="max_players" class="form-select bg-dark text-light border-secondary small">
                                     <option value="4">4 Players (Semi-Finals)</option>
@@ -105,7 +105,7 @@
                                     <option value="32">32 Players (Round of 32)</option>
                                 </select>
                             </div>
-                            <div class="col-6">
+                            <div class="col-12 col-sm-6">
                                 <label class="form-label text-light fw-bold small">Start Date & Time <span class="text-danger">*</span></label>
                                 <input type="datetime-local" name="starts_at" class="form-control bg-dark text-light border-secondary small" required>
                             </div>

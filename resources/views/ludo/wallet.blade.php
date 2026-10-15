@@ -3,10 +3,12 @@
 @section('title', config('ludo.brand_name', 'Fsaludoclub') . ' — My Wallet & Add Points')
 
 @section('content')
-    {{-- Non-Cash Regulatory Notice Banner --}}
+    {{-- Sandbox / Demo Notice Banner (Shown Only When Virtual Points Reload Is Enabled) --}}
+    @if(!empty($virtualPointsEnabled))
     <x-ludo.announcement>
-        <span class="fw-bold">ℹ️ वर्चुअल पॉइंट्स सूचना:</span> Fsaludoclub पूरी तरह से फ्री पार्टिसिपेशन और गैर-नकदी (Non-Cash) वर्चुअल पॉइंट्स पर काम करता है। टूर्नामेंट और प्रैक्टिस के लिए पॉइंट्स नीचे तुरंत रीलोड करें।
+        <span class="fw-bold">ℹ️ डेमो मोड सूचना:</span> सैंडबॉक्स/डेमो मोड सक्रिय है। टूर्नामेंट और प्रैक्टिस के लिए वर्चुअल पॉइंट्स नीचे से रीलोड कर सकते हैं।
     </x-ludo.announcement>
+    @endif
 
     {{-- Total Balance Summary Card --}}
     <div class="ludo-refer-container p-3 mb-4">
@@ -89,7 +91,7 @@
                     @if(!empty($qrImage))
                         <img 
                             id="activeUpiQr" 
-                            src="{{ asset('storage/' . $qrImage) }}" 
+                            src="{{ \App\Services\FileUploadService::url($qrImage) }}" 
                             alt="Official UPI QR Code" 
                             style="width: 200px; height: 200px; object-fit: contain; display: block;"
                         >
@@ -193,7 +195,8 @@
         </div>
     @endif
 
-    {{-- Non-Cash Virtual Points Reload Card (Default Scope Compliance) --}}
+    {{-- Non-Cash Virtual Points Reload Card (Controlled via Admin Settings / Sandbox) --}}
+    @if(!empty($virtualPointsEnabled) || (auth()->check() && in_array(auth()->user()->role, ['admin', 'superadmin'])))
     <div class="ludo-amount-card mb-4" id="virtualPointsSection">
         <div class="d-flex justify-content-between align-items-center mb-3">
             <h2 class="ludo-amount-title mb-0 fs-5">
@@ -205,7 +208,7 @@
         </div>
 
         <p class="small text-secondary mb-3">
-            Reload your virtual tournament coins instantly to enter practice and tournament battles. All points on Fsaludoclub are non-redeemable virtual units holding zero real-world monetary value.
+            Demo/Sandbox Coin Reload: Reload virtual coins for testing practice and tournament battles. Real user deposits must be made via the official UPI QR code above.
         </p>
 
         <form action="{{ route('ludo.wallet.deposit') }}" method="POST" id="virtualPointsDepositForm">
@@ -242,6 +245,7 @@
             </button>
         </form>
     </div>
+    @endif
 
     {{-- PART 8: PLAYER PAYMENT REQUEST HISTORY SECTION --}}
     @if(isset($paymentRequests) && $paymentRequests->count() > 0)
