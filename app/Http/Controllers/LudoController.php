@@ -52,6 +52,15 @@ class LudoController extends Controller
     {
         LudoBattle::processExpiredDeadlines();
 
+        if (!app()->environment('production', 'testing')) {
+            $demoRunningCount = LudoBattle::where('status', 'running')
+                ->where('battle_uid', 'like', 'DEMO-%')
+                ->count();
+            if ($demoRunningCount < 10) {
+                (new \Database\Seeders\RunningBattleDemoSeeder())->run();
+            }
+        }
+
         $user = Auth::user();
         $coins = $user ? $user->fresh()->coins : 0;
         $referral = $user ? $user->fresh()->referral_balance : 0.00;
@@ -81,8 +90,8 @@ class LudoController extends Controller
                     $q->orWhere(function ($sub) use ($currentUserId) {
                         $sub->where('status', 'requested')
                             ->where(function ($userSub) use ($currentUserId) {
-                                $userSub->where('creator_id', $currentUserId)
-                                        ->orWhere('joiner_id', $currentUserId);
+                                 $userSub->where('creator_id', $currentUserId)
+                                         ->orWhere('joiner_id', $currentUserId);
                             });
                     });
                 }
@@ -98,7 +107,7 @@ class LudoController extends Controller
             $openBattles = $openBattles->slice(0, 5);
         }
 
-        // Fetch initial batch of 5 Running Battles
+        // Fetch initial batch of Running Battles (up to 15 so all 10-12 demo battles are immediately visible)
         $runningQuery = LudoBattle::with(['creator', 'joiner'])
             ->where('status', 'running')
             ->whereNotNull('joiner_id');
@@ -106,12 +115,12 @@ class LudoController extends Controller
 
         $runningBattles = $runningQuery->latest('started_at')
             ->latest('id')
-            ->take(6)
+            ->take(16)
             ->get();
 
-        $runningBattlesHasMore = $runningBattles->count() > 5;
+        $runningBattlesHasMore = $runningBattles->count() > 15;
         if ($runningBattlesHasMore) {
-            $runningBattles = $runningBattles->slice(0, 5);
+            $runningBattles = $runningBattles->slice(0, 15);
         }
 
         return view('ludo.battles', [
@@ -1262,7 +1271,7 @@ class LudoController extends Controller
 
         $runningBattles = $runningQuery->latest('started_at')
             ->latest('id')
-            ->take(5)
+            ->take(15)
             ->get();
 
         $allRunningIdsQuery = LudoBattle::where('status', 'running')->whereNotNull('joiner_id');

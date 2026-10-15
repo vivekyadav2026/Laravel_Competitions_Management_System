@@ -188,6 +188,10 @@ class LudoBattle extends Model
      */
     public function isSubmissionDeadlineExpired(): bool
     {
+        if (str_starts_with($this->battle_uid ?? '', 'DEMO-')) {
+            return false;
+        }
+
         if (in_array($this->status, ['completed', 'cancelled'])) {
             return false;
         }
@@ -292,6 +296,10 @@ class LudoBattle extends Model
      */
     public function checkAndProcessSubmissionExpiry(): bool
     {
+        if (str_starts_with($this->battle_uid ?? '', 'DEMO-')) {
+            return false;
+        }
+
         if (in_array($this->status, ['completed', 'cancelled'])) {
             return false;
         }
@@ -387,6 +395,10 @@ class LudoBattle extends Model
     {
         $now = now();
         $expiredBattles = self::where('status', 'running')
+            ->where(function ($q) {
+                $q->whereNull('battle_uid')
+                  ->orWhere('battle_uid', 'not like', 'DEMO-%');
+            })
             ->whereNotNull('submission_deadline_at')
             ->where('submission_deadline_at', '<=', $now)
             ->get();
