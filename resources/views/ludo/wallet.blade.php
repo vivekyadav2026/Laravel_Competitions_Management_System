@@ -3,6 +3,9 @@
 @section('title', config('ludo.brand_name', 'Fsaludoclub') . ' — My Wallet & Add Points')
 
 @section('content')
+    {{-- Floating Live Toast Notification Container (Top-Center just below header) --}}
+    <div id="playerToastContainer" class="ludo-player-toast-container" style="position: fixed; top: calc(var(--ludo-header-height, 64px) + 12px); left: 50%; transform: translateX(-50%); z-index: 99999; width: min(440px, calc(100vw - 24px)); max-width: 94vw; pointer-events: none; box-sizing: border-box; display: flex; flex-direction: column; align-items: center;"></div>
+
     {{-- Sandbox / Demo Notice Banner (Shown Only When Virtual Points Reload Is Enabled) --}}
     @if(!empty($virtualPointsEnabled))
     <x-ludo.announcement>
@@ -752,36 +755,59 @@
                 } catch (e) {}
             }
 
-            // Player In-App Floating Toast Notification
+            // Player In-App Floating Toast Notification (Top-Center just below header)
             function showWalletToast(title, message, type) {
                 let container = document.getElementById('playerToastContainer');
                 if (!container) {
                     container = document.createElement('div');
                     container.id = 'playerToastContainer';
-                    container.className = 'position-fixed bottom-0 start-50 translate-middle-x p-3';
-                    container.style.zIndex = '9999';
-                    container.style.maxWidth = '92vw';
-                    container.style.width = '380px';
+                    container.className = 'ludo-player-toast-container';
+                    container.style.position = 'fixed';
+                    container.style.top = 'calc(var(--ludo-header-height, 64px) + 12px)';
+                    container.style.left = '50%';
+                    container.style.transform = 'translateX(-50%)';
+                    container.style.zIndex = '99999';
+                    container.style.width = 'min(440px, calc(100vw - 24px))';
+                    container.style.maxWidth = '94vw';
+                    container.style.pointerEvents = 'none';
+                    container.style.boxSizing = 'border-box';
+                    container.style.display = 'flex';
+                    container.style.flexDirection = 'column';
+                    container.style.alignItems = 'center';
                     document.body.appendChild(container);
                 }
 
                 const toastId = 'p_toast_' + Date.now();
                 const borderColor = type === 'success' ? '#22c55e' : (type === 'danger' ? '#ef4444' : '#eab308');
+                const glowColor = type === 'success' ? 'rgba(34, 197, 94, 0.35)' : (type === 'danger' ? 'rgba(239, 68, 68, 0.35)' : 'rgba(234, 179, 8, 0.35)');
+                const icon = type === 'success' ? '🎉' : (type === 'danger' ? '❌' : 'ℹ️');
+
                 const html = `
-                    <div id="${toastId}" class="p-3 mb-2 rounded-3 text-white shadow-lg d-flex align-items-start gap-2" style="background: rgba(10, 18, 38, 0.95); border: 1.5px solid ${borderColor}; backdrop-filter: blur(8px); animation: fadeIn 0.3s ease;">
-                        <div class="fs-5">${type === 'success' ? '🎉' : (type === 'danger' ? '❌' : 'ℹ️')}</div>
+                    <div id="${toastId}" class="p-3 mb-2 rounded-3 text-white shadow-lg d-flex align-items-start gap-2 ludo-player-toast" style="width: 100%; background: rgba(10, 18, 38, 0.96); border: 1.5px solid ${borderColor}; backdrop-filter: blur(12px); box-shadow: 0 10px 30px rgba(0, 0, 0, 0.85), 0 0 16px ${glowColor}; pointer-events: auto; animation: playerToastSlideDown 0.25s cubic-bezier(0.16, 1, 0.3, 1) forwards;">
+                        <div class="fs-5">${icon}</div>
                         <div class="flex-grow-1 min-w-0">
                             <strong class="d-block small text-white">${title}</strong>
                             <span class="small text-light opacity-90" style="font-size: 11.5px;">${message}</span>
                         </div>
-                        <button type="button" class="btn-close btn-close-white btn-sm" onclick="this.closest('#${toastId}').remove()"></button>
+                        <button type="button" class="btn-close btn-close-white btn-sm ms-auto" aria-label="Close" onclick="dismissWalletToast('${toastId}')"></button>
                     </div>
                 `;
                 container.insertAdjacentHTML('beforeend', html);
                 setTimeout(() => {
-                    const el = document.getElementById(toastId);
-                    if (el) el.remove();
-                }, 7000);
+                    dismissWalletToast(toastId);
+                }, 6500);
+            }
+            window.showWalletToast = showWalletToast;
+            window.dismissWalletToast = dismissWalletToast;
+
+            function dismissWalletToast(id) {
+                const el = document.getElementById(id);
+                if (el) {
+                    el.style.transition = 'opacity 0.35s ease, transform 0.35s ease';
+                    el.style.opacity = '0';
+                    el.style.transform = 'translateY(-12px)';
+                    setTimeout(() => el.remove(), 350);
+                }
             }
 
             // AJAX submission for UPI Deposit Form (instant response, no full reload)

@@ -611,7 +611,7 @@ class LudoController extends Controller
      */
     public function viewBattle(Request $request, $id)
     {
-        $battle = LudoBattle::with(['creator', 'joiner'])->findOrFail($id);
+        $battle = LudoBattle::with(['creator', 'joiner', 'winner'])->findOrFail($id);
         $user = Auth::user();
 
         $coins = $user ? $user->coins : 0;

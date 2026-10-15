@@ -2484,10 +2484,10 @@ body.modal-open {
     100% { background-position: -200% 0; }
 }
 
-/* Toast Notification */
+/* Toast Notification (Top-Center just below header) */
 .ludo-toast {
     position: fixed;
-    top: 75px;
+    top: calc(var(--ludo-header-height, 64px) + 12px);
     left: 50%;
     transform: translateX(-50%) translateY(-20px);
     background: #0f172a;
@@ -2498,19 +2498,58 @@ body.modal-open {
     font-size: 13px;
     font-weight: 700;
     box-shadow: 0 6px 20px var(--ludo-cyan-glow);
-    z-index: 1060;
+    z-index: 99999;
     opacity: 0;
     visibility: hidden;
     transition: all 0.3s ease;
     display: flex;
     align-items: center;
     gap: 8px;
+    width: auto;
+    max-width: min(440px, calc(100vw - 24px));
+    box-sizing: border-box;
+    pointer-events: auto;
 }
 
 .ludo-toast.show {
     opacity: 1;
     visibility: visible;
     transform: translateX(-50%) translateY(0);
+}
+
+/* Unified Top-Center Player Toast Notifications */
+.ludo-player-toast-container {
+    position: fixed !important;
+    top: calc(var(--ludo-header-height, 64px) + 12px) !important;
+    left: 50% !important;
+    transform: translateX(-50%) !important;
+    width: min(440px, calc(100vw - 24px)) !important;
+    max-width: 94vw !important;
+    z-index: 99999 !important;
+    pointer-events: none !important;
+    display: flex !important;
+    flex-direction: column !important;
+    align-items: center !important;
+    box-sizing: border-box !important;
+}
+
+.ludo-player-toast {
+    pointer-events: auto !important;
+    width: 100% !important;
+    margin-bottom: 8px !important;
+    box-sizing: border-box !important;
+    animation: playerToastSlideDown 0.25s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+}
+
+@keyframes playerToastSlideDown {
+    0% {
+        opacity: 0;
+        transform: translateY(-16px) scale(0.97);
+    }
+    100% {
+        opacity: 1;
+        transform: translateY(0) scale(1);
+    }
 }
 
 /* ==========================================================================
@@ -3221,14 +3260,16 @@ body.modal-open {
     color: #ffffff;
 }
 
-/* Floating Real-Time Battle Request Toast */
+/* Floating Real-Time Battle Request Toast (Top-Center just below header) */
 .ludo-request-toast {
     position: fixed;
-    top: 72px;
+    top: calc(var(--ludo-header-height, 64px) + 12px);
     left: 50%;
     transform: translateX(-50%);
     width: min(440px, calc(100vw - 24px));
-    z-index: 1065;
+    max-width: 94vw;
+    z-index: 99999;
+    box-sizing: border-box;
     animation: ludoToastSlideDown 0.35s cubic-bezier(0.16, 1, 0.3, 1);
 }
 

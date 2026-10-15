@@ -195,52 +195,67 @@
                     </div>
                 @endif
 
+                {{-- Action 1: Execute Result Settlement --}}
                 @if(!in_array($match->status, ['completed', 'cancelled']) && $match->joiner)
-                    <form action="{{ route('admin.ludo.matches.resolve', $match->id) }}" method="POST" class="mb-3 pb-3 border-bottom border-secondary border-opacity-25">
-                        @csrf
-                        <div class="mb-2">
-                            <label class="form-label text-secondary small fw-bold mb-1">Select Settlement Verdict (by Participant User ID)</label>
-                            <select name="decision" class="form-select form-select-sm bg-dark text-light border-secondary" required>
-                                <option value="{{ $match->creator_id }}">
-                                    Award Victory to Player 1 (Creator): {{ $match->creator->name }} ({{ $match->creator->formatted_username }}) [User ID: #{{ $match->creator_id }}] — Credit 🪙 {{ $match->prize }}
-                                </option>
-                                <option value="{{ $match->joiner->id }}">
-                                    Award Victory to Player 2 (Opponent): {{ $match->joiner->name }} ({{ $match->joiner->formatted_username }}) [User ID: #{{ $match->joiner->id }}] — Credit 🪙 {{ $match->prize }}
-                                </option>
-                                <option value="reject_result">Reject Results as Invalid (Hold for Further Review)</option>
-                                <option value="mark_verified">Mark Review Status as Verified (No Payout Change)</option>
-                            </select>
+                    <div class="p-3 mb-3 rounded-3" style="background: rgba(16, 185, 129, 0.06); border: 1px solid rgba(16, 185, 129, 0.25);">
+                        <div class="d-flex align-items-center justify-content-between mb-2 pb-1 border-bottom border-secondary border-opacity-25">
+                            <span class="text-white fw-bold small">
+                                <i class="fa-solid fa-gavel text-success me-1"></i> Execute Result Settlement
+                            </span>
+                            <span class="badge bg-success bg-opacity-25 text-success border border-success border-opacity-25 px-2 py-1" style="font-size: 10px;">VERDICT SETTLEMENT</span>
                         </div>
-                        <div class="mb-2">
-                            <label class="form-label text-secondary small fw-bold mb-1">Mandatory Decision Reason <span class="text-danger">*</span></label>
-                            <input type="text" name="reason" class="form-control form-control-sm bg-dark text-light border-secondary" placeholder="Explain audit verification reason..." required minlength="5">
-                        </div>
-                        <button type="submit" class="btn btn-sm btn-success w-100 rounded-pill fw-bold" onclick="return confirm('Confirm settlement: Award victory/credit prize to the chosen participant or update review state?')">
-                            Execute Result Settlement
-                    </form>
+                        <form action="{{ route('admin.ludo.matches.resolve', $match->id) }}" method="POST">
+                            @csrf
+                            <div class="mb-2">
+                                <label class="form-label text-secondary small fw-bold mb-1">Select Settlement Verdict (by Participant User ID)</label>
+                                <select name="decision" class="form-select form-select-sm bg-dark text-light border-secondary" required>
+                                    <option value="{{ $match->creator_id }}">
+                                        Award Victory to Player 1 (Creator): {{ $match->creator->name }} ({{ $match->creator->formatted_username }}) [User ID: #{{ $match->creator_id }}] — Credit 🪙 {{ $match->prize }}
+                                    </option>
+                                    <option value="{{ $match->joiner->id }}">
+                                        Award Victory to Player 2 (Opponent): {{ $match->joiner->name }} ({{ $match->joiner->formatted_username }}) [User ID: #{{ $match->joiner->id }}] — Credit 🪙 {{ $match->prize }}
+                                    </option>
+                                    <option value="reject_result">Reject Results as Invalid (Hold for Further Review)</option>
+                                    <option value="mark_verified">Mark Review Status as Verified (No Payout Change)</option>
+                                </select>
+                            </div>
+                            <div class="mb-3">
+                                <label class="form-label text-secondary small fw-bold mb-1">Mandatory Decision Reason <span class="text-danger">*</span></label>
+                                <textarea name="reason" rows="2" class="form-control form-control-sm bg-dark text-light border-secondary" placeholder="Explain audit verification reason..." required minlength="5"></textarea>
+                            </div>
+                            <button type="submit" class="btn btn-sm btn-success w-100 rounded-3 py-2 fw-bold" onclick="return confirm('Confirm settlement: Award victory/credit prize to the chosen participant or update review state?')">
+                                <i class="fa-solid fa-check me-1"></i> Execute Result Settlement
+                            </button>
+                        </form>
+                    </div>
                 @endif
 
-                <h6 class="text-white fw-bold mb-2">
-                    <i class="fa-solid fa-ban text-danger me-1"></i> Administrative Cancellation
-                </h6>
-
+                {{-- Action 2: Administrative Cancellation --}}
                 @if(!in_array($match->status, ['cancelled', 'completed']))
-                    <form action="{{ route('admin.ludo.matches.cancel', $match->id) }}" method="POST">
-                        @csrf
-                        <div class="mb-2">
-                            <label class="form-label text-secondary small fw-bold mb-1">
-                                Mandatory Cancellation Rationale <span class="text-danger">*</span>
-                            </label>
-                            <textarea name="reason" rows="2" class="form-control form-control-sm bg-dark text-light border-secondary" placeholder="Specify why this match is being cancelled (e.g. invalid room code, double disconnect)..." required minlength="5"></textarea>
-                            <small class="text-secondary d-block mt-1">Participants receive a 100% entry fee refund recorded in the ledger.</small>
+                    <div class="p-3 rounded-3" style="background: rgba(239, 68, 68, 0.06); border: 1px solid rgba(239, 68, 68, 0.25);">
+                        <div class="d-flex align-items-center justify-content-between mb-2 pb-1 border-bottom border-secondary border-opacity-25">
+                            <span class="text-white fw-bold small">
+                                <i class="fa-solid fa-ban text-danger me-1"></i> Administrative Cancellation
+                            </span>
+                            <span class="badge bg-danger bg-opacity-25 text-danger border border-danger border-opacity-25 px-2 py-1" style="font-size: 10px;">REFUND STAKES</span>
                         </div>
-                        <button type="submit" class="btn btn-sm btn-danger w-100 rounded-pill fw-bold" onclick="return confirm('Cancel this match and refund entry fees to players?')">
-                            Cancel Match & Refund Both
-                        </button>
-                    </form>
+                        <form action="{{ route('admin.ludo.matches.cancel', $match->id) }}" method="POST">
+                            @csrf
+                            <div class="mb-2">
+                                <label class="form-label text-secondary small fw-bold mb-1">
+                                    Mandatory Cancellation Rationale <span class="text-danger">*</span>
+                                </label>
+                                <textarea name="reason" rows="2" class="form-control form-control-sm bg-dark text-light border-secondary" placeholder="Specify why this match is being cancelled (e.g. invalid room code, double disconnect)..." required minlength="5"></textarea>
+                                <small class="text-secondary d-block mt-1" style="font-size: 11px;">Participants receive a 100% entry fee refund recorded in the ledger.</small>
+                            </div>
+                            <button type="submit" class="btn btn-sm btn-danger w-100 rounded-3 py-2 fw-bold" onclick="return confirm('Cancel this match and refund entry fees to players?')">
+                                <i class="fa-solid fa-handshake-slash me-1"></i> Cancel Match & Refund Both
+                            </button>
+                        </form>
+                    </div>
                 @else
-                    <div class="alert alert-secondary bg-dark text-secondary small mb-0">
-                        This match is finalized ({{ strtoupper($match->status) }}). Further settlement or cancellation is locked to prevent duplicate ledger transactions.
+                    <div class="alert alert-secondary bg-dark text-secondary small mb-0 p-3 rounded-3 border border-secondary border-opacity-25">
+                        <i class="fa-solid fa-lock me-1 text-warning"></i> This match is finalized (<strong>{{ strtoupper($match->status) }}</strong>). Further settlement or cancellation is locked to prevent duplicate ledger transactions.
                     </div>
                 @endif
 
