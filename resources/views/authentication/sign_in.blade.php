@@ -651,10 +651,6 @@
             <a href="{{ url('/rules') }}" class="small text-secondary text-decoration-none">
                 <i class="fa-solid fa-circle-info me-1 text-warning"></i> Official Rules
             </a>
-            <span class="text-secondary opacity-50">|</span>
-            <a href="{{ route('admin.login') }}" class="small text-warning text-decoration-none fw-semibold">
-                <i class="fa-solid fa-user-shield me-1"></i> Admin Console
-            </a>
         </div>
     </div>
 

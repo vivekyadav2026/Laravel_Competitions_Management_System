@@ -85,7 +85,7 @@ class LoginRegisterAndQrPaymentTest extends TestCase
         $response->assertSee(route('register'));
         $response->assertSee('Email / 10-Digit Mobile Number');
         $response->assertSee('Sign In with Password');
-        $response->assertSee(route('admin.login'));
+        $response->assertDontSee(route('admin.login'));
     }
 
     /**

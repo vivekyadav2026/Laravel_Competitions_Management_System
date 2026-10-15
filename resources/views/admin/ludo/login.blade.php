@@ -174,7 +174,7 @@
                     <label for="adminEmail" class="form-label text-warning small fw-semibold text-uppercase">Admin Email</label>
                     <div class="input-group">
                         <span class="input-group-text"><i class="fa-solid fa-user-shield"></i></span>
-                        <input type="email" name="email" id="adminEmail" class="form-control" value="{{ old('email', app()->environment('local', 'testing') ? 'admin@fsaludoclub.com' : '') }}" placeholder="admin@fsaludoclub.com" required autofocus>
+                        <input type="email" name="email" id="adminEmail" class="form-control" value="{{ old('email') }}" placeholder="Enter admin email" autocomplete="username" required autofocus>
                     </div>
                 </div>
 
@@ -182,7 +182,7 @@
                     <label for="adminPassword" class="form-label text-warning small fw-semibold text-uppercase">Password</label>
                     <div class="input-group">
                         <span class="input-group-text"><i class="fa-solid fa-key"></i></span>
-                        <input type="password" name="password" id="adminPassword" class="form-control" value="{{ app()->environment('local', 'testing') ? 'Admin@12345' : '' }}" placeholder="Enter admin password" required>
+                        <input type="password" name="password" id="adminPassword" class="form-control" value="" placeholder="Enter admin password" autocomplete="current-password" required>
                         <button class="btn btn-outline-secondary border-secondary text-warning" type="button" id="toggleAdminPwd">
                             <i class="fa-solid fa-eye" id="toggleAdminPwdIcon"></i>
                         </button>

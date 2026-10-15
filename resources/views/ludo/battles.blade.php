@@ -783,6 +783,10 @@ document.addEventListener('DOMContentLoaded', function () {
                         setTimeout(() => alertDiv.remove(), 4000);
                     }
                 } else {
+                    if (response.status === 401 || data.redirect) {
+                        window.location.href = data.redirect || '{{ route("login") }}';
+                        return;
+                    }
                     alert(data.message || 'Failed to create battle. Please check your points balance.');
                 }
             } catch (err) {
@@ -932,6 +936,10 @@ document.addEventListener('DOMContentLoaded', function () {
                     window.location.href = data.redirect;
                 }
             } else {
+                if (response.status === 401 || data.redirect) {
+                    window.location.href = data.redirect || '{{ route("login") }}';
+                    return;
+                }
                 // Battle unavailable, cancelled, already joined, or insufficient balance
                 // Show clear alert inside modal so user is informed without silent closure
                 const modalBody = modalEl ? modalEl.querySelector('.modal-body') : null;

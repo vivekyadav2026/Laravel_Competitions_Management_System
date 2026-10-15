@@ -106,7 +106,7 @@
                 </form>
 
                 {{-- Role Change Form --}}
-                <form action="{{ route('admin.ludo.users.role', $user->id) }}" method="POST">
+                <form action="{{ route('admin.ludo.users.role', $user->id) }}" method="POST" class="mb-3">
                     @csrf
                     <div class="mb-2">
                         <label class="form-label text-secondary small fw-bold mb-1">Assign Permitted Role</label>
@@ -124,6 +124,52 @@
                         Update Role
                     </button>
                 </form>
+
+                {{-- Safe Deletion / Archival Action --}}
+                @if(!in_array($user->role, ['admin', 'superadmin']))
+                    <div class="pt-2 border-top border-secondary border-opacity-25">
+                        <button type="button" class="btn btn-sm btn-outline-danger w-100 rounded-pill" data-bs-toggle="modal" data-bs-target="#deleteUserModal">
+                            <i class="fa-solid fa-trash-can me-1"></i> Safe Account Deletion
+                        </button>
+                    </div>
+
+                    {{-- Safe Delete Confirmation Modal --}}
+                    <div class="modal fade" id="deleteUserModal" tabindex="-1" aria-hidden="true">
+                        <div class="modal-dialog modal-dialog-centered">
+                            <div class="modal-content bg-dark text-light border-danger border-opacity-50">
+                                <div class="modal-header border-secondary border-opacity-25">
+                                    <h6 class="modal-title text-danger fw-bold">
+                                        <i class="fa-solid fa-triangle-exclamation me-1"></i> Safe User Deletion & Archival
+                                    </h6>
+                                    <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+                                </div>
+                                <form action="{{ route('admin.ludo.users.destroy', $user->id) }}" method="POST">
+                                    @csrf
+                                    @method('DELETE')
+                                    <div class="modal-body small">
+                                        <div class="alert alert-danger bg-danger bg-opacity-25 border-danger text-light small py-2 px-3 mb-3">
+                                            <strong>Warning:</strong> If <strong>{{ $user->name }}</strong> has ledger transactions, matches, or payment records, their account will be <strong>safely archived/deactivated</strong> to preserve legal and financial audit trails.
+                                        </div>
+                                        <div class="mb-3">
+                                            <label class="form-label text-warning fw-semibold">Mandatory Reason <span class="text-danger">*</span></label>
+                                            <textarea name="reason" class="form-control form-control-sm bg-black text-light border-secondary" rows="2" placeholder="Explain the rationale for removing/archiving this account..." required minlength="5"></textarea>
+                                        </div>
+                                        <div class="mb-3">
+                                            <label class="form-label text-light fw-semibold">Type user name <strong class="text-warning">"{{ $user->name }}"</strong> to confirm <span class="text-danger">*</span></label>
+                                            <input type="text" name="confirm_name" class="form-control form-control-sm bg-black text-light border-secondary" placeholder="{{ $user->name }}" required>
+                                        </div>
+                                    </div>
+                                    <div class="modal-footer border-secondary border-opacity-25">
+                                        <button type="button" class="btn btn-sm btn-outline-secondary" data-bs-dismiss="modal">Cancel</button>
+                                        <button type="submit" class="btn btn-sm btn-danger fw-bold px-3">
+                                            <i class="fa-solid fa-trash-can me-1"></i> Confirm &amp; Proceed
+                                        </button>
+                                    </div>
+                                </form>
+                            </div>
+                        </div>
+                    </div>
+                @endif
             </div>
         </div>
     </div>

@@ -519,4 +519,34 @@ class AdminPanelCompleteTest extends TestCase
             ->assertStatus(200)
             ->assertSee('Administrative Audit Log Explorer');
     }
+
+    /**
+     * 13. KYC desk synchronization and table rendering with dashboard consistency.
+     */
+    public function test_kyc_desk_synchronizes_verified_and_pending_users_and_renders_in_table()
+    {
+        $admin = User::factory()->create(['role' => 'admin', 'status' => 'active', 'kyc_status' => 'verified']);
+        $playerPending = User::factory()->create(['role' => 'normal', 'name' => 'Kyc Pending Player', 'kyc_status' => 'pending']);
+        $playerVerified = User::factory()->create(['role' => 'normal', 'name' => 'Kyc Verified Player', 'kyc_status' => 'verified']);
+
+        // Access KYC desk -> auto-synchronizes any missing KYC submissions
+        $response = $this->actingAs($admin)->get('/admin/ludo/kyc');
+        $response->assertStatus(200);
+
+        // Verify the table contains the synchronized verified and pending players
+        $response->assertSee('Kyc Pending Player');
+        $response->assertSee('Kyc Verified Player');
+
+        // Test filtering by approved
+        $approvedRes = $this->actingAs($admin)->get('/admin/ludo/kyc?status=approved');
+        $approvedRes->assertStatus(200);
+        $this->assertTrue($approvedRes->viewData('submissions')->contains('user_id', $playerVerified->id));
+        $this->assertFalse($approvedRes->viewData('submissions')->contains('user_id', $playerPending->id));
+
+        // Test filtering by pending
+        $pendingRes = $this->actingAs($admin)->get('/admin/ludo/kyc?status=pending');
+        $pendingRes->assertStatus(200);
+        $this->assertTrue($pendingRes->viewData('submissions')->contains('user_id', $playerPending->id));
+        $this->assertFalse($pendingRes->viewData('submissions')->contains('user_id', $playerVerified->id));
+    }
 }

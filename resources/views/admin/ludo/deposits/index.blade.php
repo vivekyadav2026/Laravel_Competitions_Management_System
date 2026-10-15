@@ -53,7 +53,7 @@
     {{-- Filter & Search Form --}}
     <div class="admin-card mb-4 p-3">
         <form method="GET" action="{{ route('admin.ludo.deposits.index') }}" class="row g-2 align-items-center">
-            <div class="col-12 col-md-4">
+            <div class="col-12 col-md-3">
                 <div class="input-group">
                     <span class="input-group-text bg-dark text-secondary border-secondary border-opacity-50">
                         <i class="fa-solid fa-magnifying-glass"></i>
@@ -61,7 +61,7 @@
                     <input type="text" name="search" class="form-control bg-dark text-light border-secondary border-opacity-50" placeholder="Search by UTR, UID, Name, Phone..." value="{{ request('search') }}">
                 </div>
             </div>
-            <div class="col-6 col-md-3">
+            <div class="col-6 col-md-2">
                 <select name="status" class="form-select bg-dark text-light border-secondary border-opacity-50">
                     <option value="">All Statuses</option>
                     <option value="pending" {{ request('status') === 'pending' ? 'selected' : '' }}>Pending Only</option>
@@ -70,11 +70,17 @@
                 </select>
             </div>
             <div class="col-6 col-md-2">
-                <button type="submit" class="btn btn-primary w-100 fw-bold">
-                    <i class="fa-solid fa-filter me-1"></i> Filter
+                <input type="date" name="from" class="form-control bg-dark text-light border-secondary border-opacity-50" value="{{ request('from') }}" title="From Date">
+            </div>
+            <div class="col-6 col-md-2">
+                <input type="date" name="to" class="form-control bg-dark text-light border-secondary border-opacity-50" value="{{ request('to') }}" title="To Date">
+            </div>
+            <div class="col-6 col-md-1">
+                <button type="submit" class="btn btn-primary w-100 fw-bold px-0">
+                    <i class="fa-solid fa-filter"></i> Filter
                 </button>
             </div>
-            @if(request()->hasAny(['search', 'status']))
+            @if(request()->hasAny(['search', 'status', 'from', 'to']))
                 <div class="col-12 col-md-2">
                     <a href="{{ route('admin.ludo.deposits.index') }}" class="btn btn-outline-secondary w-100">
                         Clear

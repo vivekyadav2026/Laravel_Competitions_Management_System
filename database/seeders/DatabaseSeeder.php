@@ -3,6 +3,7 @@
 namespace Database\Seeders;
 
 use App\Models\LudoBattle;
+use App\Models\LudoKycSubmission;
 use App\Models\LudoSetting;
 use App\Models\LudoTournament;
 use App\Models\User;
@@ -33,7 +34,7 @@ class DatabaseSeeder extends Seeder
             ]
         );
 
-        User::firstOrCreate(
+        $admin = User::firstOrCreate(
             ['email' => 'admin@royalludo.com'],
             [
                 'name' => 'Fsaludoclub Admin',
@@ -45,6 +46,35 @@ class DatabaseSeeder extends Seeder
                 'kyc_status' => 'verified',
                 'is_verified' => true,
                 'email_verified_at' => now(),
+            ]
+        );
+
+        // Seed verified KYC submissions for initial admins
+        LudoKycSubmission::firstOrCreate(
+            ['user_id' => $superadmin->id],
+            [
+                'document_type' => 'pan',
+                'document_number' => 'AAAPF1029K',
+                'front_image_path' => 'private/kyc_documents/sample_verified_front.png',
+                'back_image_path' => 'private/kyc_documents/sample_verified_back.png',
+                'status' => 'approved',
+                'admin_reason' => 'Platform superadmin verified with PAN card.',
+                'reviewed_by_admin_id' => $superadmin->id,
+                'reviewed_at' => now(),
+            ]
+        );
+
+        LudoKycSubmission::firstOrCreate(
+            ['user_id' => $admin->id],
+            [
+                'document_type' => 'aadhaar',
+                'document_number' => '6542 9871 3321',
+                'front_image_path' => 'private/kyc_documents/sample_verified_front.png',
+                'back_image_path' => 'private/kyc_documents/sample_verified_back.png',
+                'status' => 'approved',
+                'admin_reason' => 'Platform staff admin verified with Aadhaar card.',
+                'reviewed_by_admin_id' => $superadmin->id,
+                'reviewed_at' => now(),
             ]
         );
 

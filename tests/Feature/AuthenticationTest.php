@@ -223,7 +223,10 @@ class AuthenticationTest extends TestCase
         $getResponse = $this->get('/admin/login');
         $getResponse->assertStatus(200);
         $getResponse->assertSee('Admin Console');
-        $getResponse->assertSee('admin@fsaludoclub.com');
+        $getResponse->assertSee('autocomplete="username"', false);
+        $getResponse->assertSee('autocomplete="current-password"', false);
+        $getResponse->assertDontSee('value="Admin@12345"', false);
+        $getResponse->assertDontSee('value="admin@fsaludoclub.com"', false);
 
         $postResponse = $this->post('/admin/login', [
             'email' => 'admin@fsaludoclub.com',

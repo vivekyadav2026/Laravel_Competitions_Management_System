@@ -21,30 +21,30 @@ class AuthController extends Controller
 
     public function register(Request $request)
     {
-        try {
-            $this->validate($request, [
-                'name' => 'required|string|max:255',
-                'email' => 'required|string|email|max:255|unique:users',
-                'phone' => 'nullable|string|max:20',
-                'password' => 'required|string|min:8',
-                'referral_code' => 'nullable|string|max:30',
-            ]);
+        $this->validate($request, [
+            'name' => 'required|string|max:255',
+            'email' => 'required|string|email|max:255|unique:users',
+            'phone' => 'nullable|string|max:20',
+            'password' => 'required|string|min:8',
+            'referral_code' => 'nullable|string|max:30',
+        ]);
 
-            $cleanPhone = null;
-            if ($request->filled('phone')) {
-                $cleanPhone = SmsService::normalizePhone($request->phone);
-                if (!$cleanPhone) {
-                    return redirect()->back()
-                        ->withInput()
-                        ->withErrors(['phone' => 'Please enter a valid 10-digit Indian mobile number.']);
-                }
-                if (User::where('phone', $cleanPhone)->exists()) {
-                    return redirect()->back()
-                        ->withInput()
-                        ->withErrors(['phone' => 'This mobile number is already registered.']);
-                }
+        $cleanPhone = null;
+        if ($request->filled('phone')) {
+            $cleanPhone = SmsService::normalizePhone($request->phone);
+            if (!$cleanPhone) {
+                return redirect()->back()
+                    ->withInput()
+                    ->withErrors(['phone' => 'Please enter a valid 10-digit Indian mobile number.']);
             }
+            if (User::where('phone', $cleanPhone)->exists()) {
+                return redirect()->back()
+                    ->withInput()
+                    ->withErrors(['phone' => 'This mobile number is already registered.']);
+            }
+        }
 
+        try {
             \Illuminate\Support\Facades\DB::transaction(function () use ($request, $cleanPhone) {
                 // Generate a unique referral code and player UID for new player
                 $uniqueRefCode = strtoupper(\Illuminate\Support\Str::random(6));
@@ -65,6 +65,8 @@ class AuthController extends Controller
                     'coins' => 0, // Initialized to 0, credited through ledger
                     'referral_code' => $uniqueRefCode,
                     'referred_by_id' => $referrer ? $referrer->id : null,
+                    'status' => 'active',
+                    'role' => 'player',
                 ]);
 
                 // Assign player_uid
@@ -110,7 +112,9 @@ class AuthController extends Controller
                 }
             });
 
-            return redirect("/showlogin")->with('message', 'Registration successful! Please log in to begin playing.');
+            return redirect()->route('login')
+                ->with('success', 'Registration successful. Please log in with your registered credentials.')
+                ->with('message', 'Registration successful. Please log in with your registered credentials.');
         } catch (Exception $e) {
             return redirect()->back()->with('error', $e->getMessage())->withInput();
         }
@@ -431,12 +435,19 @@ class AuthController extends Controller
         $request->session()->regenerate();
 
         $redirectUrl = session()->pull('url.intended');
-        if (!$redirectUrl) {
-            if (in_array($user->role, ['admin', 'superadmin', 'support_staff', 'moderator'])) {
-                $redirectUrl = route('admin.ludo.dashboard');
-            } else {
-                $redirectUrl = route('ludo.home');
+        $isAdmin = in_array($user->role, ['admin', 'superadmin', 'support_staff', 'moderator']);
+        
+        // Sanitize intended destination
+        if ($redirectUrl) {
+            $parsed = parse_url($redirectUrl);
+            $path = $parsed['path'] ?? '';
+            if (!$isAdmin && (str_starts_with($path, '/admin') || str_contains($path, 'admin/'))) {
+                $redirectUrl = null;
             }
+        }
+
+        if (!$redirectUrl) {
+            $redirectUrl = $isAdmin ? route('admin.ludo.dashboard') : route('ludo.home');
         }
 
         if ($request->expectsJson() || $request->ajax()) {
@@ -484,7 +495,17 @@ class AuthController extends Controller
             Auth::login($user, $remember);
             $request->session()->regenerate();
 
-            if (in_array($user->role, ['admin', 'superadmin', 'support_staff', 'moderator'])) {
+            $isAdmin = in_array($user->role, ['admin', 'superadmin', 'support_staff', 'moderator']);
+            $intended = session()->get('url.intended');
+            if ($intended) {
+                $parsed = parse_url($intended);
+                $path = $parsed['path'] ?? '';
+                if (!$isAdmin && (str_starts_with($path, '/admin') || str_contains($path, 'admin/'))) {
+                    session()->forget('url.intended');
+                }
+            }
+
+            if ($isAdmin) {
                 return redirect()->intended('/admin/ludo/dashboard');
             } else {
                 return redirect()->intended('/');

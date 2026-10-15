@@ -6,23 +6,41 @@
 @section('content')
     {{-- KYC Summary Counters --}}
     <div class="row g-3 mb-4">
-        <div class="col-4">
-            <div class="admin-stat-card">
-                <div class="admin-stat-title">Pending Review Queue</div>
-                <div class="admin-stat-val text-warning">{{ number_format($summary['pending'] ?? 0) }}</div>
-            </div>
+        <div class="col-6 col-md-3">
+            <a href="{{ route('admin.ludo.kyc.index', ['status' => 'pending']) }}" class="text-decoration-none">
+                <div class="admin-stat-card h-100 {{ request('status') === 'pending' ? 'border border-warning' : '' }}">
+                    <div class="admin-stat-title">Pending Review Queue</div>
+                    <div class="admin-stat-val text-warning">{{ number_format($summary['pending'] ?? 0) }}</div>
+                    <div class="small text-secondary mt-1" style="font-size: 11px;">Awaiting compliance review</div>
+                </div>
+            </a>
         </div>
-        <div class="col-4">
-            <div class="admin-stat-card">
-                <div class="admin-stat-title">Verified (Approved)</div>
-                <div class="admin-stat-val text-success">{{ number_format($summary['approved'] ?? 0) }}</div>
-            </div>
+        <div class="col-6 col-md-3">
+            <a href="{{ route('admin.ludo.kyc.index', ['status' => 'approved']) }}" class="text-decoration-none">
+                <div class="admin-stat-card h-100 {{ request('status') === 'approved' ? 'border border-success' : '' }}">
+                    <div class="admin-stat-title">Verified (Approved)</div>
+                    <div class="admin-stat-val text-success">{{ number_format($summary['approved'] ?? 0) }}</div>
+                    <div class="small text-secondary mt-1" style="font-size: 11px;">Active verified accounts</div>
+                </div>
+            </a>
         </div>
-        <div class="col-4">
-            <div class="admin-stat-card">
-                <div class="admin-stat-title">Rejected Submissions</div>
-                <div class="admin-stat-val text-danger">{{ number_format($summary['rejected'] ?? 0) }}</div>
-            </div>
+        <div class="col-6 col-md-3">
+            <a href="{{ route('admin.ludo.kyc.index', ['status' => 'rejected']) }}" class="text-decoration-none">
+                <div class="admin-stat-card h-100 {{ request('status') === 'rejected' ? 'border border-danger' : '' }}">
+                    <div class="admin-stat-title">Rejected Submissions</div>
+                    <div class="admin-stat-val text-danger">{{ number_format($summary['rejected'] ?? 0) }}</div>
+                    <div class="small text-secondary mt-1" style="font-size: 11px;">Declined or invalid docs</div>
+                </div>
+            </a>
+        </div>
+        <div class="col-6 col-md-3">
+            <a href="{{ route('admin.ludo.users.index', ['kyc_status' => 'unverified']) }}" class="text-decoration-none">
+                <div class="admin-stat-card h-100">
+                    <div class="admin-stat-title">Unverified Players</div>
+                    <div class="admin-stat-val text-secondary">{{ number_format($summary['unverified'] ?? 0) }}</div>
+                    <div class="small text-secondary mt-1" style="font-size: 11px;">No KYC submitted yet &rarr;</div>
+                </div>
+            </a>
         </div>
     </div>
 
@@ -123,7 +141,7 @@
                                 @endif
                             </td>
                             <td class="text-secondary small">
-                                {{ $sub->created_at->format('d M, h:i A') }}
+                                {{ $sub->created_at ? $sub->created_at->format('d M, h:i A') : '—' }}
                             </td>
                             <td>
                                 @if($sub->status !== 'approved')

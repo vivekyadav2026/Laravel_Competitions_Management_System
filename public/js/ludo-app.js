@@ -106,4 +106,25 @@ document.addEventListener('DOMContentLoaded', function () {
             this.classList.add('active');
         });
     });
+
+    // 8. Global Fetch 401 Unauthenticated Interceptor
+    // Smoothly redirects to login without showing raw "Unauthenticated." error text
+    if (window.fetch) {
+        const nativeFetch = window.fetch;
+        window.fetch = async function (...args) {
+            const response = await nativeFetch.apply(this, args);
+            if (response.status === 401) {
+                try {
+                    const clone = response.clone();
+                    const data = await clone.json();
+                    if (data && data.redirect) {
+                        window.location.href = data.redirect;
+                        return response;
+                    }
+                } catch (e) {}
+                window.location.href = '/showlogin';
+            }
+            return response;
+        };
+    }
 });

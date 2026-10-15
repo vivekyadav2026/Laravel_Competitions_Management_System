@@ -135,6 +135,7 @@ Route::middleware(['auth', 'ludo.admin'])->prefix('admin/ludo')->name('admin.lud
     Route::post('/users/{id}/profile', [LudoAdminController::class, 'userUpdateProfile'])->name('users.profile');
     Route::post('/users/{id}/status', [LudoAdminController::class, 'userToggleStatus'])->name('users.status');
     Route::post('/users/{id}/role', [LudoAdminController::class, 'userUpdateRole'])->name('users.role');
+    Route::delete('/users/{id}', [LudoAdminController::class, 'userDestroy'])->name('users.destroy');
 
     // 3. Tournament Management
     Route::get('/tournaments', [LudoAdminController::class, 'tournaments'])->name('tournaments.index');

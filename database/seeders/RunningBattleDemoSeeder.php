@@ -3,6 +3,7 @@
 namespace Database\Seeders;
 
 use App\Models\LudoBattle;
+use App\Models\LudoKycSubmission;
 use App\Models\User;
 use Illuminate\Database\Seeder;
 use Illuminate\Support\Str;
@@ -134,6 +135,55 @@ class RunningBattleDemoSeeder extends Seeder
                     'started_at' => $startedAt,
                     'submission_deadline_at' => $startedAt->copy()->addMinutes(15),
                     'room_code_expires_at' => $b['room_code'] ? null : $startedAt->copy()->addSeconds(180),
+                ]
+            );
+        }
+
+        // 4. Seed Demo KYC Submissions for compliance verification queue
+        $arjun = $users['demo_arjun@fsaludoclub.test'] ?? null;
+        if ($arjun) {
+            $arjun->update(['kyc_status' => 'pending']);
+            LudoKycSubmission::updateOrCreate(
+                ['user_id' => $arjun->id],
+                [
+                    'document_type' => 'aadhaar',
+                    'document_number' => '4821 9023 1184',
+                    'front_image_path' => 'private/kyc_documents/sample_pending_front.png',
+                    'back_image_path' => 'private/kyc_documents/sample_pending_back.png',
+                    'status' => 'pending',
+                ]
+            );
+        }
+
+        $rohit = $users['demo_rohit@fsaludoclub.test'] ?? null;
+        if ($rohit) {
+            $rohit->update(['kyc_status' => 'pending']);
+            LudoKycSubmission::updateOrCreate(
+                ['user_id' => $rohit->id],
+                [
+                    'document_type' => 'pan',
+                    'document_number' => 'ABCPV1234D',
+                    'front_image_path' => 'private/kyc_documents/sample_pending_front.png',
+                    'back_image_path' => null,
+                    'status' => 'pending',
+                ]
+            );
+        }
+
+        $priya = $users['demo_priya@fsaludoclub.test'] ?? null;
+        if ($priya) {
+            $priya->update(['kyc_status' => 'rejected']);
+            LudoKycSubmission::updateOrCreate(
+                ['user_id' => $priya->id],
+                [
+                    'document_type' => 'aadhaar',
+                    'document_number' => '9876 5432 1098',
+                    'front_image_path' => 'private/kyc_documents/sample_rejected_front.png',
+                    'back_image_path' => null,
+                    'status' => 'rejected',
+                    'admin_reason' => 'Aadhaar image was blurry and unreadable. Please upload a clear photo.',
+                    'reviewed_by_admin_id' => 1,
+                    'reviewed_at' => now()->subDay(),
                 ]
             );
         }
