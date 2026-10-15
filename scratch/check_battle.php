@@ -4,9 +4,20 @@ $app = require_once 'bootstrap/app.php';
 $kernel = $app->make(Illuminate\Contracts\Console\Kernel::class);
 $kernel->bootstrap();
 
-$b = App\Models\LudoBattle::find(1265);
+$b = App\Models\LudoBattle::latest()->first();
 if ($b) {
-    echo "Battle ID: {$b->id}, Status: {$b->status}, Creator: {$b->creator_id}, Joiner: {$b->joiner_id}\n";
+    echo json_encode([
+        'id' => $b->id,
+        'uid' => $b->battle_uid,
+        'status' => $b->status,
+        'creator_id' => $b->creator_id,
+        'joiner_id' => $b->joiner_id,
+        'room_code' => $b->room_code,
+        'creator_claim' => $b->creator_claimed_result,
+        'joiner_claim' => $b->joiner_claimed_result,
+        'review_status' => $b->review_status,
+        'refund_status' => $b->refund_status,
+    ], JSON_PRETTY_PRINT) . "\n";
 } else {
-    echo "Battle not found\n";
+    echo "No battle found\n";
 }

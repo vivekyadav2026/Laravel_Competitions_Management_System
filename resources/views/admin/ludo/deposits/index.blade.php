@@ -19,7 +19,7 @@
         <div class="col-6 col-md-3">
             <div class="admin-stat-card">
                 <div class="admin-stat-title">Pending Review</div>
-                <div class="admin-stat-val text-warning">{{ number_format($pendingCount) }}</div>
+                <div class="admin-stat-val text-warning" id="statPendingCount">{{ number_format($pendingCount) }}</div>
                 <div class="small text-secondary mt-1" style="font-size: 11px;">Requires verification</div>
                 <i class="fa-solid fa-clock-rotate-left admin-stat-icon text-warning"></i>
             </div>
@@ -27,7 +27,7 @@
         <div class="col-6 col-md-3">
             <div class="admin-stat-card">
                 <div class="admin-stat-title">Approved Deposits</div>
-                <div class="admin-stat-val text-success">{{ number_format($approvedCount) }}</div>
+                <div class="admin-stat-val text-success" id="statApprovedCount">{{ number_format($approvedCount) }}</div>
                 <div class="small text-secondary mt-1" style="font-size: 11px;">Coins credited</div>
                 <i class="fa-solid fa-circle-check admin-stat-icon text-success"></i>
             </div>
@@ -35,7 +35,7 @@
         <div class="col-6 col-md-3">
             <div class="admin-stat-card">
                 <div class="admin-stat-title">Total Approved (₹)</div>
-                <div class="admin-stat-val text-info">₹{{ number_format($totalApprovedAmount) }}</div>
+                <div class="admin-stat-val text-info" id="statTotalApprovedAmount">₹{{ number_format($totalApprovedAmount) }}</div>
                 <div class="small text-secondary mt-1" style="font-size: 11px;">Direct UPI deposits</div>
                 <i class="fa-solid fa-indian-rupee-sign admin-stat-icon text-info"></i>
             </div>
@@ -43,7 +43,7 @@
         <div class="col-6 col-md-3">
             <div class="admin-stat-card">
                 <div class="admin-stat-title">Rejected Deposits</div>
-                <div class="admin-stat-val text-danger">{{ number_format($rejectedCount) }}</div>
+                <div class="admin-stat-val text-danger" id="statRejectedCount">{{ number_format($rejectedCount) }}</div>
                 <div class="small text-secondary mt-1" style="font-size: 11px;">Invalid UTR / Fake</div>
                 <i class="fa-solid fa-circle-xmark admin-stat-icon text-danger"></i>
             </div>
@@ -104,7 +104,7 @@
                         <th class="text-end">Actions</th>
                     </tr>
                 </thead>
-                <tbody>
+                <tbody id="adminDepositsTableBody">
                     @forelse($deposits as $dep)
                         @php
                             $statusBadge = match($dep->status) {
@@ -113,7 +113,7 @@
                                 default => 'bg-warning text-dark'
                             };
                         @endphp
-                        <tr>
+                        <tr id="depositRow{{ $dep->id }}" class="deposit-table-row">
                             <td>
                                 <span class="font-monospace text-info fw-bold">{{ $dep->deposit_uid }}</span>
                             </td>
@@ -248,4 +248,216 @@
             </div>
         @endif
     </div>
+
+@push('scripts')
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    const tableBody = document.getElementById('adminDepositsTableBody');
+    const csrfToken = document.querySelector('meta[name="csrf-token"]')?.getAttribute('content') || '{{ csrf_token() }}';
+    let isFetchingFeed = false;
+
+    // Fetch live feed of deposits and update table + stats
+    async function refreshDepositsLiveFeed() {
+        if (document.hidden || isFetchingFeed) return;
+        isFetchingFeed = true;
+
+        try {
+            const url = new URL("{{ route('admin.ludo.deposits.liveFeed') }}", window.location.origin);
+            const curParams = new URLSearchParams(window.location.search);
+            if (curParams.has('status')) url.searchParams.set('status', curParams.get('status'));
+
+            const res = await fetch(url.toString(), {
+                headers: {
+                    'Accept': 'application/json',
+                    'X-Requested-With': 'XMLHttpRequest'
+                }
+            });
+
+            if (res.ok) {
+                const data = await res.json();
+                if (data && data.success) {
+                    // 1. Update Stat Numbers
+                    if (data.counts) {
+                        const elP = document.getElementById('statPendingCount');
+                        if (elP) elP.textContent = Number(data.counts.pending || 0).toLocaleString();
+                        const elA = document.getElementById('statApprovedCount');
+                        if (elA) elA.textContent = Number(data.counts.approved || 0).toLocaleString();
+                        const elR = document.getElementById('statRejectedCount');
+                        if (elR) elR.textContent = Number(data.counts.rejected || 0).toLocaleString();
+                        const elT = document.getElementById('statTotalApprovedAmount');
+                        if (elT) elT.textContent = '₹' + Number(data.counts.total_approved_amount || 0).toLocaleString();
+                    }
+
+                    // 2. Check for new deposits not yet in the table
+                    if (Array.isArray(data.deposits) && tableBody) {
+                        data.deposits.forEach(function(dep) {
+                            let existingRow = document.getElementById('depositRow' + dep.id);
+                            if (!existingRow) {
+                                // Remove empty placeholder if present
+                                const emptyRow = tableBody.querySelector('tr td[colspan]');
+                                if (emptyRow) emptyRow.closest('tr').remove();
+
+                                // Prepend new row
+                                const badgeClass = dep.status === 'approved' ? 'bg-success' : (dep.status === 'rejected' ? 'bg-danger' : 'bg-warning text-dark');
+                                const rowHtml = `
+                                    <tr id="depositRow${dep.id}" class="deposit-table-row table-warning" style="transition: background-color 2.5s;">
+                                        <td><span class="font-monospace text-info fw-bold">${dep.deposit_uid}</span></td>
+                                        <td>
+                                            <div class="fw-bold text-white">${dep.user_name}</div>
+                                            <div class="small text-secondary">${dep.user_phone} &bull; UID: ${dep.user_uid}</div>
+                                        </td>
+                                        <td><span class="fw-bold text-success fs-6">₹${Number(dep.amount).toLocaleString()}</span></td>
+                                        <td>
+                                            <span class="font-monospace fw-bold text-warning bg-dark px-2 py-1 rounded border border-secondary border-opacity-50">
+                                                ${dep.utr_number}
+                                            </span>
+                                        </td>
+                                        <td>
+                                            ${dep.receipt_url ? `
+                                                <a href="${dep.receipt_url}" target="_blank" class="btn btn-sm btn-outline-info rounded-pill px-2 py-0" style="font-size: 11px;">
+                                                    <i class="fa-solid fa-image me-1"></i> View Receipt
+                                                </a>
+                                            ` : '<span class="text-secondary small">None</span>'}
+                                        </td>
+                                        <td>
+                                            <span class="badge ${badgeClass} text-uppercase" style="font-size: 10px;">
+                                                ${dep.status}
+                                            </span>
+                                        </td>
+                                        <td>
+                                            <div class="small text-light">${dep.created_at_formatted}</div>
+                                            <div class="small text-secondary" style="font-size: 10.5px;">${dep.created_at_human}</div>
+                                        </td>
+                                        <td class="text-end">
+                                            ${dep.status === 'pending' ? `
+                                                <div class="d-inline-flex gap-1">
+                                                    <button type="button" class="btn btn-sm btn-success rounded-pill px-3 py-1 fw-bold btn-ajax-approve" data-id="${dep.id}" style="font-size: 11px;">
+                                                        <i class="fa-solid fa-check me-1"></i> Approve
+                                                    </button>
+                                                    <button type="button" class="btn btn-sm btn-outline-danger rounded-pill px-3 py-1 btn-ajax-reject-prompt" data-id="${dep.id}" style="font-size: 11px;">
+                                                        Reject
+                                                    </button>
+                                                </div>
+                                            ` : `
+                                                <span class="small ${dep.status === 'approved' ? 'text-success' : 'text-danger'}">
+                                                    ${dep.status === 'approved' ? '<i class="fa-solid fa-check-double me-1"></i> Processed' : '<i class="fa-solid fa-ban me-1"></i> Rejected'}
+                                                </span>
+                                            `}
+                                        </td>
+                                    </tr>
+                                `;
+                                tableBody.insertAdjacentHTML('afterbegin', rowHtml);
+                                const newRow = document.getElementById('depositRow' + dep.id);
+                                setTimeout(() => {
+                                    if (newRow) newRow.classList.remove('table-warning');
+                                }, 3000);
+                            } else {
+                                // If status transitioned from pending to approved/rejected
+                                const statusBadge = existingRow.querySelector('td:nth-child(6) .badge');
+                                if (statusBadge && !statusBadge.textContent.toLowerCase().includes(dep.status)) {
+                                    statusBadge.className = 'badge ' + (dep.status === 'approved' ? 'bg-success' : 'bg-danger') + ' text-uppercase';
+                                    statusBadge.textContent = dep.status;
+                                    const actionTd = existingRow.querySelector('td.text-end');
+                                    if (actionTd) {
+                                        actionTd.innerHTML = `<span class="small ${dep.status === 'approved' ? 'text-success' : 'text-danger'}"><i class="fa-solid ${dep.status === 'approved' ? 'fa-check-double' : 'fa-ban'} me-1"></i> Processed</span>`;
+                                    }
+                                }
+                            }
+                        });
+                    }
+                }
+            }
+        } catch (err) {
+            console.debug('Deposits live feed error:', err);
+        } finally {
+            isFetchingFeed = false;
+        }
+    }
+
+    // Listen to global deposit alerts
+    window.addEventListener('admin:deposit-alert', function(e) {
+        refreshDepositsLiveFeed();
+    });
+
+    // Recurring polling feed
+    setInterval(refreshDepositsLiveFeed, 3500);
+
+    // Event delegation for Approve and Reject buttons
+    document.addEventListener('click', async function(e) {
+        const approveBtn = e.target.closest('.btn-ajax-approve');
+        if (approveBtn) {
+            const depositId = approveBtn.getAttribute('data-id');
+            if (!confirm('Approve this deposit and credit coins atomically to the player?')) return;
+
+            approveBtn.disabled = true;
+            approveBtn.innerHTML = '<span class="spinner-border spinner-border-sm me-1"></span> Approving...';
+
+            try {
+                const res = await fetch(`/admin/ludo/deposits/${depositId}/approve`, {
+                    method: 'POST',
+                    headers: {
+                        'Accept': 'application/json',
+                        'Content-Type': 'application/json',
+                        'X-CSRF-TOKEN': csrfToken,
+                        'X-Requested-With': 'XMLHttpRequest'
+                    }
+                });
+                const data = await res.json();
+                if (res.ok && data.success) {
+                    if (window.showAdminToast) {
+                        window.showAdminToast('Deposit Approved', data.message, null, 'success', 'fa-solid fa-circle-check text-success');
+                    }
+                    refreshDepositsLiveFeed();
+                } else {
+                    alert(data.message || 'Failed to approve deposit.');
+                    approveBtn.disabled = false;
+                    approveBtn.innerHTML = '<i class="fa-solid fa-check me-1"></i> Approve';
+                }
+            } catch (err) {
+                alert('Network error while processing deposit approval.');
+                approveBtn.disabled = false;
+                approveBtn.innerHTML = '<i class="fa-solid fa-check me-1"></i> Approve';
+            }
+        }
+
+        const rejectPromptBtn = e.target.closest('.btn-ajax-reject-prompt');
+        if (rejectPromptBtn) {
+            const depositId = rejectPromptBtn.getAttribute('data-id');
+            const reason = prompt('Please enter the reason for rejecting this deposit:');
+            if (!reason || reason.trim().length < 4) {
+                if (reason !== null) alert('Rejection reason must be at least 4 characters.');
+                return;
+            }
+
+            rejectPromptBtn.disabled = true;
+            try {
+                const res = await fetch(`/admin/ludo/deposits/${depositId}/reject`, {
+                    method: 'POST',
+                    headers: {
+                        'Accept': 'application/json',
+                        'Content-Type': 'application/json',
+                        'X-CSRF-TOKEN': csrfToken,
+                        'X-Requested-With': 'XMLHttpRequest'
+                    },
+                    body: JSON.stringify({ reason: reason.trim() })
+                });
+                const data = await res.json();
+                if (res.ok && data.success) {
+                    if (window.showAdminToast) {
+                        window.showAdminToast('Deposit Rejected', data.message, null, 'warning', 'fa-solid fa-ban text-warning');
+                    }
+                    refreshDepositsLiveFeed();
+                } else {
+                    alert(data.message || 'Failed to reject deposit.');
+                    rejectPromptBtn.disabled = false;
+                }
+            } catch (err) {
+                alert('Network error while rejecting deposit.');
+                rejectPromptBtn.disabled = false;
+            }
+        }
+    });
+});
+</script>
+@endpush
 @endsection

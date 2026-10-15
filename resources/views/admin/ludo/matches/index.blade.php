@@ -57,9 +57,9 @@
                         <th>Actions</th>
                     </tr>
                 </thead>
-                <tbody>
+                <tbody id="adminMatchesTableBody">
                     @forelse($matches as $m)
-                        <tr>
+                        <tr id="matchRow{{ $m->id }}">
                             <td class="font-monospace text-info small">
                                 <div>{{ $m->battle_uid }}</div>
                                 <span class="text-secondary" style="font-size: 10px;">{{ $m->created_at->format('d M, h:i A') }}</span>
@@ -70,11 +70,11 @@
                             </td>
                             <td>
                                 @if($m->room_code)
-                                    <span class="badge bg-dark border border-warning text-warning font-monospace" style="font-size: 11px;">
+                                    <span class="badge bg-dark border border-warning text-warning font-monospace match-room-code-badge" style="font-size: 11px;">
                                         {{ $m->room_code }}
                                     </span>
                                 @else
-                                    <span class="text-secondary small">None</span>
+                                    <span class="text-secondary small match-room-code-badge">None</span>
                                 @endif
                             </td>
                             <td>
@@ -82,12 +82,12 @@
                                 <strong class="text-success">🪙 {{ number_format($m->prize) }}</strong>
                             </td>
                             <td>
-                                <span class="badge {{ $m->status === 'completed' ? 'bg-success' : ($m->status === 'running' ? 'bg-primary' : ($m->status === 'cancelled' ? 'bg-danger' : 'bg-secondary')) }}">
+                                <span class="badge match-status-badge {{ $m->status === 'completed' ? 'bg-success' : ($m->status === 'running' ? 'bg-primary' : ($m->status === 'cancelled' ? 'bg-danger' : 'bg-secondary')) }}">
                                     {{ strtoupper($m->status) }}
                                 </span>
                             </td>
                             <td>
-                                <span class="badge {{ $m->review_status === 'disputed' ? 'bg-danger' : ($m->review_status === 'under_review' ? 'bg-warning text-dark' : 'bg-dark border border-secondary text-info') }}">
+                                <span class="badge match-review-badge {{ $m->review_status === 'disputed' ? 'bg-danger' : ($m->review_status === 'under_review' ? 'bg-warning text-dark' : 'bg-dark border border-secondary text-info') }}">
                                     {{ strtoupper(str_replace('_', ' ', $m->review_status)) }}
                                 </span>
                             </td>
@@ -107,4 +107,111 @@
         </div>
         <div class="mt-2">{{ $matches->links('pagination::bootstrap-5') }}</div>
     </div>
+
+@push('scripts')
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    const tableBody = document.getElementById('adminMatchesTableBody');
+    let isFetchingMatches = false;
+
+    async function refreshMatchesLiveFeed() {
+        if (document.hidden || isFetchingMatches) return;
+        isFetchingMatches = true;
+
+        try {
+            const res = await fetch("{{ route('admin.ludo.matches.liveFeed') }}", {
+                headers: {
+                    'Accept': 'application/json',
+                    'X-Requested-With': 'XMLHttpRequest'
+                }
+            });
+
+            if (res.ok) {
+                const data = await res.json();
+                if (data && data.success && Array.isArray(data.matches)) {
+                    data.matches.forEach(function(m) {
+                        const row = document.getElementById('matchRow' + m.id);
+                        if (row) {
+                            // Update room code
+                            const roomBadge = row.querySelector('.match-room-code-badge');
+                            if (roomBadge && m.room_code) {
+                                roomBadge.className = 'badge bg-dark border border-warning text-warning font-monospace match-room-code-badge';
+                                roomBadge.textContent = m.room_code;
+                            }
+
+                            // Update match status badge
+                            const statusBadge = row.querySelector('.match-status-badge');
+                            if (statusBadge) {
+                                const st = m.status;
+                                const cls = st === 'completed' ? 'bg-success' : (st === 'running' ? 'bg-primary' : (st === 'cancelled' ? 'bg-danger' : 'bg-secondary'));
+                                statusBadge.className = 'badge match-status-badge ' + cls;
+                                statusBadge.textContent = st.toUpperCase();
+                            }
+
+                            // Update review status badge
+                            const reviewBadge = row.querySelector('.match-review-badge');
+                            if (reviewBadge) {
+                                const rev = m.review_status || 'none';
+                                const rcls = rev === 'disputed' ? 'bg-danger' : (rev === 'under_review' ? 'bg-warning text-dark' : 'bg-dark border border-secondary text-info');
+                                reviewBadge.className = 'badge match-review-badge ' + rcls;
+                                reviewBadge.textContent = rev.replace('_', ' ').toUpperCase();
+                            }
+                        } else if (tableBody) {
+                            // Insert new match row dynamically without reload
+                            const st = m.status;
+                            const cls = st === 'completed' ? 'bg-success' : (st === 'running' ? 'bg-primary' : (st === 'cancelled' ? 'bg-danger' : 'bg-secondary'));
+                            const rev = m.review_status || 'none';
+                            const rcls = rev === 'disputed' ? 'bg-danger' : (rev === 'under_review' ? 'bg-warning text-dark' : 'bg-dark border border-secondary text-info');
+                            const roomHtml = m.room_code ? `<span class="badge bg-dark border border-warning text-warning font-monospace match-room-code-badge" style="font-size: 11px;">${m.room_code}</span>` : `<span class="text-secondary small match-room-code-badge">None</span>`;
+
+                            const newRowHtml = `
+                                <tr id="matchRow${m.id}" class="animate__animated animate__fadeIn table-warning">
+                                    <td class="font-monospace text-info small">
+                                        <div>${m.battle_uid}</div>
+                                        <span class="text-secondary" style="font-size: 10px;">${m.created_at_formatted || 'Just now'}</span>
+                                    </td>
+                                    <td>
+                                        <div class="text-white small fw-bold">${m.creator_name || 'P1'}</div>
+                                        <div class="text-secondary small">vs ${m.joiner_name || 'Awaiting Opponent'}</div>
+                                    </td>
+                                    <td>${roomHtml}</td>
+                                    <td>
+                                        <span class="text-light">🪙 ${Number(m.entry_fee).toLocaleString()}</span> / 
+                                        <strong class="text-success">🪙 ${Number(m.prize).toLocaleString()}</strong>
+                                    </td>
+                                    <td>
+                                        <span class="badge match-status-badge ${cls}">${st.toUpperCase()}</span>
+                                    </td>
+                                    <td>
+                                        <span class="badge match-review-badge ${rcls}">${rev.replace('_', ' ').toUpperCase()}</span>
+                                    </td>
+                                    <td>
+                                        <a href="${m.audit_url}" class="btn btn-sm btn-outline-info rounded-pill py-0 px-2" style="font-size: 11px;">
+                                            Audit &rarr;
+                                        </a>
+                                    </td>
+                                </tr>
+                            `;
+                            tableBody.insertAdjacentHTML('afterbegin', newRowHtml);
+                            const insertedRow = document.getElementById('matchRow' + m.id);
+                            setTimeout(() => {
+                                if (insertedRow) insertedRow.classList.remove('table-warning');
+                            }, 3000);
+                        }
+                    });
+                }
+            }
+        } catch (err) {
+            console.debug('Matches live feed error:', err);
+        } finally {
+            isFetchingMatches = false;
+        }
+    }
+
+    window.addEventListener('admin:matches-alert', refreshMatchesLiveFeed);
+    window.addEventListener('admin:dispute-alert', refreshMatchesLiveFeed);
+    setInterval(refreshMatchesLiveFeed, 3500);
+});
+</script>
+@endpush
 @endsection

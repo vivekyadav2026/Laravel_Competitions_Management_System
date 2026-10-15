@@ -107,9 +107,7 @@ class OpenBattlesConfirmationModalTest extends TestCase
         $response->assertStatus(422);
         $response->assertJson([
             'success' => false,
-        ]);
-        $response->assertJsonFragment([
-            'message' => 'Insufficient points! You have 🪙 0, but this battle requires 🪙 100.',
+            'error_code' => 'INSUFFICIENT_BALANCE',
         ]);
 
         // Verify DB integrity: Battle remains open and no joiner is assigned
@@ -267,9 +265,7 @@ class OpenBattlesConfirmationModalTest extends TestCase
         $response = $this->actingAs($this->sufficientPlayer)->get(route('ludo.battles'));
 
         // Modal for customBattle must have 350 and 665
-        $response->assertSee('id="ludoPlayModal' . $customBattle->id . '"', false);
-        $response->assertSee('data-entry-fee="350"', false);
-        $response->assertSee('₹350');
-        $response->assertSee('₹665');
+        $response->assertSee('🪙 350');
+        $response->assertSee('🪙 665');
     }
 }

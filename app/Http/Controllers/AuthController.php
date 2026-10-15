@@ -23,6 +23,18 @@ class AuthController extends Controller
     {
         $this->validate($request, [
             'name' => 'required|string|max:255',
+            'username' => [
+                'nullable',
+                'string',
+                'min:3',
+                'max:40',
+                'regex:/^[a-zA-Z0-9_.]+$/',
+                function ($attribute, $value, $fail) {
+                    if (User::whereRaw('LOWER(username) = ?', [strtolower(trim($value))])->exists()) {
+                        $fail('This username is already taken.');
+                    }
+                },
+            ],
             'email' => 'required|string|email|max:255|unique:users',
             'phone' => 'nullable|string|max:20',
             'password' => 'required|string|min:8',
@@ -59,8 +71,13 @@ class AuthController extends Controller
                     $referrer = User::where('referral_code', $cleanRefCode)->first();
                 }
 
+                $assignedUsername = $request->filled('username')
+                    ? strtolower(trim($request->username))
+                    : User::generateUniqueUsername($request->name);
+
                 $newUser = User::create([
                     'name' => $request->name,
+                    'username' => $assignedUsername,
                     'email' => $request->email,
                     'phone' => $cleanPhone,
                     'password' => Hash::make($request->password),
@@ -391,10 +408,12 @@ class AuthController extends Controller
                     ? trim($request->name) 
                     : 'Player_' . substr($cleanPhone, -4);
 
+                $username = User::generateUniqueUsername($userName);
+
                 $newUser = User::create([
                     'name' => $userName,
+                    'username' => $username,
                     'phone' => $cleanPhone,
-
                     'email' => $email,
                     'password' => Hash::make(Str::random(24)),
                     'coins' => 0,

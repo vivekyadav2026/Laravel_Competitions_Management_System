@@ -86,6 +86,7 @@ Route::middleware('auth')->group(function () {
 
     // Wallet & Points
     Route::get('/wallet', [LudoController::class, 'wallet'])->name('ludo.wallet');
+    Route::get('/wallet/sync-state', [LudoController::class, 'walletSyncState'])->name('ludo.wallet.syncState');
     Route::post('/wallet/deposit', [LudoController::class, 'addVirtualPoints'])->name('ludo.wallet.deposit');
     Route::post('/wallet/deposit/upi', [LudoController::class, 'submitUpiDeposit'])->name('ludo.wallet.deposit.upi');
     Route::post('/wallet/withdraw', [LudoController::class, 'requestWithdrawal'])->name('ludo.wallet.withdraw');
@@ -150,6 +151,7 @@ Route::middleware(['auth', 'ludo.admin'])->prefix('admin/ludo')->name('admin.lud
 
     // 4. Match & Result Management
     Route::get('/matches', [LudoAdminController::class, 'matches'])->name('matches.index');
+    Route::get('/matches/live-feed', [LudoAdminController::class, 'matchesLiveFeed'])->name('matches.liveFeed');
     Route::get('/matches/{id}', [LudoAdminController::class, 'matchShow'])->name('matches.show');
     Route::post('/matches/{id}/cancel', [LudoAdminController::class, 'matchCancel'])->name('matches.cancel');
     Route::post('/matches/{id}/resolve', [LudoAdminController::class, 'matchResolveResult'])->name('matches.resolve');
@@ -177,6 +179,8 @@ Route::middleware(['auth', 'ludo.admin'])->prefix('admin/ludo')->name('admin.lud
 
     // Real-Time Admin Notifications Live Feed
     Route::get('/notifications/live', [LudoAdminController::class, 'liveNotifications'])->name('notifications.live');
+    Route::get('/sync-alerts', [LudoAdminController::class, 'liveNotifications'])->name('syncAlerts');
+    Route::get('/deposits/live-feed', [LudoAdminController::class, 'upiDepositsLiveFeed'])->name('deposits.liveFeed');
 
 
     // 7. Referral Management

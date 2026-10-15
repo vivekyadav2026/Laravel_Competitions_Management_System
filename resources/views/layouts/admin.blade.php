@@ -500,33 +500,28 @@
                 <a href="{{ route('admin.ludo.matches.index') }}" class="admin-nav-link {{ ($activeSection ?? '') === 'matches' ? 'active' : '' }}">
                     <i class="fa-solid fa-gamepad text-success"></i>
                     <span>Matches & Results</span>
+                    <span class="badge bg-warning text-dark admin-nav-badge {{ ($pendingMatchReviewsCount ?? 0) > 0 ? '' : 'd-none' }}" id="sidebarBadgeMatches">{{ $pendingMatchReviewsCount ?? 0 }}</span>
                 </a>
             </li>
             <li>
                 <a href="{{ route('admin.ludo.disputes.index') }}" class="admin-nav-link {{ ($activeSection ?? '') === 'disputes' ? 'active' : '' }}">
                     <i class="fa-solid fa-gavel text-danger"></i>
                     <span>Dispute Desk</span>
-                    @if(($pendingDisputesCount ?? 0) > 0)
-                        <span class="badge bg-danger admin-nav-badge">{{ $pendingDisputesCount }}</span>
-                    @endif
+                    <span class="badge bg-danger admin-nav-badge {{ ($pendingDisputesCount ?? 0) > 0 ? '' : 'd-none' }}" id="sidebarBadgeDisputes">{{ $pendingDisputesCount ?? 0 }}</span>
                 </a>
             </li>
             <li>
                 <a href="{{ route('admin.ludo.kyc.index') }}" class="admin-nav-link {{ ($activeSection ?? '') === 'kyc' ? 'active' : '' }}">
                     <i class="fa-solid fa-id-card text-warning"></i>
                     <span>KYC Verifications</span>
-                    @if(($pendingKycCount ?? 0) > 0)
-                        <span class="badge bg-warning text-dark admin-nav-badge">{{ $pendingKycCount }}</span>
-                    @endif
+                    <span class="badge bg-warning text-dark admin-nav-badge {{ ($pendingKycCount ?? 0) > 0 ? '' : 'd-none' }}" id="sidebarBadgeKyc">{{ $pendingKycCount ?? 0 }}</span>
                 </a>
             </li>
             <li>
                 <a href="{{ route('admin.ludo.tickets.index') }}" class="admin-nav-link {{ ($activeSection ?? '') === 'tickets' ? 'active' : '' }}">
                     <i class="fa-solid fa-headset text-info"></i>
                     <span>Support Desk</span>
-                    @if(($pendingTicketsCount ?? 0) > 0)
-                        <span class="badge bg-info text-dark admin-nav-badge">{{ $pendingTicketsCount }}</span>
-                    @endif
+                    <span class="badge bg-info text-dark admin-nav-badge {{ ($pendingTicketsCount ?? 0) > 0 ? '' : 'd-none' }}" id="sidebarBadgeTickets">{{ $pendingTicketsCount ?? 0 }}</span>
                 </a>
             </li>
             <li>
@@ -539,18 +534,14 @@
                 <a href="{{ route('admin.ludo.deposits.index') }}" class="admin-nav-link {{ ($activeSection ?? '') === 'deposits' ? 'active' : '' }}">
                     <i class="fa-solid fa-qrcode text-success"></i>
                     <span>UPI QR Deposits</span>
-                    @if(($pendingDepositsCount ?? 0) > 0)
-                        <span class="badge bg-danger admin-nav-badge">{{ $pendingDepositsCount }}</span>
-                    @endif
+                    <span class="badge bg-danger admin-nav-badge {{ ($pendingDepositsCount ?? 0) > 0 ? '' : 'd-none' }}" id="sidebarBadgeDeposits">{{ $pendingDepositsCount ?? 0 }}</span>
                 </a>
             </li>
             <li>
                 <a href="{{ route('admin.ludo.withdrawals.index') }}" class="admin-nav-link {{ ($activeSection ?? '') === 'withdrawals' ? 'active' : '' }}">
                     <i class="fa-solid fa-money-bill-transfer text-warning"></i>
                     <span>Player Withdrawals</span>
-                    @if(($pendingWithdrawalsCount ?? 0) > 0)
-                        <span class="badge bg-warning text-dark admin-nav-badge">{{ $pendingWithdrawalsCount }}</span>
-                    @endif
+                    <span class="badge bg-warning text-dark admin-nav-badge {{ ($pendingWithdrawalsCount ?? 0) > 0 ? '' : 'd-none' }}" id="sidebarBadgeWithdrawals">{{ $pendingWithdrawalsCount ?? 0 }}</span>
                 </a>
             </li>
             <li>
@@ -634,19 +625,19 @@
 
                         {{-- Categorized Summary Chips --}}
                         <div class="p-2 border-bottom border-secondary border-opacity-25 d-flex gap-1 flex-wrap" style="background: rgba(0, 0, 0, 0.25);">
-                            <a href="{{ route('admin.ludo.deposits.index') }}" class="badge bg-dark border border-success border-opacity-50 text-success text-decoration-none py-1 px-2" style="font-size: 10.5px;">
+                            <a href="{{ route('admin.ludo.deposits.index') }}" class="badge bg-dark border border-success border-opacity-50 text-success text-decoration-none py-1 px-2" style="font-size: 10.5px;" id="adminChipDeposits">
                                 Deposits: {{ $pendingDepositsCount ?? 0 }}
                             </a>
-                            <a href="{{ route('admin.ludo.withdrawals.index') }}" class="badge bg-dark border border-warning border-opacity-50 text-warning text-decoration-none py-1 px-2" style="font-size: 10.5px;">
+                            <a href="{{ route('admin.ludo.withdrawals.index') }}" class="badge bg-dark border border-warning border-opacity-50 text-warning text-decoration-none py-1 px-2" style="font-size: 10.5px;" id="adminChipPayouts">
                                 Payouts: {{ $pendingWithdrawalsCount ?? 0 }}
                             </a>
-                            <a href="{{ route('admin.ludo.kyc.index') }}" class="badge bg-dark border border-primary border-opacity-50 text-primary text-decoration-none py-1 px-2" style="font-size: 10.5px;">
+                            <a href="{{ route('admin.ludo.kyc.index') }}" class="badge bg-dark border border-primary border-opacity-50 text-primary text-decoration-none py-1 px-2" style="font-size: 10.5px;" id="adminChipKyc">
                                 KYC: {{ $pendingKycCount ?? 0 }}
                             </a>
-                            <a href="{{ route('admin.ludo.disputes.index') }}" class="badge bg-dark border border-danger border-opacity-50 text-danger text-decoration-none py-1 px-2" style="font-size: 10.5px;">
+                            <a href="{{ route('admin.ludo.disputes.index') }}" class="badge bg-dark border border-danger border-opacity-50 text-danger text-decoration-none py-1 px-2" style="font-size: 10.5px;" id="adminChipDisputes">
                                 Disputes: {{ $pendingDisputesCount ?? 0 }}
                             </a>
-                            <a href="{{ route('admin.ludo.tickets.index') }}" class="badge bg-dark border border-info border-opacity-50 text-info text-decoration-none py-1 px-2" style="font-size: 10.5px;">
+                            <a href="{{ route('admin.ludo.tickets.index') }}" class="badge bg-dark border border-info border-opacity-50 text-info text-decoration-none py-1 px-2" style="font-size: 10.5px;" id="adminChipTickets">
                                 Tickets: {{ $pendingTicketsCount ?? 0 }}
                             </a>
                         </div>
@@ -776,32 +767,231 @@
             });
         })();
 
-        // Real-time live polling for Admin pending notifications
-        function pollAdminPendingActivities() {
-            fetch('{{ route('admin.ludo.notifications.live') }}', { credentials: 'same-origin' })
-                .then(function(res) { return res.json(); })
-                .then(function(data) {
-                    if (data && data.success) {
-                        var total = data.total_pending;
-                        var badge = document.getElementById('adminPendingBadge');
-                        var dropBadge = document.getElementById('adminDropdownBadgeCount');
-                        if (badge) {
-                            badge.textContent = total;
-                            if (total > 0) {
-                                badge.className = 'badge rounded-pill bg-danger shadow-sm admin-notification-pulse';
-                            } else {
-                                badge.className = 'badge rounded-pill bg-secondary bg-opacity-50 text-white';
-                            }
+        // Comprehensive Real-Time Live Polling Engine & Alert System for Admin Console
+        (function() {
+            let lastSeenDepositId = null;
+            let lastSeenDisputeId = null;
+            let lastSeenMatchReviewId = null;
+            let isFirstPoll = true;
+            let isPolling = false;
+
+            // Native Web Audio Synthesizer Chime (Zero External Asset Dependencies)
+            function playAdminChime(type) {
+                try {
+                    const AudioCtx = window.AudioContext || window.webkitAudioContext;
+                    if (!AudioCtx) return;
+                    const ctx = new AudioCtx();
+                    if (ctx.state === 'suspended') {
+                        ctx.resume();
+                    }
+                    const now = ctx.currentTime;
+                    const osc = ctx.createOscillator();
+                    const gain = ctx.createGain();
+                    osc.connect(gain);
+                    gain.connect(ctx.destination);
+
+                    if (type === 'deposit') {
+                        // Upbeat 2-tone melodic chime (D5 -> A5)
+                        osc.type = 'sine';
+                        osc.frequency.setValueAtTime(587.33, now);
+                        osc.frequency.exponentialRampToValueAtTime(880.00, now + 0.12);
+                        gain.gain.setValueAtTime(0.2, now);
+                        gain.gain.exponentialRampToValueAtTime(0.001, now + 0.45);
+                        osc.start(now);
+                        osc.stop(now + 0.45);
+                    } else {
+                        // Attention-grabbing alert chime (G5 -> C5)
+                        osc.type = 'triangle';
+                        osc.frequency.setValueAtTime(783.99, now);
+                        osc.frequency.exponentialRampToValueAtTime(523.25, now + 0.15);
+                        gain.gain.setValueAtTime(0.25, now);
+                        gain.gain.exponentialRampToValueAtTime(0.001, now + 0.4);
+                        osc.start(now);
+                        osc.stop(now + 0.4);
+                    }
+                } catch (e) {
+                    // Audio context blocked by browser autoplay policy until user interacts
+                }
+            }
+
+            // Floating Toast Notification
+            function showAdminToast(title, body, url, badgeClass, icon) {
+                const container = document.getElementById('adminLiveToastContainer');
+                if (!container) return;
+
+                const toastId = 'adm_toast_' + Date.now() + '_' + Math.floor(Math.random() * 1000);
+                const toastHtml = `
+                    <div id="${toastId}" class="toast align-items-center text-white bg-dark border border-${badgeClass || 'warning'} shadow-lg mb-2" role="alert" aria-live="assertive" aria-atomic="true" style="min-width: 320px; border-radius: 12px; background: #0c1427 !important;">
+                        <div class="toast-header bg-dark text-white border-bottom border-secondary border-opacity-25" style="border-top-left-radius: 12px; border-top-right-radius: 12px;">
+                            <i class="${icon || 'fa-solid fa-bell text-warning'} me-2"></i>
+                            <strong class="me-auto small text-truncate">${title}</strong>
+                            <span class="badge bg-${badgeClass || 'warning'} me-2" style="font-size: 9px;">REAL-TIME</span>
+                            <button type="button" class="btn-close btn-close-white btn-sm" data-bs-dismiss="toast" aria-label="Close"></button>
+                        </div>
+                        <div class="toast-body p-2 px-3 d-flex justify-content-between align-items-center">
+                            <div class="small text-light me-2">${body}</div>
+                            ${url ? `<a href="${url}" class="btn btn-sm btn-outline-${badgeClass || 'info'} rounded-pill px-3 py-0 fw-bold flex-shrink-0" style="font-size: 11px;">Open &rarr;</a>` : ''}
+                        </div>
+                    </div>
+                `;
+                container.insertAdjacentHTML('beforeend', toastHtml);
+                const el = document.getElementById(toastId);
+                if (el && window.bootstrap && window.bootstrap.Toast) {
+                    const bsToast = new bootstrap.Toast(el, { delay: 8000 });
+                    bsToast.show();
+                    el.addEventListener('hidden.bs.toast', () => el.remove());
+                }
+            }
+
+            // Expose globally for subviews to trigger
+            window.showAdminToast = showAdminToast;
+            window.playAdminChime = playAdminChime;
+
+            async function pollAdminPendingActivities() {
+                if (document.hidden || isPolling) return;
+                isPolling = true;
+
+                try {
+                    const res = await fetch('{{ route('admin.ludo.notifications.live') }}', {
+                        credentials: 'same-origin',
+                        headers: {
+                            'Accept': 'application/json',
+                            'X-Requested-With': 'XMLHttpRequest'
                         }
-                        if (dropBadge) {
-                            dropBadge.textContent = total + ' Pending';
+                    });
+
+                    if (res.ok) {
+                        const data = await res.json();
+                        if (data && data.success) {
+                            const counts = data.counts || {};
+                            const total = data.total_pending || 0;
+
+                            // 1. Update Topbar Notification Bell & Dropdown Title
+                            const badge = document.getElementById('adminPendingBadge');
+                            const dropBadge = document.getElementById('adminDropdownBadgeCount');
+                            if (badge) {
+                                badge.textContent = total;
+                                if (total > 0) {
+                                    badge.className = 'badge rounded-pill bg-danger shadow-sm admin-notification-pulse';
+                                } else {
+                                    badge.className = 'badge rounded-pill bg-secondary bg-opacity-50 text-white';
+                                }
+                            }
+                            if (dropBadge) {
+                                dropBadge.textContent = total + ' Pending';
+                            }
+
+                            // 2. Update Category Summary Chips
+                            const chipDep = document.getElementById('adminChipDeposits');
+                            if (chipDep) chipDep.textContent = 'Deposits: ' + (counts.deposits ?? 0);
+                            const chipPay = document.getElementById('adminChipPayouts');
+                            if (chipPay) chipPay.textContent = 'Payouts: ' + (counts.withdrawals ?? 0);
+                            const chipKyc = document.getElementById('adminChipKyc');
+                            if (chipKyc) chipKyc.textContent = 'KYC: ' + (counts.kyc ?? 0);
+                            const chipDisp = document.getElementById('adminChipDisputes');
+                            if (chipDisp) chipDisp.textContent = 'Disputes: ' + (counts.disputes ?? 0);
+                            const chipTkt = document.getElementById('adminChipTickets');
+                            if (chipTkt) chipTkt.textContent = 'Tickets: ' + (counts.tickets ?? 0);
+
+                            // 3. Update Sidebar Nav Badges
+                            const updateBadge = (id, count) => {
+                                const el = document.getElementById(id);
+                                if (el) {
+                                    el.textContent = count;
+                                    if (count > 0) {
+                                        el.classList.remove('d-none');
+                                    } else {
+                                        el.classList.add('d-none');
+                                    }
+                                }
+                            };
+                            updateBadge('sidebarBadgeDeposits', counts.deposits ?? 0);
+                            updateBadge('sidebarBadgeWithdrawals', counts.withdrawals ?? 0);
+                            updateBadge('sidebarBadgeKyc', counts.kyc ?? 0);
+                            updateBadge('sidebarBadgeDisputes', counts.disputes ?? 0);
+                            updateBadge('sidebarBadgeTickets', counts.tickets ?? 0);
+                            updateBadge('sidebarBadgeMatches', counts.match_reviews ?? 0);
+
+                            // 4. Check for New Deposit Alert
+                            if (data.latest && data.latest.deposit) {
+                                const curDepId = data.latest.deposit.id;
+                                if (isFirstPoll) {
+                                    lastSeenDepositId = curDepId;
+                                } else if (lastSeenDepositId !== null && curDepId > lastSeenDepositId) {
+                                    lastSeenDepositId = curDepId;
+                                    playAdminChime('deposit');
+                                    showAdminToast(
+                                        'New Deposit Request!',
+                                        `₹${data.latest.deposit.amount} from ${data.latest.deposit.user_name} (UTR: <span class="font-monospace text-warning">${data.latest.deposit.utr_number}</span>)`,
+                                        '{{ route('admin.ludo.deposits.index') }}',
+                                        'success',
+                                        'fa-solid fa-qrcode text-success'
+                                    );
+                                    window.dispatchEvent(new CustomEvent('admin:deposit-alert', { detail: data.latest.deposit }));
+                                }
+                            }
+
+                            // 5. Check for New Dispute Alert
+                            if (data.latest && data.latest.dispute) {
+                                const curDispId = data.latest.dispute.id;
+                                if (isFirstPoll) {
+                                    lastSeenDisputeId = curDispId;
+                                } else if (lastSeenDisputeId !== null && curDispId > lastSeenDisputeId) {
+                                    lastSeenDisputeId = curDispId;
+                                    playAdminChime('dispute');
+                                    showAdminToast(
+                                        'New Dispute Opened!',
+                                        `Match ${data.latest.dispute.battle_uid || data.latest.dispute.dispute_uid} flagged for review.`,
+                                        '{{ route('admin.ludo.disputes.index') }}',
+                                        'danger',
+                                        'fa-solid fa-gavel text-danger'
+                                    );
+                                    window.dispatchEvent(new CustomEvent('admin:dispute-alert', { detail: data.latest.dispute }));
+                                }
+                            }
+
+                            // 6. Check for Match Review Alert
+                            if (data.latest && data.latest.match_review) {
+                                const curMatchKey = data.latest.match_review.id + '_' + (data.latest.match_review.review_status || 'none') + '_' + (data.latest.match_review.refund_status || 'none');
+                                if (isFirstPoll) {
+                                    lastSeenMatchReviewId = curMatchKey;
+                                } else if (lastSeenMatchReviewId !== null && curMatchKey !== lastSeenMatchReviewId) {
+                                    lastSeenMatchReviewId = curMatchKey;
+                                    playAdminChime('dispute');
+                                    showAdminToast(
+                                        'Match Under Review / Dispute!',
+                                        `Match ${data.latest.match_review.battle_uid} requires administrative verification.`,
+                                        '{{ route('admin.ludo.matches.index') }}',
+                                        'warning',
+                                        'fa-solid fa-scale-balanced text-warning'
+                                    );
+                                    window.dispatchEvent(new CustomEvent('admin:matches-alert', { detail: data.latest.match_review }));
+                                }
+                            }
+
+                            isFirstPoll = false;
                         }
                     }
-                })
-                .catch(function() {});
-        }
-        setInterval(pollAdminPendingActivities, 20000);
+                } catch (err) {
+                    console.debug('Admin live poll error:', err);
+                } finally {
+                    isPolling = false;
+                }
+            }
+
+            // Initial poll & 3-second recurring interval
+            pollAdminPendingActivities();
+            const pollTimer = setInterval(pollAdminPendingActivities, 3000);
+
+            // Responsive trigger when switching tabs back to the admin console
+            document.addEventListener('visibilitychange', function() {
+                if (!document.hidden) {
+                    pollAdminPendingActivities();
+                }
+            });
+        })();
     </script>
+    <div class="toast-container position-fixed bottom-0 end-0 p-3" id="adminLiveToastContainer" style="z-index: 1090;"></div>
     @stack('scripts')
 </body>
 </html>

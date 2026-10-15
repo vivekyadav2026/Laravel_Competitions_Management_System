@@ -19,6 +19,7 @@ class User extends Authenticatable
      */
     protected $fillable = [
         'name',
+        'username',
         'email',
         'password',
         'role',
@@ -61,6 +62,59 @@ class User extends Authenticatable
         'coins' => 'integer',
         'referral_balance' => 'decimal:2',
     ];
+
+    /**
+     * Set username as sanitized lowercase
+     */
+    public function setUsernameAttribute($value): void
+    {
+        $this->attributes['username'] = strtolower(trim((string) $value));
+    }
+
+    /**
+     * Formatted display username (with @ prefix)
+     */
+    public function getFormattedUsernameAttribute(): string
+    {
+        return '@' . ($this->username ?: 'user_' . $this->id);
+    }
+
+    /**
+     * Deterministically generate a unique username from a display name
+     */
+    public static function generateUniqueUsername(string $name, ?int $ignoreId = null): string
+    {
+        $clean = strtolower(preg_replace('/[^a-z0-9_]/', '', str_replace([' ', '-'], '_', strtolower(trim($name)))));
+        if (empty($clean)) {
+            $clean = 'player';
+        }
+        $clean = substr($clean, 0, 35);
+
+        $query = static::whereRaw('LOWER(username) = ?', [$clean]);
+        if ($ignoreId) {
+            $query->where('id', '!=', $ignoreId);
+        }
+
+        if (!$query->exists()) {
+            return $clean;
+        }
+
+        $suffix = $ignoreId ? (string) $ignoreId : '1';
+        $candidate = substr($clean, 0, 30) . '_' . $suffix;
+        $counter = 1;
+
+        while (true) {
+            $check = static::whereRaw('LOWER(username) = ?', [$candidate]);
+            if ($ignoreId) {
+                $check->where('id', '!=', $ignoreId);
+            }
+            if (!$check->exists()) {
+                return $candidate;
+            }
+            $counter++;
+            $candidate = substr($clean, 0, 28) . '_' . ($ignoreId ? $ignoreId . '_' : '') . $counter;
+        }
+    }
 
     /**
      * Battles created by this user

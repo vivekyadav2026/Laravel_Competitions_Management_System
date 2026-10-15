@@ -35,13 +35,16 @@
                         <div class="p-3 rounded-3" style="background: rgba(56, 189, 248, 0.08); border: 1px solid rgba(56, 189, 248, 0.2);">
                             <div class="d-flex align-items-center justify-content-between mb-2">
                                 <span class="badge bg-primary" style="font-size: 10px;">Player 1 (Creator)</span>
-                                <span class="text-secondary small">UID: {{ $match->creator->player_uid ?? $match->creator->id }}</span>
+                                <span class="text-secondary small font-monospace">User ID: #{{ $match->creator_id }}</span>
                             </div>
                             <h6 class="text-white fw-bold mb-1">
                                 <a href="{{ route('admin.ludo.users.show', $match->creator->id) }}" class="text-white text-decoration-none">
                                     {{ $match->creator->name }}
                                 </a>
                             </h6>
+                            <div class="text-info small fw-bold font-monospace mb-1">
+                                {{ $match->creator->formatted_username }}
+                            </div>
                             <div class="text-secondary small">{{ $match->creator->email }}</div>
                             <div class="mt-2 pt-2 border-top border-secondary border-opacity-25 d-flex justify-content-between align-items-center">
                                 <span class="text-secondary small">Submitted Claim:</span>
@@ -65,7 +68,7 @@
                         <div class="p-3 rounded-3" style="background: rgba(245, 158, 11, 0.08); border: 1px solid rgba(245, 158, 11, 0.2);">
                             <div class="d-flex align-items-center justify-content-between mb-2">
                                 <span class="badge bg-warning text-dark" style="font-size: 10px;">Player 2 (Opponent)</span>
-                                <span class="text-secondary small">UID: {{ $match->joiner->player_uid ?? ($match->joiner ? $match->joiner->id : 'None') }}</span>
+                                <span class="text-secondary small font-monospace">User ID: {{ $match->joiner_id ? '#' . $match->joiner_id : 'None' }}</span>
                             </div>
                             <h6 class="text-white fw-bold mb-1">
                                 @if($match->joiner)
@@ -76,6 +79,11 @@
                                     Awaiting Opponent
                                 @endif
                             </h6>
+                            @if($match->joiner)
+                                <div class="text-warning small fw-bold font-monospace mb-1">
+                                    {{ $match->joiner->formatted_username }}
+                                </div>
+                            @endif
                             <div class="text-secondary small">{{ $match->joiner->email ?? 'No email' }}</div>
                             <div class="mt-2 pt-2 border-top border-secondary border-opacity-25 d-flex justify-content-between align-items-center">
                                 <span class="text-secondary small">Submitted Claim:</span>
@@ -114,7 +122,7 @@
                     <div class="col-6 col-sm-3">
                         <div class="text-secondary small">Winner Awarded</div>
                         <div class="text-info fw-bold small">
-                            {{ $match->winner ? $match->winner->name : 'Unsettled' }}
+                            {{ $match->winner ? $match->winner->name . ' (' . $match->winner->formatted_username . ')' : 'Unsettled' }}
                         </div>
                     </div>
                 </div>
@@ -153,8 +161,10 @@
                             @csrf
                             <label class="form-label small text-secondary mb-1" style="font-size: 11px;">Resolution Action on Rejection:</label>
                             <select name="next_action" class="form-select form-select-sm bg-dark text-light border-secondary mb-2" required>
-                                <option value="award_creator">🏆 Award Victory to Creator ({{ $match->creator->name ?? 'Creator' }})</option>
-                                <option value="award_joiner">🏆 Award Victory to Opponent ({{ $match->joiner?->name ?? 'Opponent' }})</option>
+                                <option value="award_creator">🏆 Award Victory to Creator: {{ $match->creator->name }} ({{ $match->creator->formatted_username }}) [ID: #{{ $match->creator_id }}]</option>
+                                @if($match->joiner)
+                                    <option value="award_joiner">🏆 Award Victory to Opponent: {{ $match->joiner->name }} ({{ $match->joiner->formatted_username }}) [ID: #{{ $match->joiner->id }}]</option>
+                                @endif
                                 <option value="resume_match">▶️ Resume Match (Clear Dispute Lock)</option>
                                 <option value="forfeit_stakes">⛔ Forfeit Stakes (Abuse / Collusion)</option>
                                 <option value="hold_review" selected>⏳ Hold Under Review (Request Further Evidence)</option>
@@ -189,10 +199,14 @@
                     <form action="{{ route('admin.ludo.matches.resolve', $match->id) }}" method="POST" class="mb-3 pb-3 border-bottom border-secondary border-opacity-25">
                         @csrf
                         <div class="mb-2">
-                            <label class="form-label text-secondary small fw-bold mb-1">Select Settlement Verdict</label>
+                            <label class="form-label text-secondary small fw-bold mb-1">Select Settlement Verdict (by Participant User ID)</label>
                             <select name="decision" class="form-select form-select-sm bg-dark text-light border-secondary" required>
-                                <option value="award_creator">Award Victory to Player 1 ({{ $match->creator->name }}) — Credit 🪙 {{ $match->prize }}</option>
-                                <option value="award_joiner">Award Victory to Player 2 ({{ $match->joiner->name }}) — Credit 🪙 {{ $match->prize }}</option>
+                                <option value="{{ $match->creator_id }}">
+                                    Award Victory to Player 1 (Creator): {{ $match->creator->name }} ({{ $match->creator->formatted_username }}) [User ID: #{{ $match->creator_id }}] — Credit 🪙 {{ $match->prize }}
+                                </option>
+                                <option value="{{ $match->joiner->id }}">
+                                    Award Victory to Player 2 (Opponent): {{ $match->joiner->name }} ({{ $match->joiner->formatted_username }}) [User ID: #{{ $match->joiner->id }}] — Credit 🪙 {{ $match->prize }}
+                                </option>
                                 <option value="reject_result">Reject Results as Invalid (Hold for Further Review)</option>
                                 <option value="mark_verified">Mark Review Status as Verified (No Payout Change)</option>
                             </select>
@@ -201,9 +215,8 @@
                             <label class="form-label text-secondary small fw-bold mb-1">Mandatory Decision Reason <span class="text-danger">*</span></label>
                             <input type="text" name="reason" class="form-control form-control-sm bg-dark text-light border-secondary" placeholder="Explain audit verification reason..." required minlength="5">
                         </div>
-                        <button type="submit" class="btn btn-sm btn-success w-100 rounded-pill fw-bold" onclick="return confirm('Execute this match result settlement?')">
+                        <button type="submit" class="btn btn-sm btn-success w-100 rounded-pill fw-bold" onclick="return confirm('Confirm settlement: Award victory/credit prize to the chosen participant or update review state?')">
                             Execute Result Settlement
-                        </button>
                     </form>
                 @endif
 

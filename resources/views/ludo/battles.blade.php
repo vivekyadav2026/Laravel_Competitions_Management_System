@@ -28,6 +28,7 @@
 
         <form action="{{ route('ludo.battles.create') }}" method="POST" id="createBattleForm">
             @csrf
+            <div id="createBattleAlertBox"></div>
             <div class="ludo-battle-input-group">
                 <span class="text-warning fs-5">🪙</span>
                 <input 
@@ -787,7 +788,33 @@ document.addEventListener('DOMContentLoaded', function () {
                         window.location.href = data.redirect || '{{ route("login") }}';
                         return;
                     }
-                    alert(data.message || 'Failed to create battle. Please check your points balance.');
+                    const alertBox = document.getElementById('createBattleAlertBox');
+                    const walletUrl = data.wallet_url || '{{ route("ludo.wallet") }}';
+                    const isInsufficient = data.error_code === 'INSUFFICIENT_BALANCE' || (data.message && data.message.toLowerCase().includes('insufficient'));
+
+                    if (alertBox) {
+                        alertBox.innerHTML = `
+                            <div class="alert alert-danger py-2 px-3 mb-2 rounded-3 small animate__animated animate__fadeIn border-danger" role="alert" id="createBattleErrorAlert">
+                                <div class="d-flex align-items-start gap-2">
+                                    <i class="fa-solid fa-triangle-exclamation text-danger fs-5 mt-1"></i>
+                                    <div class="flex-grow-1">
+                                        <div class="fw-bold mb-1">${isInsufficient ? 'Insufficient Balance' : 'Battle Creation Error'}</div>
+                                        <div id="createBattleErrorText">${data.message || 'Failed to create battle.'}</div>
+                                        ${isInsufficient ? `
+                                            <div class="mt-2">
+                                                <a href="${walletUrl}" class="btn btn-sm btn-warning text-dark fw-bold rounded-pill px-3 py-1">
+                                                    <i class="fa-solid fa-coins me-1"></i> Add Points in Wallet
+                                                </a>
+                                            </div>
+                                        ` : ''}
+                                    </div>
+                                    <button type="button" class="btn-close py-1" onclick="this.closest('.alert').remove()"></button>
+                                </div>
+                            </div>
+                        `;
+                    } else {
+                        showLudoAlert('danger', data.message || 'Failed to create battle.');
+                    }
                 }
             } catch (err) {
                 console.error('Battle creation failed:', err);
@@ -940,30 +967,58 @@ document.addEventListener('DOMContentLoaded', function () {
                     window.location.href = data.redirect || '{{ route("login") }}';
                     return;
                 }
-                // Battle unavailable, cancelled, already joined, or insufficient balance
-                // Show clear alert inside modal so user is informed without silent closure
                 const modalBody = modalEl ? modalEl.querySelector('.modal-body') : null;
+                const walletUrl = data.wallet_url || '{{ route("ludo.wallet") }}';
+                const isInsufficient = data.error_code === 'INSUFFICIENT_BALANCE' || (data.message && data.message.toLowerCase().includes('insufficient'));
+
                 if (modalBody) {
                     let inModalAlert = modalBody.querySelector('.ludo-inmodal-error');
                     if (!inModalAlert) {
                         inModalAlert = document.createElement('div');
-                        inModalAlert.className = 'alert alert-danger py-2 px-3 mb-2 small rounded-3 d-flex align-items-center gap-2 ludo-inmodal-error';
+                        inModalAlert.className = 'alert alert-danger py-2 px-3 mb-3 small rounded-3 border-danger ludo-inmodal-error animate__animated animate__fadeIn';
                         modalBody.prepend(inModalAlert);
                     }
-                    inModalAlert.innerHTML = `<i class="fa-solid fa-triangle-exclamation text-danger fs-5"></i><div>${data.message || 'Unable to join this battle challenge.'}</div>`;
+                    inModalAlert.innerHTML = `
+                        <div class="d-flex align-items-start gap-2">
+                            <i class="fa-solid fa-triangle-exclamation text-danger fs-5 mt-1"></i>
+                            <div class="flex-grow-1">
+                                <div class="fw-bold mb-1">${isInsufficient ? 'Insufficient Balance' : 'Unable to Join Battle'}</div>
+                                <div id="inModalErrorText">${data.message || 'Unable to join this battle challenge.'}</div>
+                                ${isInsufficient ? `
+                                    <div class="mt-2">
+                                        <a href="${walletUrl}" class="btn btn-sm btn-warning text-dark fw-bold rounded-pill px-3 py-1">
+                                            <i class="fa-solid fa-coins me-1"></i> Add Points in Wallet
+                                        </a>
+                                    </div>
+                                ` : ''}
+                            </div>
+                        </div>
+                    `;
+                }
+
+                // If insufficient balance, update footer so user can add points easily
+                const modalFooter = modalEl ? modalEl.querySelector('.modal-footer') : null;
+                if (modalFooter && isInsufficient) {
+                    modalFooter.innerHTML = `
+                        <div class="ludo-modal-footer-insufficient w-100 d-flex justify-content-between align-items-center">
+                            <button type="button" class="btn ludo-modal-btn-cancel" data-bs-dismiss="modal">Cancel</button>
+                            <a href="${walletUrl}" class="btn ludo-modal-btn-add-points">
+                                <i class="fa-solid fa-coins text-warning me-1"></i> Add Points
+                            </a>
+                        </div>
+                    `;
                 }
 
                 showLudoAlert('danger', data.message || 'Unable to join this battle challenge.');
 
-                // If battle is unavailable or already taken, remove stale card and refresh
-                if (battleId) {
+                // If battle is unavailable or already taken (and not just an insufficient balance check), remove stale card
+                if (battleId && !isInsufficient) {
                     const staleCard = document.querySelector(`.ludo-battle-card[data-battle-id="${battleId}"]`);
                     if (staleCard) {
                         staleCard.classList.add('opacity-50');
                         setTimeout(() => staleCard.remove(), 400);
                         if (openBattlesScroller) {
                             openBattlesScroller.loadedIds.delete(parseInt(battleId, 10));
-                            // Trigger background refresh/fetch if needed
                             if (openBattlesScroller.hasMore) {
                                 openBattlesScroller.fetchNextBatch();
                             }

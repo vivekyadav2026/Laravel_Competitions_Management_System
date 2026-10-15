@@ -326,11 +326,19 @@ class LudoController extends Controller
 
             // Check virtual points balance
             if ($lockedUser->coins < $amount) {
-                if ($request->expectsJson()) {
-                    return response()->json(['success' => false, 'message' => "Insufficient tournament coins! You have 🪙 {$lockedUser->coins}, but need 🪙 {$amount}."], 422);
+                $msg = "Insufficient balance. Your available balance is {$lockedUser->coins} points, but this battle requires {$amount} points. Please add balance before continuing.";
+                if ($request->expectsJson() || $request->ajax()) {
+                    return response()->json([
+                        'success' => false,
+                        'error_code' => 'INSUFFICIENT_BALANCE',
+                        'available_coins' => (int) $lockedUser->coins,
+                        'required_coins' => (int) $amount,
+                        'wallet_url' => route('ludo.wallet'),
+                        'message' => $msg,
+                    ], 422);
                 }
                 return redirect()->back()
-                    ->with('error', "Insufficient tournament coins! You have 🪙 {$lockedUser->coins}, but need 🪙 {$amount}. Add virtual points from My Wallet.")
+                    ->with('error', $msg)
                     ->withInput();
             }
 
@@ -456,13 +464,18 @@ class LudoController extends Controller
 
             // Check points balance
             if ($lockedUser->coins < $battle->entry_fee) {
+                $msg = "Insufficient balance. Your available balance is {$lockedUser->coins} points, but this battle requires {$battle->entry_fee} points. Please add balance before continuing.";
                 if ($request->expectsJson() || $request->ajax()) {
                     return response()->json([
-                        'success' => false, 
-                        'message' => "Insufficient points! You have 🪙 {$lockedUser->coins}, but this battle requires 🪙 {$battle->entry_fee}."
+                        'success' => false,
+                        'error_code' => 'INSUFFICIENT_BALANCE',
+                        'available_coins' => (int) $lockedUser->coins,
+                        'required_coins' => (int) $battle->entry_fee,
+                        'wallet_url' => route('ludo.wallet'),
+                        'message' => $msg,
                     ], 422);
                 }
-                return redirect()->back()->with('error', "Insufficient points! You have 🪙 {$lockedUser->coins}, but this battle requires 🪙 {$battle->entry_fee}.");
+                return redirect()->back()->with('error', $msg);
             }
 
             $creatorDisplayName = $battle->creator ? ($battle->creator->name ?: 'Player_' . substr($battle->creator->phone ?? $battle->creator->id, -4)) : 'Player_' . $battle->creator_id;
@@ -1051,27 +1064,63 @@ class LudoController extends Controller
         $data = [
             'authenticated' => true,
             'user_id' => $user->id,
-            'coins' => $user->coins,
+            'coins' => $user->fresh() ? (int) $user->fresh()->coins : (int) $user->coins,
             'open_battles_count' => LudoBattle::whereIn('status', ['open', 'requested'])->count(),
         ];
 
         // 1. If checking specific battle (in Match Arena)
         if ($request->filled('battle_id')) {
-            $battle = LudoBattle::with(['creator', 'joiner'])->find($request->battle_id);
+            $battle = LudoBattle::with(['creator', 'joiner', 'winner'])->find($request->battle_id);
             if ($battle) {
                 $remSec = 180;
                 if ($battle->room_code_expires_at) {
                     $remSec = max(0, now()->diffInSeconds($battle->room_code_expires_at, false));
                 }
 
+                $isCreator = ($user->id === $battle->creator_id);
+                $isJoiner = ($user->id === $battle->joiner_id);
+                $isAdmin = in_array($user->role, ['admin', 'superadmin', 'support_staff', 'moderator']);
+                $isAuthorized = ($isCreator || $isJoiner || $isAdmin);
+
+                $myClaim = $isCreator ? $battle->creator_claimed_result : $battle->joiner_claimed_result;
+                $opponentClaim = $isCreator ? $battle->joiner_claimed_result : $battle->creator_claimed_result;
+                $opponent = $isCreator ? $battle->joiner : $battle->creator;
+
+                $claimStatusMsg = null;
+                if ($opponentClaim === 'won') {
+                    $oppUserTag = $opponent ? $opponent->formatted_username : 'Your opponent';
+                    $claimStatusMsg = "Your opponent ({$oppUserTag}) has submitted a Victory Claim. Awaiting verification.";
+                }
+
                 $data['battle'] = [
                     'id' => $battle->id,
+                    'battle_uid' => $battle->battle_uid,
                     'status' => $battle->status,
-                    'room_code' => $battle->room_code,
+                    'review_status' => $battle->review_status,
+                    'refund_status' => $battle->refund_status,
+                    'room_code' => $isAuthorized ? $battle->room_code : null,
                     'remaining_seconds' => $remSec,
                     'cancellation_reason' => $battle->cancellation_reason,
+                    'refund_reason' => $battle->refund_reason,
+                    'creator_id' => $battle->creator_id,
+                    'joiner_id' => $battle->joiner_id,
                     'creator_name' => $battle->creator->name ?? 'Player 1',
+                    'creator_username' => $battle->creator ? $battle->creator->formatted_username : null,
                     'joiner_name' => $battle->joiner ? $battle->joiner->name : null,
+                    'joiner_username' => $battle->joiner ? $battle->joiner->formatted_username : null,
+                    'opponent_name' => $opponent ? $opponent->name : null,
+                    'opponent_username' => $opponent ? $opponent->formatted_username : null,
+                    'creator_claimed_result' => $isAuthorized ? $battle->creator_claimed_result : null,
+                    'joiner_claimed_result' => $isAuthorized ? $battle->joiner_claimed_result : null,
+                    'my_claimed_result' => $isAuthorized ? $myClaim : null,
+                    'opponent_claimed_result' => $isAuthorized ? $opponentClaim : null,
+                    'claim_status_message' => $isAuthorized ? $claimStatusMsg : null,
+                    'winner_id' => $battle->winner_id,
+                    'winner_name' => $battle->winner ? $battle->winner->name : null,
+                    'winner_username' => $battle->winner ? $battle->winner->formatted_username : null,
+                    'prize' => (int) $battle->prize,
+                    'entry_fee' => (int) $battle->entry_fee,
+                    'authorized' => $isAuthorized,
                 ];
             }
         }
@@ -1379,6 +1428,60 @@ class LudoController extends Controller
         ]);
     }
 
+    /**
+     * Real-time polling endpoint for player wallet, live balance and deposit request statuses
+     */
+    public function walletSyncState(Request $request)
+    {
+        $user = Auth::user();
+        if (!$user) {
+            return response()->json(['authenticated' => false, 'message' => 'Unauthenticated'], 401);
+        }
+
+        $freshUser = $user->fresh();
+        $recentDeposits = LudoUpiDeposit::where('user_id', $user->id)
+            ->latest('id')
+            ->take(10)
+            ->get()
+            ->map(function ($d) {
+                return [
+                    'id' => $d->id,
+                    'deposit_uid' => $d->deposit_uid,
+                    'amount' => (int) $d->amount,
+                    'utr_number' => $d->utr_number,
+                    'status' => $d->status,
+                    'admin_notes' => $d->admin_notes,
+                    'created_at' => $d->created_at ? $d->created_at->format('d M, h:i A') : 'Recent',
+                    'updated_at' => $d->updated_at ? $d->updated_at->toIso8601String() : null,
+                ];
+            });
+
+        $recentWithdrawals = LudoWithdrawalRequest::where('user_id', $user->id)
+            ->latest('id')
+            ->take(5)
+            ->get()
+            ->map(function ($w) {
+                return [
+                    'id' => $w->id,
+                    'withdrawal_uid' => $w->withdrawal_uid,
+                    'amount' => (int) $w->amount,
+                    'status' => $w->status,
+                    'admin_notes' => $w->admin_notes,
+                    'created_at' => $w->created_at ? $w->created_at->format('d M, h:i A') : 'Recent',
+                ];
+            });
+
+        return response()->json([
+            'authenticated' => true,
+            'user_id' => $user->id,
+            'coins' => (int) $freshUser->coins,
+            'referral' => (float) $freshUser->referral_balance,
+            'recent_deposits' => $recentDeposits,
+            'recent_withdrawals' => $recentWithdrawals,
+            'timestamp' => now()->toIso8601String(),
+        ])->header('Cache-Control', 'no-cache, private, no-store, must-revalidate');
+    }
+
     public static function isUpiDepositsEnabled(): bool
     {
         $setting = LudoSetting::get('upi_deposits_enabled');
@@ -1443,6 +1546,12 @@ class LudoController extends Controller
             ->first();
 
         if ($existing) {
+            if ($request->expectsJson() || $request->ajax()) {
+                return response()->json([
+                    'success' => false,
+                    'message' => "This UTR Number ({$cleanUtr}) has already been submitted (Status: " . ucfirst($existing->status) . "). Duplicate submissions are not allowed."
+                ], 422);
+            }
             return redirect()->back()
                 ->with('error', "This UTR Number ({$cleanUtr}) has already been submitted (Status: " . ucfirst($existing->status) . "). Duplicate submissions are not allowed.")
                 ->withInput();
@@ -1485,6 +1594,22 @@ class LudoController extends Controller
                 'successful'
             );
 
+            if ($request->expectsJson() || $request->ajax()) {
+                return response()->json([
+                    'success' => true,
+                    'message' => "🎉 ₹{$amount} coins credited successfully to your wallet!",
+                    'is_approved' => true,
+                    'deposit' => [
+                        'id' => $deposit->id,
+                        'deposit_uid' => $deposit->deposit_uid,
+                        'amount' => $deposit->amount,
+                        'utr_number' => $cleanUtr,
+                        'status' => 'approved',
+                    ],
+                    'coins' => (int) $user->fresh()->coins,
+                ]);
+            }
+
             return redirect()->route('ludo.wallet')->with('success', "🎉 ₹{$amount} coins credited successfully to your wallet!");
         }
 
@@ -1495,6 +1620,22 @@ class LudoController extends Controller
             "deposit",
             url('/wallet')
         ));
+
+        if ($request->expectsJson() || $request->ajax()) {
+            return response()->json([
+                'success' => true,
+                'message' => "✅ Deposit request for ₹{$amount} submitted! UTR: {$cleanUtr}. Your coins will be added within 5-10 minutes after verification.",
+                'is_approved' => false,
+                'deposit' => [
+                    'id' => $deposit->id,
+                    'deposit_uid' => $deposit->deposit_uid,
+                    'amount' => $deposit->amount,
+                    'utr_number' => $cleanUtr,
+                    'status' => 'pending',
+                ],
+                'coins' => (int) $user->fresh()->coins,
+            ]);
+        }
 
         return redirect()->route('ludo.wallet')->with('success', "✅ Deposit request for ₹{$amount} submitted! UTR: {$cleanUtr}. Your coins will be added within 5-10 minutes after verification.");
     }
@@ -1776,6 +1917,20 @@ class LudoController extends Controller
 
         $validated = $request->validate([
             'name' => ['required', 'string', 'max:255'],
+            'username' => [
+                'nullable',
+                'string',
+                'min:3',
+                'max:40',
+                'regex:/^[a-zA-Z0-9_.]+$/',
+                function ($attribute, $value, $fail) use ($user) {
+                    if (User::whereRaw('LOWER(username) = ?', [strtolower(trim($value))])
+                        ->where('id', '!=', $user->id)
+                        ->exists()) {
+                        $fail('This username is already taken.');
+                    }
+                },
+            ],
             'phone' => ['nullable', 'string', 'max:20'],
             'avatar' => ['nullable', 'image', 'mimes:jpeg,png,jpg,webp', 'max:2048'],
             'hide_email' => ['nullable'],
@@ -1783,6 +1938,9 @@ class LudoController extends Controller
         ]);
 
         $user->name = $validated['name'];
+        if (!empty($validated['username'])) {
+            $user->username = strtolower(trim($validated['username']));
+        }
         $user->phone = $validated['phone'] ?? null;
         $user->hide_email = $request->has('hide_email') && ($request->hide_email == '1' || $request->hide_email === true);
         $user->hide_phone = $request->has('hide_phone') && ($request->hide_phone == '1' || $request->hide_phone === true);
@@ -2104,6 +2262,9 @@ class LudoController extends Controller
     {
         $user = Auth::user();
         if (!$user) {
+            if ($request->expectsJson() || $request->ajax()) {
+                return response()->json(['success' => false, 'message' => 'Please log in to continue.'], 401);
+            }
             return redirect()->route('login');
         }
 
@@ -2114,10 +2275,16 @@ class LudoController extends Controller
         $isJoiner = ($battle->joiner_id === $user->id);
 
         if (!$isCreator && !$isJoiner) {
+            if ($request->expectsJson() || $request->ajax()) {
+                return response()->json(['success' => false, 'message' => 'Unauthorized: You are not a participant in this match.'], 403);
+            }
             return redirect()->back()->with('error', 'Unauthorized: You are not a participant in this match.');
         }
 
         if ($battle->status !== 'running') {
+            if ($request->expectsJson() || $request->ajax()) {
+                return response()->json(['success' => false, 'message' => 'Match is not in running state.'], 422);
+            }
             return redirect()->back()->with('error', 'Match is not in running state.');
         }
 
@@ -2144,6 +2311,9 @@ class LudoController extends Controller
         // Prevent player from flipping or modifying an already submitted claim
         $existingClaim = $isCreator ? $battle->creator_claimed_result : $battle->joiner_claimed_result;
         if ($existingClaim && $existingClaim !== 'pending') {
+            if ($request->expectsJson() || $request->ajax()) {
+                return response()->json(['success' => false, 'message' => 'You have already submitted your match result claim. Claims cannot be modified.'], 422);
+            }
             return redirect()->back()->with('error', 'You have already submitted your match result claim. Claims cannot be modified.');
         }
 
@@ -2170,6 +2340,9 @@ class LudoController extends Controller
         if ($isExpired) {
             $battle->review_status = 'under_review';
             $battle->save();
+            if ($request->expectsJson() || $request->ajax()) {
+                return response()->json(['success' => true, 'status' => 'under_review', 'message' => 'Result submitted after deadline. Under administrative review.']);
+            }
             return redirect()->back()->with('warning', 'Result submitted after the 15-minute deadline. As per platform policy, expired submissions are placed under administrative review.');
         }
 
@@ -2182,10 +2355,16 @@ class LudoController extends Controller
             if ($creatorClaim === 'won' && $joinerClaim === 'lost') {
                 // Creator won
                 $this->finalizeBattleVictory($battle, $battle->creator_id, 'won');
+                if ($request->expectsJson() || $request->ajax()) {
+                    return response()->json(['success' => true, 'status' => 'completed', 'winner_id' => $battle->creator_id, 'message' => "Match completed! {$battle->creator->name} won 🪙 {$battle->prize} virtual points."]);
+                }
                 return redirect()->back()->with('success', "Match completed! {$battle->creator->name} won 🪙 {$battle->prize} virtual points.");
             } elseif ($creatorClaim === 'lost' && $joinerClaim === 'won') {
                 // Joiner won
                 $this->finalizeBattleVictory($battle, $battle->joiner_id, 'won');
+                if ($request->expectsJson() || $request->ajax()) {
+                    return response()->json(['success' => true, 'status' => 'completed', 'winner_id' => $battle->joiner_id, 'message' => "Match completed! {$battle->joiner->name} won 🪙 {$battle->prize} virtual points."]);
+                }
                 return redirect()->back()->with('success', "Match completed! {$battle->joiner->name} won 🪙 {$battle->prize} virtual points.");
             } elseif ($creatorClaim === 'cancelled' && $joinerClaim === 'cancelled') {
                 // Both claimed cancelled during active match -> Freeze payout/refund, route to Admin Review
@@ -2209,6 +2388,9 @@ class LudoController extends Controller
                     ]
                 );
 
+                if ($request->expectsJson() || $request->ajax()) {
+                    return response()->json(['success' => true, 'status' => 'under_review', 'review_status' => 'under_review', 'message' => 'Cancellation claims submitted. Under administrative review: refunds stay frozen until verified and approved by admin.']);
+                }
                 return redirect()->back()->with('warning', 'Cancellation claims submitted. Under administrative review: refunds stay frozen until verified and approved by admin.');
             } else {
                 // CONFLICT! (e.g. both claim 'won' or one claims won and other claims cancelled)
@@ -2230,6 +2412,9 @@ class LudoController extends Controller
                     'evidence_path' => $evidencePath,
                 ]);
 
+                if ($request->expectsJson() || $request->ajax()) {
+                    return response()->json(['success' => true, 'status' => 'disputed', 'review_status' => 'disputed', 'message' => 'Conflicting results detected! A dispute has been opened for administrative review.']);
+                }
                 return redirect()->back()->with('warning', 'Conflicting results detected! A dispute has been opened for administrative review.');
             }
         }
@@ -2237,10 +2422,25 @@ class LudoController extends Controller
         $battle->save();
 
         if ($claimed === 'cancelled') {
+            if ($request->expectsJson() || $request->ajax()) {
+                return response()->json(['success' => true, 'status' => 'pending_opponent', 'claimed' => 'cancelled', 'message' => 'Cancellation claim recorded. Awaiting opponent response and admin verification before any refund is processed.']);
+            }
             return redirect()->back()->with('warning', 'Cancellation claim recorded. Awaiting opponent response and admin verification before any refund is processed.');
         }
 
-        return redirect()->back()->with('success', 'Result submitted. Waiting for opponent claim.');
+        $msg = ($claimed === 'won')
+            ? 'Your victory claim has been submitted. Awaiting verification.'
+            : 'Result submitted. Waiting for opponent claim.';
+
+        if ($request->expectsJson() || $request->ajax()) {
+            return response()->json([
+                'success' => true,
+                'status' => 'pending_opponent',
+                'claimed' => $claimed,
+                'message' => $msg,
+            ]);
+        }
+        return redirect()->back()->with('success', $msg);
     }
 
     /**

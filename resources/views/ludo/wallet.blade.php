@@ -15,7 +15,7 @@
         <div class="d-flex align-items-center justify-content-between mb-3">
             <div>
                 <span class="text-secondary small d-block">TOTAL WALLET BALANCE</span>
-                <h3 class="fw-bold text-white mb-0">🪙 {{ number_format($coins ?? 0) }} <span class="fs-6 text-info">Points</span></h3>
+                <h3 class="fw-bold text-white mb-0">🪙 <span id="playerWalletTotalBalance">{{ number_format($coins ?? 0) }}</span> <span class="fs-6 text-info">Points</span></h3>
             </div>
             <img src="{{ asset('assets/ludo/coins-sack.svg') }}" alt="Coins" style="width: 48px; height: 48px;">
         </div>
@@ -24,13 +24,13 @@
             <div class="col-6">
                 <div class="p-2 rounded-3" style="background: rgba(14, 42, 92, 0.7); border: 1px solid #1d4ed8;">
                     <div class="text-secondary small" style="font-size: 10px;">AVAILABLE COINS</div>
-                    <div class="fw-bold text-white fs-6">🪙 {{ number_format($coins ?? 0) }}</div>
+                    <div class="fw-bold text-white fs-6">🪙 <span id="playerWalletAvailableBalance">{{ number_format($coins ?? 0) }}</span></div>
                 </div>
             </div>
             <div class="col-6">
                 <div class="p-2 rounded-3" style="background: rgba(67, 27, 92, 0.7); border: 1px solid #7e22ce;">
                     <div class="text-secondary small" style="font-size: 10px;">REFERRAL COMMISSION</div>
-                    <div class="fw-bold text-success fs-6">🪙 {{ number_format($referral ?? 0, 2) }}</div>
+                    <div class="fw-bold text-success fs-6">🪙 <span id="playerWalletReferralBalance">{{ number_format($referral ?? 0, 2) }}</span></div>
                 </div>
             </div>
         </div>
@@ -248,73 +248,77 @@
     @endif
 
     {{-- PART 8: PLAYER PAYMENT REQUEST HISTORY SECTION --}}
-    @if(isset($paymentRequests) && $paymentRequests->count() > 0)
-        <div class="mb-4">
-            <div class="d-flex justify-content-between align-items-center mb-3">
-                <h5 class="fw-bold text-white mb-0 fs-6">
-                    <i class="fa-solid fa-clock-rotate-left text-warning me-1"></i> My Payment Requests
-                </h5>
-                <span class="badge bg-dark border border-secondary text-secondary" style="font-size: 10px;">
-                    {{ $paymentRequests->count() }} Requests
-                </span>
-            </div>
-
-            @foreach($paymentRequests as $dep)
-                @php
-                    $statusBadge = match($dep->status) {
-                        'approved' => 'bg-success text-white',
-                        'rejected' => 'bg-danger text-white',
-                        default => 'bg-warning text-dark'
-                    };
-                    $statusLabel = match($dep->status) {
-                        'approved' => 'Approved & Credited',
-                        'rejected' => 'Rejected',
-                        default => 'Pending Verification'
-                    };
-                    $statusIcon = match($dep->status) {
-                        'approved' => 'fa-circle-check',
-                        'rejected' => 'fa-circle-xmark',
-                        default => 'fa-clock'
-                    };
-                @endphp
-                <div class="p-3 rounded-3 mb-2" style="background: rgba(14, 25, 51, 0.85); border: 1px solid {{ $dep->status === 'approved' ? 'rgba(34, 197, 94, 0.35)' : ($dep->status === 'rejected' ? 'rgba(239, 68, 68, 0.35)' : 'rgba(234, 179, 8, 0.35)') }};">
-                    <div class="d-flex justify-content-between align-items-center mb-1">
-                        <div>
-                            <span class="fw-bold text-white fs-6">🪙 {{ number_format($dep->amount) }} Coins</span>
-                            <span class="text-secondary small ms-1">(₹{{ number_format($dep->amount) }})</span>
-                        </div>
-                        <span class="badge {{ $statusBadge }} d-inline-flex align-items-center gap-1" style="font-size: 10px;">
-                            <i class="fa-solid {{ $statusIcon }}"></i> {{ $statusLabel }}
-                        </span>
-                    </div>
-
-                    <div class="d-flex justify-content-between align-items-center text-secondary small" style="font-size: 11px;">
-                        <span>
-                            UTR: <strong class="font-monospace text-info">{{ $dep->utr_number }}</strong> &bull;
-                            <span class="text-secondary">{{ $dep->deposit_uid }}</span>
-                        </span>
-                        <span>{{ $dep->created_at ? $dep->created_at->format('d M, h:i A') : 'Recent' }}</span>
-                    </div>
-
-                    {{-- Rejection reason alert --}}
-                    @if($dep->status === 'rejected' && !empty($dep->admin_notes))
-                        <div class="mt-2 p-2 rounded small text-danger" style="background: rgba(220, 53, 69, 0.15); border: 1px solid rgba(220, 53, 69, 0.3); font-size: 11.5px;">
-                            <i class="fa-solid fa-circle-exclamation me-1"></i>
-                            <strong>Rejection Reason:</strong> {{ $dep->admin_notes }}
-                        </div>
-                    @elseif($dep->status === 'approved')
-                        <div class="mt-1 small text-success" style="font-size: 11px;">
-                            <i class="fa-solid fa-check-double me-1"></i> Confirmed &amp; credited to wallet ledger by platform admin.
-                        </div>
-                    @else
-                        <div class="mt-1 small text-warning" style="font-size: 11px;">
-                            <i class="fa-solid fa-spinner fa-spin me-1"></i> Awaiting admin verification. Typically verified within 5-15 minutes.
-                        </div>
-                    @endif
-                </div>
-            @endforeach
+    <div class="mb-4" id="userPaymentRequestsSection" style="{{ (isset($paymentRequests) && $paymentRequests->count() > 0) ? '' : 'display: none;' }}">
+        <div class="d-flex justify-content-between align-items-center mb-3">
+            <h5 class="fw-bold text-white mb-0 fs-6">
+                <i class="fa-solid fa-clock-rotate-left text-warning me-1"></i> My Payment Requests
+            </h5>
+            <span class="badge bg-dark border border-secondary text-secondary" id="userPaymentRequestsCountBadge" style="font-size: 10px;">
+                {{ isset($paymentRequests) ? $paymentRequests->count() : 0 }} Requests
+            </span>
         </div>
-    @endif
+
+        <div id="userPaymentRequestsList">
+            @if(isset($paymentRequests))
+                @foreach($paymentRequests as $dep)
+                    @php
+                        $statusBadge = match($dep->status) {
+                            'approved' => 'bg-success text-white',
+                            'rejected' => 'bg-danger text-white',
+                            default => 'bg-warning text-dark'
+                        };
+                        $statusLabel = match($dep->status) {
+                            'approved' => 'Approved & Credited',
+                            'rejected' => 'Rejected',
+                            default => 'Pending Verification'
+                        };
+                        $statusIcon = match($dep->status) {
+                            'approved' => 'fa-circle-check',
+                            'rejected' => 'fa-circle-xmark',
+                            default => 'fa-clock'
+                        };
+                    @endphp
+                    <div class="p-3 rounded-3 mb-2 player-deposit-card" id="playerDepositCard_{{ $dep->id }}" data-id="{{ $dep->id }}" data-status="{{ $dep->status }}" style="background: rgba(14, 25, 51, 0.85); border: 1px solid {{ $dep->status === 'approved' ? 'rgba(34, 197, 94, 0.35)' : ($dep->status === 'rejected' ? 'rgba(239, 68, 68, 0.35)' : 'rgba(234, 179, 8, 0.35)') }};">
+                        <div class="d-flex justify-content-between align-items-center mb-1">
+                            <div>
+                                <span class="fw-bold text-white fs-6">🪙 {{ number_format($dep->amount) }} Coins</span>
+                                <span class="text-secondary small ms-1">(₹{{ number_format($dep->amount) }})</span>
+                            </div>
+                            <span class="badge {{ $statusBadge }} d-inline-flex align-items-center gap-1 status-badge" style="font-size: 10px;">
+                                <i class="fa-solid {{ $statusIcon }}"></i> <span class="status-label-text">{{ $statusLabel }}</span>
+                            </span>
+                        </div>
+
+                        <div class="d-flex justify-content-between align-items-center text-secondary small" style="font-size: 11px;">
+                            <span>
+                                UTR: <strong class="font-monospace text-info">{{ $dep->utr_number }}</strong> &bull;
+                                <span class="text-secondary">{{ $dep->deposit_uid }}</span>
+                            </span>
+                            <span>{{ $dep->created_at ? $dep->created_at->format('d M, h:i A') : 'Recent' }}</span>
+                        </div>
+
+                        {{-- Status messages --}}
+                        <div class="status-notes-container">
+                            @if($dep->status === 'rejected' && !empty($dep->admin_notes))
+                                <div class="mt-2 p-2 rounded small text-danger" style="background: rgba(220, 53, 69, 0.15); border: 1px solid rgba(220, 53, 69, 0.3); font-size: 11.5px;">
+                                    <i class="fa-solid fa-circle-exclamation me-1"></i>
+                                    <strong>Rejection Reason:</strong> {{ $dep->admin_notes }}
+                                </div>
+                            @elseif($dep->status === 'approved')
+                                <div class="mt-1 small text-success" style="font-size: 11px;">
+                                    <i class="fa-solid fa-check-double me-1"></i> Confirmed &amp; credited to wallet ledger by platform admin.
+                                </div>
+                            @else
+                                <div class="mt-1 small text-warning" style="font-size: 11px;">
+                                    <i class="fa-solid fa-spinner fa-spin me-1"></i> Awaiting admin verification. Typically verified within 5-15 minutes.
+                                </div>
+                            @endif
+                        </div>
+                    </div>
+                @endforeach
+            @endif
+        </div>
+    </div>
 
     {{-- PART 9: PLAYER WITHDRAWAL & SETTLEMENT SECTION --}}
     <div class="ludo-amount-card mb-4" id="withdrawalSection">
@@ -709,15 +713,277 @@
                 });
             }
 
-            // Form submission feedback
-            const form = document.getElementById('upiDepositSubmitForm');
-            const submitBtn = document.getElementById('btnSubmitUtr');
-            if (form && submitBtn) {
-                form.addEventListener('submit', function() {
-                    submitBtn.disabled = true;
-                    submitBtn.innerHTML = '<span class="spinner-border spinner-border-sm me-2" role="status" aria-hidden="true"></span> Submitting UTR...';
+            // Native Web Audio Synthesizer Chime for Player Wallet (No external asset downloads)
+            function playWalletChime(type) {
+                try {
+                    const AudioCtx = window.AudioContext || window.webkitAudioContext;
+                    if (!AudioCtx) return;
+                    const ctx = new AudioCtx();
+                    if (ctx.state === 'suspended') ctx.resume();
+                    const now = ctx.currentTime;
+
+                    if (type === 'celebrate') {
+                        // 3-tone ascending victory arpeggio (C5 523Hz -> E5 659.25Hz -> G5 783.99Hz)
+                        [523.25, 659.25, 783.99].forEach((freq, idx) => {
+                            const osc = ctx.createOscillator();
+                            const gain = ctx.createGain();
+                            osc.connect(gain);
+                            gain.connect(ctx.destination);
+                            osc.type = 'triangle';
+                            const noteTime = now + (idx * 0.12);
+                            osc.frequency.setValueAtTime(freq, noteTime);
+                            gain.gain.setValueAtTime(0.2, noteTime);
+                            gain.gain.exponentialRampToValueAtTime(0.001, noteTime + 0.35);
+                            osc.start(noteTime);
+                            osc.stop(noteTime + 0.35);
+                        });
+                    } else {
+                        const osc = ctx.createOscillator();
+                        const gain = ctx.createGain();
+                        osc.connect(gain);
+                        gain.connect(ctx.destination);
+                        osc.type = 'sine';
+                        osc.frequency.setValueAtTime(440, now);
+                        gain.gain.setValueAtTime(0.15, now);
+                        gain.gain.exponentialRampToValueAtTime(0.001, now + 0.3);
+                        osc.start(now);
+                        osc.stop(now + 0.3);
+                    }
+                } catch (e) {}
+            }
+
+            // Player In-App Floating Toast Notification
+            function showWalletToast(title, message, type) {
+                let container = document.getElementById('playerToastContainer');
+                if (!container) {
+                    container = document.createElement('div');
+                    container.id = 'playerToastContainer';
+                    container.className = 'position-fixed bottom-0 start-50 translate-middle-x p-3';
+                    container.style.zIndex = '9999';
+                    container.style.maxWidth = '92vw';
+                    container.style.width = '380px';
+                    document.body.appendChild(container);
+                }
+
+                const toastId = 'p_toast_' + Date.now();
+                const borderColor = type === 'success' ? '#22c55e' : (type === 'danger' ? '#ef4444' : '#eab308');
+                const html = `
+                    <div id="${toastId}" class="p-3 mb-2 rounded-3 text-white shadow-lg d-flex align-items-start gap-2" style="background: rgba(10, 18, 38, 0.95); border: 1.5px solid ${borderColor}; backdrop-filter: blur(8px); animation: fadeIn 0.3s ease;">
+                        <div class="fs-5">${type === 'success' ? '🎉' : (type === 'danger' ? '❌' : 'ℹ️')}</div>
+                        <div class="flex-grow-1 min-w-0">
+                            <strong class="d-block small text-white">${title}</strong>
+                            <span class="small text-light opacity-90" style="font-size: 11.5px;">${message}</span>
+                        </div>
+                        <button type="button" class="btn-close btn-close-white btn-sm" onclick="this.closest('#${toastId}').remove()"></button>
+                    </div>
+                `;
+                container.insertAdjacentHTML('beforeend', html);
+                setTimeout(() => {
+                    const el = document.getElementById(toastId);
+                    if (el) el.remove();
+                }, 7000);
+            }
+
+            // AJAX submission for UPI Deposit Form (instant response, no full reload)
+            const upiForm = document.getElementById('upiDepositSubmitForm');
+            const submitUtrBtn = document.getElementById('btnSubmitUtr');
+
+            if (upiForm && submitUtrBtn) {
+                upiForm.addEventListener('submit', async function(e) {
+                    e.preventDefault();
+                    submitUtrBtn.disabled = true;
+                    submitUtrBtn.innerHTML = '<span class="spinner-border spinner-border-sm me-2"></span> Submitting Proof...';
+
+                    const formData = new FormData(upiForm);
+
+                    try {
+                        const res = await fetch(upiForm.action, {
+                            method: 'POST',
+                            headers: {
+                                'Accept': 'application/json',
+                                'X-Requested-With': 'XMLHttpRequest'
+                            },
+                            body: formData
+                        });
+
+                        const data = await res.json();
+
+                        if (res.ok && data.success) {
+                            showWalletToast('Request Submitted!', data.message, 'success');
+                            playWalletChime('notice');
+
+                            // Reset inputs
+                            const utrInput = document.getElementById('inputUtrNumber');
+                            if (utrInput) utrInput.value = '';
+                            const fileInput = upiForm.querySelector('input[type="file"]');
+                            if (fileInput) fileInput.value = '';
+
+                            // Prepend card to list
+                            const requestsSection = document.getElementById('userPaymentRequestsSection');
+                            const requestsList = document.getElementById('userPaymentRequestsList');
+                            if (requestsSection) requestsSection.style.display = 'block';
+
+                            if (requestsList && data.deposit) {
+                                const cardId = 'playerDepositCard_' + data.deposit.id;
+                                const isAppr = data.deposit.status === 'approved';
+                                const cardHtml = `
+                                    <div class="p-3 rounded-3 mb-2 player-deposit-card" id="${cardId}" data-id="${data.deposit.id}" data-status="${data.deposit.status}" style="background: rgba(14, 25, 51, 0.85); border: 1px solid ${isAppr ? 'rgba(34, 197, 94, 0.35)' : 'rgba(234, 179, 8, 0.35)'};">
+                                        <div class="d-flex justify-content-between align-items-center mb-1">
+                                            <div>
+                                                <span class="fw-bold text-white fs-6">🪙 ${Number(data.deposit.amount).toLocaleString()} Coins</span>
+                                                <span class="text-secondary small ms-1">(₹${Number(data.deposit.amount).toLocaleString()})</span>
+                                            </div>
+                                            <span class="badge ${isAppr ? 'bg-success text-white' : 'bg-warning text-dark'} d-inline-flex align-items-center gap-1 status-badge" style="font-size: 10px;">
+                                                <i class="fa-solid ${isAppr ? 'fa-circle-check' : 'fa-clock'}"></i>
+                                                <span class="status-label-text">${isAppr ? 'Approved & Credited' : 'Pending Verification'}</span>
+                                            </span>
+                                        </div>
+                                        <div class="d-flex justify-content-between align-items-center text-secondary small" style="font-size: 11px;">
+                                            <span>
+                                                UTR: <strong class="font-monospace text-info">${data.deposit.utr_number}</strong> &bull;
+                                                <span class="text-secondary">${data.deposit.deposit_uid}</span>
+                                            </span>
+                                            <span>Just now</span>
+                                        </div>
+                                        <div class="status-notes-container">
+                                            <div class="mt-1 small ${isAppr ? 'text-success' : 'text-warning'}" style="font-size: 11px;">
+                                                ${isAppr ? '<i class="fa-solid fa-check-double me-1"></i> Credited to wallet.' : '<i class="fa-solid fa-spinner fa-spin me-1"></i> Awaiting admin verification.'}
+                                            </div>
+                                        </div>
+                                    </div>
+                                `;
+                                requestsList.insertAdjacentHTML('afterbegin', cardHtml);
+                            }
+
+                            // Trigger immediate sync
+                            pollWalletSyncState();
+                        } else {
+                            showWalletToast('Submission Error', data.message || 'Could not submit payment request.', 'danger');
+                        }
+                    } catch (err) {
+                        showWalletToast('Network Error', 'Please check your connection and try again.', 'danger');
+                    } finally {
+                        submitUtrBtn.disabled = false;
+                        submitUtrBtn.innerHTML = '<i class="fa-solid fa-paper-plane me-2"></i> Submit Payment Proof & Add Coins';
+                    }
                 });
             }
+
+            // Real-Time Polling for Player Wallet Balance & Payment Approval/Rejection
+            let lastKnownCoins = {{ (int) ($coins ?? 0) }};
+            const knownDepositStatuses = {};
+            document.querySelectorAll('.player-deposit-card').forEach(card => {
+                const depId = card.getAttribute('data-id');
+                const depStatus = card.getAttribute('data-status');
+                if (depId && depStatus) knownDepositStatuses[depId] = depStatus;
+            });
+
+            let isSyncingWallet = false;
+            async function pollWalletSyncState() {
+                if (document.hidden || isSyncingWallet) return;
+                isSyncingWallet = true;
+
+                try {
+                    const res = await fetch("{{ route('ludo.wallet.syncState') }}", {
+                        headers: {
+                            'Accept': 'application/json',
+                            'X-Requested-With': 'XMLHttpRequest'
+                        }
+                    });
+
+                    if (res.ok) {
+                        const data = await res.json();
+                        if (data && data.authenticated) {
+                            const newCoins = Number(data.coins);
+
+                            // 1. Balance Update Detection
+                            if (newCoins !== lastKnownCoins) {
+                                lastKnownCoins = newCoins;
+                                const formatted = newCoins.toLocaleString();
+
+                                // Update Wallet Page Displays
+                                const totalBalEl = document.getElementById('playerWalletTotalBalance');
+                                if (totalBalEl) totalBalEl.textContent = formatted;
+                                const availBalEl = document.getElementById('playerWalletAvailableBalance');
+                                if (availBalEl) availBalEl.textContent = formatted;
+
+                                // Update Topbar & Drawer Balances
+                                document.querySelectorAll('.user-coins-display').forEach(el => {
+                                    el.textContent = formatted;
+                                });
+                            }
+
+                            // 2. Deposit Approval/Rejection State Changes
+                            if (Array.isArray(data.recent_deposits)) {
+                                data.recent_deposits.forEach(dep => {
+                                    const prevStatus = knownDepositStatuses[dep.id];
+                                    const card = document.getElementById('playerDepositCard_' + dep.id);
+
+                                    if (prevStatus === 'pending' && dep.status === 'approved') {
+                                        // 🎉 Transitioned to APPROVED!
+                                        knownDepositStatuses[dep.id] = 'approved';
+                                        playWalletChime('celebrate');
+                                        showWalletToast(
+                                            'Deposit Approved!',
+                                            `₹${Number(dep.amount).toLocaleString()} coins credited to your wallet. Balance updated!`,
+                                            'success'
+                                        );
+
+                                        if (card) {
+                                            card.setAttribute('data-status', 'approved');
+                                            card.style.borderColor = 'rgba(34, 197, 94, 0.4)';
+                                            const badge = card.querySelector('.status-badge');
+                                            if (badge) {
+                                                badge.className = 'badge bg-success text-white d-inline-flex align-items-center gap-1 status-badge';
+                                                badge.innerHTML = '<i class="fa-solid fa-circle-check"></i> <span class="status-label-text">Approved & Credited</span>';
+                                            }
+                                            const notes = card.querySelector('.status-notes-container');
+                                            if (notes) {
+                                                notes.innerHTML = '<div class="mt-1 small text-success" style="font-size: 11px;"><i class="fa-solid fa-check-double me-1"></i> Confirmed & credited to wallet ledger by platform admin.</div>';
+                                            }
+                                        }
+                                    } else if (prevStatus === 'pending' && dep.status === 'rejected') {
+                                        // ⚠️ Transitioned to REJECTED!
+                                        knownDepositStatuses[dep.id] = 'rejected';
+                                        showWalletToast(
+                                            'Deposit Rejected',
+                                            `₹${Number(dep.amount).toLocaleString()} (UTR: ${dep.utr_number}) was rejected: ${dep.admin_notes || 'Could not verify proof.'}`,
+                                            'danger'
+                                        );
+
+                                        if (card) {
+                                            card.setAttribute('data-status', 'rejected');
+                                            card.style.borderColor = 'rgba(239, 68, 68, 0.4)';
+                                            const badge = card.querySelector('.status-badge');
+                                            if (badge) {
+                                                badge.className = 'badge bg-danger text-white d-inline-flex align-items-center gap-1 status-badge';
+                                                badge.innerHTML = '<i class="fa-solid fa-circle-xmark"></i> <span class="status-label-text">Rejected</span>';
+                                            }
+                                            const notes = card.querySelector('.status-notes-container');
+                                            if (notes) {
+                                                notes.innerHTML = `<div class="mt-2 p-2 rounded small text-danger" style="background: rgba(220, 53, 69, 0.15); border: 1px solid rgba(220, 53, 69, 0.3); font-size: 11.5px;"><i class="fa-solid fa-circle-exclamation me-1"></i> <strong>Rejection Reason:</strong> ${dep.admin_notes || 'Invalid transfer proof'}</div>`;
+                                            }
+                                        }
+                                    } else if (!prevStatus) {
+                                        knownDepositStatuses[dep.id] = dep.status;
+                                    }
+                                });
+                            }
+                        }
+                    }
+                } catch (err) {
+                    console.debug('Wallet live sync error:', err);
+                } finally {
+                    isSyncingWallet = false;
+                }
+            }
+
+            // Start 3-second live sync interval on player wallet
+            setInterval(pollWalletSyncState, 3000);
+
+            document.addEventListener('visibilitychange', function() {
+                if (!document.hidden) pollWalletSyncState();
+            });
 
             const wthForm = document.getElementById('withdrawalSubmitForm');
             const wthBtn = document.getElementById('btnSubmitWithdrawal');

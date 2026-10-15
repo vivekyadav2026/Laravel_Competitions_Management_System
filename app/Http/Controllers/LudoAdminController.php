@@ -308,18 +308,34 @@ class LudoAdminController extends Controller
 
         $validated = $request->validate([
             'name' => ['required', 'string', 'max:255'],
+            'username' => [
+                'nullable',
+                'string',
+                'min:3',
+                'max:40',
+                'regex:/^[a-zA-Z0-9_.]+$/',
+                function ($attribute, $value, $fail) use ($targetUser) {
+                    if (User::whereRaw('LOWER(username) = ?', [strtolower(trim($value))])
+                        ->where('id', '!=', $targetUser->id)
+                        ->exists()) {
+                        $fail('This username is already taken.');
+                    }
+                },
+            ],
             'email' => ['required', 'email', 'max:255', 'unique:users,email,' . $targetUser->id],
             'phone' => ['nullable', 'string', 'max:25'],
             'reason' => ['required', 'string', 'min:5', 'max:500'],
         ]);
 
-        $before = "name={$targetUser->name}, email={$targetUser->email}, phone=" . ($targetUser->phone ?? 'null');
-        $targetUser->update([
-            'name' => $validated['name'],
-            'email' => $validated['email'],
-            'phone' => $validated['phone'] ?? null,
-        ]);
-        $after = "name={$targetUser->name}, email={$targetUser->email}, phone=" . ($targetUser->phone ?? 'null');
+        $before = "name={$targetUser->name}, username={$targetUser->username}, email={$targetUser->email}, phone=" . ($targetUser->phone ?? 'null');
+        $targetUser->name = $validated['name'];
+        if (!empty($validated['username'])) {
+            $targetUser->username = strtolower(trim($validated['username']));
+        }
+        $targetUser->email = $validated['email'];
+        $targetUser->phone = $validated['phone'] ?? null;
+        $targetUser->save();
+        $after = "name={$targetUser->name}, username={$targetUser->username}, email={$targetUser->email}, phone=" . ($targetUser->phone ?? 'null');
 
         LudoAdminAuditLog::log(
             'user_profile_corrected',
@@ -988,13 +1004,18 @@ class LudoAdminController extends Controller
      */
     public function matchResolveResult(Request $request, $id)
     {
-        $validated = $request->validate([
-            'decision' => ['required', 'in:award_creator,award_joiner,mark_verified,reject_result'],
-            'reason' => ['required', 'string', 'min:5', 'max:1000'],
-        ]);
-
-        return DB::transaction(function () use ($id, $validated) {
+        return DB::transaction(function () use ($id, $request) {
             $match = LudoBattle::with(['creator', 'joiner', 'dispute'])->lockForUpdate()->findOrFail($id);
+
+            $allowedDecisions = ['award_creator', 'award_joiner', 'mark_verified', 'reject_result', (string) $match->creator_id];
+            if ($match->joiner_id) {
+                $allowedDecisions[] = (string) $match->joiner_id;
+            }
+
+            $validated = $request->validate([
+                'decision' => ['required', 'string', \Illuminate\Validation\Rule::in($allowedDecisions)],
+                'reason' => ['required', 'string', 'min:5', 'max:1000'],
+            ]);
 
             if ($validated['decision'] === 'mark_verified') {
                 $match->update([
@@ -1003,6 +1024,9 @@ class LudoAdminController extends Controller
                     'admin_reviewed_by_id' => Auth::id(),
                 ]);
                 LudoAdminAuditLog::log('match_verified', "Verified match {$match->battle_uid}. Reason: {$validated['reason']}", 'LudoBattle', $match->id);
+                if ($request->expectsJson() || $request->ajax()) {
+                    return response()->json(['success' => true, 'message' => "Match {$match->battle_uid} marked as verified."]);
+                }
                 return redirect()->back()->with('success', "Match {$match->battle_uid} marked as verified.");
             }
 
@@ -1014,14 +1038,23 @@ class LudoAdminController extends Controller
                     'admin_reviewed_by_id' => Auth::id(),
                 ]);
                 LudoAdminAuditLog::log('match_result_rejected', "Rejected result claim for match {$match->battle_uid}. Reason: {$validated['reason']}", 'LudoBattle', $match->id);
+                if ($request->expectsJson() || $request->ajax()) {
+                    return response()->json(['success' => true, 'message' => "Result claim for match {$match->battle_uid} was marked as rejected."]);
+                }
                 return redirect()->back()->with('warning', "Result claim for match {$match->battle_uid} was marked as rejected.");
             }
 
             if (in_array($match->status, ['completed', 'cancelled'])) {
+                if ($request->expectsJson() || $request->ajax()) {
+                    return response()->json(['success' => false, 'message' => 'This match has already been settled or cancelled.'], 422);
+                }
                 return redirect()->back()->with('error', 'This match has already been settled or cancelled.');
             }
 
             if (!$match->joiner_id) {
+                if ($request->expectsJson() || $request->ajax()) {
+                    return response()->json(['success' => false, 'message' => 'Cannot award victory on an open match without an opponent.'], 422);
+                }
                 return redirect()->back()->with('error', 'Cannot award victory on an open match without an opponent.');
             }
 
@@ -1031,6 +1064,9 @@ class LudoAdminController extends Controller
                 ->where('status', 'successful')
                 ->exists();
             if ($alreadyPaid) {
+                if ($request->expectsJson() || $request->ajax()) {
+                    return response()->json(['success' => false, 'message' => 'Prize payout has already been recorded for this match.'], 422);
+                }
                 return redirect()->back()->with('error', 'Prize payout has already been recorded for this match.');
             }
 
@@ -1040,10 +1076,15 @@ class LudoAdminController extends Controller
                 ->where('status', 'successful')
                 ->exists();
             if ($alreadyRefunded) {
+                if ($request->expectsJson() || $request->ajax()) {
+                    return response()->json(['success' => false, 'message' => 'Cannot award victory: this match was already refunded.'], 422);
+                }
                 return redirect()->back()->with('error', 'Cannot award victory: this match was already refunded.');
             }
 
-            $winner = $validated['decision'] === 'award_creator' ? $match->creator : $match->joiner;
+            $winner = ($validated['decision'] === 'award_creator' || $validated['decision'] == $match->creator_id)
+                ? $match->creator 
+                : $match->joiner;
 
             $match->update([
                 'status' => 'completed',
@@ -1085,6 +1126,13 @@ class LudoAdminController extends Controller
 
             LudoAdminAuditLog::log('match_result_settled', "Settled match {$match->battle_uid} in favor of {$winner->name} (#{$winner->id}). Reason: {$validated['reason']}", 'LudoBattle', $match->id);
 
+            if ($request->expectsJson() || $request->ajax()) {
+                return response()->json([
+                    'success' => true,
+                    'message' => "Match {$match->battle_uid} settled in favor of {$winner->name} and 🪙 {$match->prize} credited.",
+                    'winner_id' => $winner->id,
+                ]);
+            }
             return redirect()->back()->with('success', "Match {$match->battle_uid} settled in favor of {$winner->name} and 🪙 {$match->prize} credited.");
         });
     }
@@ -1670,8 +1718,20 @@ class LudoAdminController extends Controller
                 LudoAdminAuditLog::log('upi_deposit_approved', "Approved UPI deposit {$lockedDeposit->deposit_uid} of ₹{$lockedDeposit->amount} for user {$lockedDeposit->user->name} (UTR: {$lockedDeposit->utr_number})", 'LudoUpiDeposit', $lockedDeposit->id);
             });
 
+            if ($request->expectsJson() || $request->ajax()) {
+                return response()->json([
+                    'success' => true,
+                    'message' => "Deposit {$deposit->deposit_uid} approved successfully! 🪙 {$deposit->amount} coins credited to {$deposit->user->name}.",
+                    'deposit_id' => $deposit->id,
+                    'status' => 'approved',
+                ]);
+            }
+
             return redirect()->back()->with('success', "Deposit {$deposit->deposit_uid} approved successfully! 🪙 {$deposit->amount} coins credited to {$deposit->user->name}.");
         } catch (\InvalidArgumentException $e) {
+            if ($request->expectsJson() || $request->ajax()) {
+                return response()->json(['success' => false, 'message' => $e->getMessage()], 422);
+            }
             return redirect()->back()->with('error', $e->getMessage());
         }
     }
@@ -1684,6 +1744,9 @@ class LudoAdminController extends Controller
         $deposit = LudoUpiDeposit::with('user')->findOrFail($id);
 
         if ($deposit->status !== 'pending') {
+            if ($request->expectsJson() || $request->ajax()) {
+                return response()->json(['success' => false, 'message' => "This deposit has already been processed."], 422);
+            }
             return redirect()->back()->with('error', "This deposit has already been processed.");
         }
 
@@ -1717,6 +1780,15 @@ class LudoAdminController extends Controller
 
             LudoAdminAuditLog::log('upi_deposit_rejected', "Rejected UPI deposit {$lockedDeposit->deposit_uid} for user {$lockedDeposit->user->name}. Reason: {$reason}", 'LudoUpiDeposit', $lockedDeposit->id);
         });
+
+        if ($request->expectsJson() || $request->ajax()) {
+            return response()->json([
+                'success' => true,
+                'message' => "Deposit {$deposit->deposit_uid} marked as rejected.",
+                'deposit_id' => $deposit->id,
+                'status' => 'rejected',
+            ]);
+        }
 
         return redirect()->back()->with('success', "Deposit {$deposit->deposit_uid} marked as rejected.");
     }
@@ -1887,7 +1959,7 @@ class LudoAdminController extends Controller
     }
 
     /**
-     * Real-time live polling endpoint for Admin topbar notification center
+     * Real-time live polling endpoint for Admin topbar notification center & live operational alerts
      */
     public function liveNotifications(Request $request)
     {
@@ -1896,8 +1968,63 @@ class LudoAdminController extends Controller
         $pendingKyc = LudoKycSubmission::where('status', 'pending')->count();
         $pendingDisputes = LudoDispute::where('status', 'open')->count();
         $pendingTickets = LudoSupportTicket::where('status', 'open')->count();
+        $pendingMatchReviews = LudoBattle::where(function ($q) {
+            $q->whereIn('review_status', ['under_review', 'disputed'])
+              ->orWhere('refund_status', 'pending');
+        })->count();
 
-        $totalPending = $pendingDeposits + $pendingWithdrawals + $pendingKyc + $pendingDisputes + $pendingTickets;
+        $totalPending = $pendingDeposits + $pendingWithdrawals + $pendingKyc + $pendingDisputes + $pendingTickets + $pendingMatchReviews;
+
+        // Fetch latest pending records for instant toast alerting
+        $latestDeposit = LudoUpiDeposit::with('user')
+            ->where('status', 'pending')
+            ->latest('id')
+            ->first();
+
+        $latestDispute = LudoDispute::with(['openedBy', 'battle'])
+            ->where('status', 'open')
+            ->latest('id')
+            ->first();
+
+        $latestMatchReview = LudoBattle::with(['creator', 'joiner'])
+            ->where(function ($q) {
+                $q->whereIn('review_status', ['under_review', 'disputed'])
+                  ->orWhere('refund_status', 'pending');
+            })
+            ->latest('updated_at')
+            ->first();
+
+        // Most recent pending activities for topbar dropdown list
+        $recentActivities = [];
+        $recentDeps = LudoUpiDeposit::with('user')->where('status', 'pending')->latest('id')->take(3)->get();
+        foreach ($recentDeps as $dep) {
+            $recentActivities[] = [
+                'type' => 'deposit',
+                'id' => $dep->id,
+                'title' => "UPI Deposit: ₹{$dep->amount}",
+                'description' => ($dep->user->name ?? 'User') . " • UTR: {$dep->utr_number}",
+                'badge' => 'Deposit',
+                'badge_class' => 'bg-success',
+                'icon' => 'fa-solid fa-qrcode text-success',
+                'url' => route('admin.ludo.deposits.index'),
+                'created_at' => $dep->created_at ? $dep->created_at->diffForHumans() : 'Recent',
+            ];
+        }
+
+        $recentDisputes = LudoDispute::with('battle')->where('status', 'open')->latest('id')->take(3)->get();
+        foreach ($recentDisputes as $disp) {
+            $recentActivities[] = [
+                'type' => 'dispute',
+                'id' => $disp->id,
+                'title' => "Dispute: " . ($disp->battle->battle_uid ?? $disp->dispute_uid),
+                'description' => ucfirst(str_replace('_', ' ', $disp->reason_category ?? 'Disputed')),
+                'badge' => 'Dispute',
+                'badge_class' => 'bg-danger',
+                'icon' => 'fa-solid fa-gavel text-danger',
+                'url' => route('admin.ludo.disputes.index'),
+                'created_at' => $disp->created_at ? $disp->created_at->diffForHumans() : 'Recent',
+            ];
+        }
 
         return response()->json([
             'success' => true,
@@ -1908,10 +2035,131 @@ class LudoAdminController extends Controller
                 'kyc' => $pendingKyc,
                 'disputes' => $pendingDisputes,
                 'tickets' => $pendingTickets,
+                'match_reviews' => $pendingMatchReviews,
                 'total' => $totalPending,
             ],
+            'latest' => [
+                'deposit' => $latestDeposit ? [
+                    'id' => $latestDeposit->id,
+                    'deposit_uid' => $latestDeposit->deposit_uid,
+                    'amount' => (int) $latestDeposit->amount,
+                    'utr_number' => $latestDeposit->utr_number,
+                    'user_name' => $latestDeposit->user->name ?? 'User #' . $latestDeposit->user_id,
+                    'created_at_human' => $latestDeposit->created_at ? $latestDeposit->created_at->diffForHumans() : 'Just now',
+                ] : null,
+                'dispute' => $latestDispute ? [
+                    'id' => $latestDispute->id,
+                    'dispute_uid' => $latestDispute->dispute_uid,
+                    'battle_id' => $latestDispute->battle_id,
+                    'battle_uid' => $latestDispute->battle->battle_uid ?? null,
+                    'reason' => $latestDispute->reason_category,
+                    'created_at_human' => $latestDispute->created_at ? $latestDispute->created_at->diffForHumans() : 'Just now',
+                ] : null,
+                'match_review' => $latestMatchReview ? [
+                    'id' => $latestMatchReview->id,
+                    'battle_uid' => $latestMatchReview->battle_uid,
+                    'status' => $latestMatchReview->status,
+                    'review_status' => $latestMatchReview->review_status,
+                    'refund_status' => $latestMatchReview->refund_status,
+                    'created_at_human' => $latestMatchReview->updated_at ? $latestMatchReview->updated_at->diffForHumans() : 'Just now',
+                ] : null,
+            ],
+            'recent_activities' => $recentActivities,
             'timestamp' => now()->toIso8601String(),
-        ]);
+        ])->header('Cache-Control', 'no-cache, private, no-store, must-revalidate');
+    }
+
+    /**
+     * Real-time live feed for the Admin Deposits Review Table
+     */
+    public function upiDepositsLiveFeed(Request $request)
+    {
+        $pendingCount = LudoUpiDeposit::where('status', 'pending')->count();
+        $approvedCount = LudoUpiDeposit::where('status', 'approved')->count();
+        $rejectedCount = LudoUpiDeposit::where('status', 'rejected')->count();
+        $totalApprovedAmount = LudoUpiDeposit::where('status', 'approved')->sum('amount');
+
+        $query = LudoUpiDeposit::with(['user', 'approver'])->latest('id');
+
+        if ($request->filled('status')) {
+            $query->where('status', $request->status);
+        }
+
+        $deposits = $query->take(20)->get();
+
+        $rows = $deposits->map(function ($dep) {
+            $receiptUrl = $dep->screenshot_path ? FileUploadService::url($dep->screenshot_path) : null;
+            return [
+                'id' => $dep->id,
+                'deposit_uid' => $dep->deposit_uid,
+                'user_name' => $dep->user->name ?? 'User #' . $dep->user_id,
+                'user_phone' => $dep->user->phone ?? 'No Phone',
+                'user_uid' => $dep->user->player_uid ?? '-',
+                'amount' => (int) $dep->amount,
+                'utr_number' => $dep->utr_number,
+                'receipt_url' => $receiptUrl,
+                'status' => $dep->status,
+                'admin_notes' => $dep->admin_notes,
+                'created_at_formatted' => $dep->created_at ? $dep->created_at->format('d M Y, h:i A') : '-',
+                'created_at_human' => $dep->created_at ? $dep->created_at->diffForHumans() : '',
+                'approve_url' => route('admin.ludo.deposits.approve', $dep->id),
+                'reject_url' => route('admin.ludo.deposits.reject', $dep->id),
+            ];
+        });
+
+        return response()->json([
+            'success' => true,
+            'counts' => [
+                'pending' => $pendingCount,
+                'approved' => $approvedCount,
+                'rejected' => $rejectedCount,
+                'total_approved_amount' => (int) $totalApprovedAmount,
+            ],
+            'deposits' => $rows,
+            'timestamp' => now()->toIso8601String(),
+        ])->header('Cache-Control', 'no-cache, private, no-store, must-revalidate');
+    }
+
+    /**
+     * Real-time live feed for Admin Matches Review Table
+     */
+    public function matchesLiveFeed(Request $request)
+    {
+        $matches = LudoBattle::with(['creator', 'joiner'])
+            ->latest('updated_at')
+            ->take(20)
+            ->get()
+            ->map(function ($m) {
+                return [
+                    'id' => $m->id,
+                    'battle_uid' => $m->battle_uid,
+                    'creator_name' => $m->creator->name ?? 'P1',
+                    'joiner_name' => $m->joiner ? $m->joiner->name : 'Awaiting Opponent',
+                    'entry_fee' => (int) $m->entry_fee,
+                    'prize' => (int) $m->prize,
+                    'room_code' => $m->room_code,
+                    'status' => $m->status,
+                    'review_status' => $m->review_status,
+                    'refund_status' => $m->refund_status,
+                    'created_at_formatted' => $m->created_at ? $m->created_at->format('d M, h:i A') : '-',
+                    'audit_url' => route('admin.ludo.matches.show', $m->id),
+                ];
+            });
+
+        $underReviewCount = LudoBattle::where(function ($q) {
+            $q->whereIn('review_status', ['under_review', 'disputed'])
+              ->orWhere('refund_status', 'pending');
+        })->count();
+
+        $runningCount = LudoBattle::where('status', 'running')->count();
+
+        return response()->json([
+            'success' => true,
+            'under_review_count' => $underReviewCount,
+            'running_count' => $runningCount,
+            'matches' => $matches,
+            'timestamp' => now()->toIso8601String(),
+        ])->header('Cache-Control', 'no-cache, private, no-store, must-revalidate');
     }
 
 

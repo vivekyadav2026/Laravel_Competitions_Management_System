@@ -70,7 +70,12 @@
                         {{ $creatorName }} <span class="text-warning">vs</span> {{ $joinerName }}
                     </span>
                 @else
-                    <span class="ludo-battle-username text-truncate" title="{{ $creatorName }}">{{ $creatorName }}</span>
+                    <span class="ludo-battle-username text-truncate" title="{{ $creatorName }}">
+                        {{ $creatorName }}
+                        @if($battle->creator)
+                            <span class="text-info font-monospace fw-normal" style="font-size: 10px;">{{ $battle->creator->formatted_username }}</span>
+                        @endif
+                    </span>
                 @endif
                 <span class="ludo-battle-uid-tag d-none d-sm-inline">({{ $battle->battle_uid }})</span>
             </div>
@@ -78,12 +83,12 @@
             <div class="ludo-battle-pricing">
                 <div class="ludo-price-col">
                     <span class="ludo-price-label">ENTRY FEE</span>
-                    <span class="ludo-price-fee">₹{{ number_format($battle->entry_fee) }}</span>
+                    <span class="ludo-price-fee">🪙 {{ number_format($battle->entry_fee) }}</span>
                 </div>
                 <div class="ludo-price-divider"></div>
                 <div class="ludo-price-col">
                     <span class="ludo-price-label">WINNING PRIZE</span>
-                    <span class="ludo-price-win">₹{{ number_format($battle->prize) }}</span>
+                    <span class="ludo-price-win">🪙 {{ number_format($battle->prize) }}</span>
                 </div>
             </div>
         </div>
@@ -157,7 +162,7 @@
                         </div>
                         <div class="modal-body ludo-modal-body">
                             <p class="ludo-modal-intro">
-                                You are joining battle <strong class="text-info fw-bold" style="color: #00d2ff !important;">{{ $battle->battle_uid }}</strong> created by <strong class="text-warning fw-bold" style="color: #ffd700 !important;">{{ $creatorName }}</strong>.
+                                You are joining battle <strong class="text-info fw-bold" style="color: #00d2ff !important;">{{ $battle->battle_uid }}</strong> created by <strong class="text-warning fw-bold" style="color: #ffd700 !important;">{{ $creatorName }} ({{ $battle->creator?->formatted_username }})</strong>.
                             </p>
 
                             {{-- Battle Details Card (Entry Points Required & Winning Reward) --}}
@@ -166,13 +171,13 @@
                                     <span class="ludo-modal-label">
                                         <i class="fa-solid fa-coins text-warning me-1"></i> Entry Points Required:
                                     </span>
-                                    <span class="ludo-modal-val-fee">₹{{ number_format($battle->entry_fee) }}</span>
+                                    <span class="ludo-modal-val-fee">🪙 {{ number_format($battle->entry_fee) }}</span>
                                 </div>
                                 <div class="ludo-modal-row border-top border-secondary border-opacity-25 pt-2 mt-1">
                                     <span class="ludo-modal-label">
                                         <i class="fa-solid fa-trophy text-warning me-1"></i> Winning Reward:
                                     </span>
-                                    <span class="ludo-modal-val-win">₹{{ number_format($battle->prize) }}</span>
+                                    <span class="ludo-modal-val-win">🪙 {{ number_format($battle->prize) }}</span>
                                 </div>
                             </div>
 
