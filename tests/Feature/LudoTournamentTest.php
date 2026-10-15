@@ -107,8 +107,12 @@ class LudoTournamentTest extends TestCase
         $response->assertSessionHas('success');
 
         $this->assertEquals(400, $joiner->fresh()->coins);
-        $this->assertEquals('running', $battle->fresh()->status);
+        $this->assertEquals('requested', $battle->fresh()->status);
         $this->assertEquals($joiner->id, $battle->fresh()->joiner_id);
+
+        // Creator starts match
+        $this->actingAs($creator)->post('/battles/' . $battle->id . '/start');
+        $this->assertEquals('running', $battle->fresh()->status);
     }
 
     public function test_refer_and_earn_page_loads()

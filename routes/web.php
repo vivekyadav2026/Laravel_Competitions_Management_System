@@ -30,6 +30,10 @@ Route::get('/sign-up', [AuthController::class, 'showRegister']);
 Route::post('/register', [AuthController::class, 'register']);
 Route::get('/showlogin', [AuthController::class, 'showLogin'])->name('login');
 Route::post('/login', [AuthController::class, 'login'])->name('login.post');
+Route::post('/auth/send-otp', [AuthController::class, 'sendOtp'])->name('auth.otp.send');
+Route::post('/auth/verify-otp', [AuthController::class, 'verifyOtp'])->name('auth.otp.verify');
+Route::post('/auth/resend-otp', [AuthController::class, 'resendOtp'])->name('auth.otp.resend');
+
 Route::get('/admin', function () {
     if (auth()->check() && in_array(auth()->user()->role, ['admin', 'superadmin', 'support_staff', 'moderator'])) {
         return redirect()->route('admin.ludo.dashboard');
@@ -52,9 +56,20 @@ Route::get('/logout', [AuthController::class, 'logout']); // Fallback GET logout
 Route::middleware('auth')->group(function () {
     // Battle Actions
     Route::post('/battles/create', [LudoController::class, 'createBattle'])->name('ludo.battles.create');
+    Route::get('/battles-sync', [LudoController::class, 'syncState'])->name('ludo.battles.sync');
+    Route::get('/battles/sync-state', [LudoController::class, 'syncState'])->name('ludo.battles.syncState');
+    Route::get('/battles/{id}', [LudoController::class, 'viewBattle'])->name('ludo.battles.view')->whereNumber('id');
     Route::post('/battles/join/{id}', [LudoController::class, 'joinBattle'])->name('ludo.battles.join');
+    Route::post('/battles/{id}/join', [LudoController::class, 'joinBattle']);
+    Route::post('/battles/{id}/start', [LudoController::class, 'startBattle'])->name('ludo.battles.start');
+    Route::post('/battles/{id}/room-code', [LudoController::class, 'setRoomCode'])->name('ludo.battles.roomCode');
+    Route::post('/battles/{id}/room-code', [LudoController::class, 'setRoomCode'])->name('ludo.battles.room-code');
     Route::post('/battles/cancel/{id}', [LudoController::class, 'cancelBattle'])->name('ludo.battles.cancel');
+    Route::post('/battles/{id}/cancel', [LudoController::class, 'cancelBattle']);
+    Route::post('/battles/{id}/cancel-with-reason', [LudoController::class, 'cancelWithReason'])->name('ludo.battles.cancelReason');
+    Route::post('/battles/{id}/cancel-with-reason', [LudoController::class, 'cancelWithReason'])->name('ludo.battles.cancel-with-reason');
     Route::post('/battles/{id}/result', [LudoController::class, 'submitBattleResult'])->name('ludo.battles.result');
+
 
     // Disputes
     Route::post('/battles/{id}/dispute', [LudoController::class, 'openDispute'])->name('ludo.dispute.open');
@@ -71,6 +86,9 @@ Route::middleware('auth')->group(function () {
     // Wallet & Points
     Route::get('/wallet', [LudoController::class, 'wallet'])->name('ludo.wallet');
     Route::post('/wallet/deposit', [LudoController::class, 'addVirtualPoints'])->name('ludo.wallet.deposit');
+    Route::post('/wallet/deposit/upi', [LudoController::class, 'submitUpiDeposit'])->name('ludo.wallet.deposit.upi');
+    Route::post('/wallet/withdraw', [LudoController::class, 'requestWithdrawal'])->name('ludo.wallet.withdraw');
+
 
     // Player Profile & Security
     Route::get('/profile', [LudoController::class, 'profile'])->name('ludo.profile');
@@ -141,6 +159,20 @@ Route::middleware(['auth', 'ludo.admin'])->prefix('admin/ludo')->name('admin.lud
     Route::get('/ledger', [LudoAdminController::class, 'ledger'])->name('ledger.index');
     Route::post('/ledger/adjust', [LudoAdminController::class, 'ledgerAdjust'])->name('ledger.adjust');
 
+    // 6.1 Direct UPI QR Deposits Review
+    Route::get('/deposits', [LudoAdminController::class, 'upiDepositsIndex'])->name('deposits.index');
+    Route::post('/deposits/{id}/approve', [LudoAdminController::class, 'approveUpiDeposit'])->name('deposits.approve');
+    Route::post('/deposits/{id}/reject', [LudoAdminController::class, 'rejectUpiDeposit'])->name('deposits.reject');
+
+    // 6.2 Player Withdrawals & Payout Settlement Desk
+    Route::get('/withdrawals', [LudoAdminController::class, 'withdrawalsIndex'])->name('withdrawals.index');
+    Route::post('/withdrawals/{id}/approve', [LudoAdminController::class, 'approveWithdrawal'])->name('withdrawals.approve');
+    Route::post('/withdrawals/{id}/reject', [LudoAdminController::class, 'rejectWithdrawal'])->name('withdrawals.reject');
+
+    // Real-Time Admin Notifications Live Feed
+    Route::get('/notifications/live', [LudoAdminController::class, 'liveNotifications'])->name('notifications.live');
+
+
     // 7. Referral Management
     Route::get('/referrals', [LudoAdminController::class, 'referrals'])->name('referrals.index');
     Route::post('/referrals/settings', [LudoAdminController::class, 'referralSettingsUpdate'])->name('referrals.settings');
@@ -152,6 +184,7 @@ Route::middleware(['auth', 'ludo.admin'])->prefix('admin/ludo')->name('admin.lud
 
     // 9. Platform Settings & Maintenance
     Route::get('/settings', [LudoAdminController::class, 'settings'])->name('settings.index');
+    Route::get('/settings-overview', [LudoAdminController::class, 'settings'])->name('settings');
     Route::post('/settings', [LudoAdminController::class, 'settingsUpdate'])->name('settings.update');
 
     // 10. Support Tickets Desk
@@ -236,3 +269,13 @@ Route::middleware('auth')->group(function () {
         Route::put('/dashboard/update-individual-competition-score/{id}', [IndividualCompetitionScoreController::class, 'updateIndividualsCompetitionScore']);
     });
 });
+
+if (app()->environment('local', 'testing')) {
+    Route::get('/dev/login-as/{id}', function ($id) {
+        $user = is_numeric($id) ? \App\Models\User::find($id) : \App\Models\User::where('email', $id)->first();
+        if ($user) {
+            \Illuminate\Support\Facades\Auth::login($user);
+        }
+        return redirect()->route('ludo.battles');
+    });
+}

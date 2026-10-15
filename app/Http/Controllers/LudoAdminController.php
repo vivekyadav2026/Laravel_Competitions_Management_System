@@ -13,7 +13,10 @@ use App\Models\LudoSetting;
 use App\Models\LudoSupportTicket;
 use App\Models\LudoTournament;
 use App\Models\LudoTournamentParticipant;
+use App\Models\LudoUpiDeposit;
+use App\Models\LudoWithdrawalRequest;
 use App\Models\User;
+
 use App\Notifications\LudoInAppNotification;
 use Carbon\Carbon;
 use Illuminate\Http\Request;
@@ -121,6 +124,12 @@ class LudoAdminController extends Controller
         $virtualPrizesPaid = (int) $applyDate(LudoLedgerTransaction::where('type', 'prize_payout')->where('status', 'successful'))->sum('points_delta');
         $virtualRefundsTotal = (int) $applyDate(LudoLedgerTransaction::where('type', 'refund')->where('status', 'successful'))->sum('points_delta');
 
+        // UPI QR Deposit Requests Telemetry
+        $pendingDepositsCount = $applyDate(LudoUpiDeposit::where('status', 'pending'))->count();
+        $approvedDepositsCount = $applyDate(LudoUpiDeposit::where('status', 'approved'))->count();
+        $rejectedDepositsCount = $applyDate(LudoUpiDeposit::where('status', 'rejected'))->count();
+        $totalDepositsApprovedAmount = (int) $applyDate(LudoUpiDeposit::where('status', 'approved'))->sum('amount');
+
         // Recent Activity Feeds (Real Database Records)
         $recentAuditLogs = LudoAdminAuditLog::with('admin')
             ->latest('id')
@@ -135,6 +144,11 @@ class LudoAdminController extends Controller
         $recentUsers = User::latest('id')->take(5)->get();
 
         $recentMatches = LudoBattle::with(['creator', 'joiner', 'winner'])
+            ->latest('id')
+            ->take(5)
+            ->get();
+
+        $recentDeposits = LudoUpiDeposit::with('user')
             ->latest('id')
             ->take(5)
             ->get();
@@ -166,6 +180,15 @@ class LudoAdminController extends Controller
                 'points_issued' => $virtualPointsIssued,
                 'points_prizes_paid' => $virtualPrizesPaid,
                 'points_refunded' => $virtualRefundsTotal,
+                'pending_deposits' => $pendingDepositsCount,
+                'approved_deposits' => $approvedDepositsCount,
+                'rejected_deposits' => $rejectedDepositsCount,
+                'deposits_approved_amount' => $totalDepositsApprovedAmount,
+                'pending_withdrawals' => LudoWithdrawalRequest::where('status', 'pending')->count(),
+                'pending_withdrawals_amount' => LudoWithdrawalRequest::where('status', 'pending')->sum('amount'),
+                'approved_withdrawals' => LudoWithdrawalRequest::where('status', 'approved')->count(),
+                'settled_withdrawals_amount' => LudoWithdrawalRequest::where('status', 'approved')->sum('amount'),
+                'rejected_withdrawals' => LudoWithdrawalRequest::where('status', 'rejected')->count(),
             ],
             'period' => $period,
             'from' => $from ? $from->format('Y-m-d') : '',
@@ -174,6 +197,7 @@ class LudoAdminController extends Controller
             'recentDisputes' => $recentDisputes,
             'recentUsers' => $recentUsers,
             'recentMatches' => $recentMatches,
+            'recentDeposits' => $recentDeposits,
             'activeSection' => 'dashboard',
         ]);
     }
@@ -1056,6 +1080,327 @@ class LudoAdminController extends Controller
     }
 
     /**
+     * View and Review Direct UPI Deposits
+     */
+    public function upiDepositsIndex(Request $request)
+    {
+        $query = LudoUpiDeposit::with(['user', 'approver'])->latest('id');
+
+        if ($request->filled('status')) {
+            $query->where('status', $request->status);
+        }
+
+        if ($request->filled('search')) {
+            $term = $request->search;
+            $query->where(function ($q) use ($term) {
+                $q->where('utr_number', 'LIKE', "%{$term}%")
+                  ->orWhere('deposit_uid', 'LIKE', "%{$term}%")
+                  ->orWhereHas('user', function ($uq) use ($term) {
+                      $uq->where('name', 'LIKE', "%{$term}%")
+                         ->orWhere('phone', 'LIKE', "%{$term}%")
+                         ->orWhere('player_uid', 'LIKE', "%{$term}%");
+                  });
+            });
+        }
+
+        $deposits = $query->paginate(15);
+
+        $pendingCount = LudoUpiDeposit::where('status', 'pending')->count();
+        $approvedCount = LudoUpiDeposit::where('status', 'approved')->count();
+        $rejectedCount = LudoUpiDeposit::where('status', 'rejected')->count();
+        $totalApprovedAmount = LudoUpiDeposit::where('status', 'approved')->sum('amount');
+
+        return view('admin.ludo.deposits.index', [
+            'deposits' => $deposits,
+            'pendingCount' => $pendingCount,
+            'approvedCount' => $approvedCount,
+            'rejectedCount' => $rejectedCount,
+            'totalApprovedAmount' => $totalApprovedAmount,
+            'activeSection' => 'deposits',
+        ]);
+    }
+
+    /**
+     * Approve a Direct UPI Deposit (Credit Coins Atomically via Ledger)
+     */
+    public function approveUpiDeposit(Request $request, $id)
+    {
+        $deposit = LudoUpiDeposit::with('user')->findOrFail($id);
+
+        if ($deposit->status !== 'pending') {
+            return redirect()->back()->with('error', "This deposit has already been processed (Status: {$deposit->status}).");
+        }
+
+        DB::transaction(function () use ($deposit) {
+            $lockedDeposit = LudoUpiDeposit::where('id', $deposit->id)->lockForUpdate()->firstOrFail();
+            if ($lockedDeposit->status !== 'pending') {
+                return;
+            }
+
+            $lockedDeposit->update([
+                'status' => 'approved',
+                'approved_by' => Auth::id(),
+                'approved_at' => now(),
+            ]);
+
+            LudoLedgerTransaction::recordAdjustment(
+                $lockedDeposit->user,
+                $lockedDeposit->amount,
+                'deposit',
+                "Approved Direct UPI Deposit (UTR: {$lockedDeposit->utr_number})",
+                'successful',
+                "Verified by Admin #" . Auth::id(),
+                Auth::id()
+            );
+
+            // In-app notification to player
+            $lockedDeposit->user->notify(new LudoInAppNotification(
+                "💰 Deposit Approved!",
+                "Your UPI deposit of ₹{$lockedDeposit->amount} (UTR: {$lockedDeposit->utr_number}) was approved and coins added to your wallet.",
+                "deposit",
+                url('/wallet')
+            ));
+
+            LudoAdminAuditLog::log('upi_deposit_approved', "Approved UPI deposit {$lockedDeposit->deposit_uid} of ₹{$lockedDeposit->amount} for user {$lockedDeposit->user->name} (UTR: {$lockedDeposit->utr_number})", 'LudoUpiDeposit', $lockedDeposit->id);
+        });
+
+        return redirect()->back()->with('success', "Deposit {$deposit->deposit_uid} approved successfully! 🪙 {$deposit->amount} coins credited to {$deposit->user->name}.");
+    }
+
+    /**
+     * Reject a Direct UPI Deposit
+     */
+    public function rejectUpiDeposit(Request $request, $id)
+    {
+        $deposit = LudoUpiDeposit::with('user')->findOrFail($id);
+
+        if ($deposit->status !== 'pending') {
+            return redirect()->back()->with('error', "This deposit has already been processed.");
+        }
+
+        $reason = $request->input('reason', $request->input('notes', 'UTR verification failed or payment not received.'));
+
+        DB::transaction(function () use ($deposit, $reason) {
+            $lockedDeposit = LudoUpiDeposit::where('id', $deposit->id)->lockForUpdate()->firstOrFail();
+            if ($lockedDeposit->status !== 'pending') {
+                return;
+            }
+
+            $lockedDeposit->update([
+                'status' => 'rejected',
+                'admin_notes' => $reason,
+                'approved_by' => Auth::id(),
+                'approved_at' => now(),
+            ]);
+
+            $lockedDeposit->user->notify(new LudoInAppNotification(
+                "❌ Deposit Rejected",
+                "Your UPI deposit of ₹{$lockedDeposit->amount} (UTR: {$lockedDeposit->utr_number}) could not be verified: {$reason}",
+                "deposit",
+                url('/wallet')
+            ));
+
+            LudoAdminAuditLog::log('upi_deposit_rejected', "Rejected UPI deposit {$lockedDeposit->deposit_uid} for user {$lockedDeposit->user->name}. Reason: {$reason}", 'LudoUpiDeposit', $lockedDeposit->id);
+        });
+
+        return redirect()->back()->with('success', "Deposit {$deposit->deposit_uid} marked as rejected.");
+    }
+
+    /**
+     * Display Player Withdrawal & Payout Settlement Requests
+     */
+    public function withdrawalsIndex(Request $request)
+    {
+        $query = LudoWithdrawalRequest::with(['user', 'processor'])->latest('id');
+
+        if ($request->filled('status')) {
+            $query->where('status', $request->status);
+        }
+
+        if ($request->filled('search')) {
+            $term = $request->search;
+            $query->where(function ($q) use ($term) {
+                $q->where('withdrawal_uid', 'LIKE', "%{$term}%")
+                  ->orWhere('upi_id', 'LIKE', "%{$term}%")
+                  ->orWhere('bank_account_number', 'LIKE', "%{$term}%")
+                  ->orWhere('admin_utr_reference', 'LIKE', "%{$term}%")
+                  ->orWhereHas('user', function ($uq) use ($term) {
+                      $uq->where('name', 'LIKE', "%{$term}%")
+                         ->orWhere('phone', 'LIKE', "%{$term}%")
+                         ->orWhere('player_uid', 'LIKE', "%{$term}%");
+                  });
+            });
+        }
+
+        $withdrawals = $query->paginate(15);
+
+        $pendingCount = LudoWithdrawalRequest::where('status', 'pending')->count();
+        $approvedCount = LudoWithdrawalRequest::where('status', 'approved')->count();
+        $rejectedCount = LudoWithdrawalRequest::where('status', 'rejected')->count();
+        $pendingAmount = LudoWithdrawalRequest::where('status', 'pending')->sum('amount');
+        $totalSettledAmount = LudoWithdrawalRequest::where('status', 'approved')->sum('amount');
+        $settledTodayAmount = LudoWithdrawalRequest::where('status', 'approved')->whereDate('processed_at', Carbon::today())->sum('amount');
+
+        return view('admin.ludo.withdrawals.index', [
+            'withdrawals' => $withdrawals,
+            'pendingCount' => $pendingCount,
+            'approvedCount' => $approvedCount,
+            'rejectedCount' => $rejectedCount,
+            'pendingAmount' => $pendingAmount,
+            'totalSettledAmount' => $totalSettledAmount,
+            'settledTodayAmount' => $settledTodayAmount,
+            'activeSection' => 'withdrawals',
+        ]);
+    }
+
+    /**
+     * Settle & Approve a Player's Withdrawal Request
+     * Admin enters payout UTR / bank reference after transferring payment via UPI / Netbanking.
+     */
+    public function approveWithdrawal(Request $request, $id)
+    {
+        $withdrawal = LudoWithdrawalRequest::with('user')->findOrFail($id);
+
+        if ($withdrawal->status !== 'pending') {
+            return redirect()->back()->with('error', "This withdrawal request has already been processed (Status: {$withdrawal->status}).");
+        }
+
+        $request->validate([
+            'admin_utr_reference' => ['required', 'string', 'min:6', 'max:64'],
+            'admin_notes' => ['nullable', 'string', 'max:500'],
+        ], [
+            'admin_utr_reference.required' => 'Payment settlement UTR / Transaction Reference number is mandatory.',
+        ]);
+
+        $adminUtr = trim($request->input('admin_utr_reference'));
+        $adminNotes = $request->input('admin_notes', 'Payout transferred via UPI/Bank transfer.');
+
+        DB::transaction(function () use ($withdrawal, $adminUtr, $adminNotes) {
+            $locked = LudoWithdrawalRequest::where('id', $withdrawal->id)->lockForUpdate()->firstOrFail();
+            if ($locked->status !== 'pending') {
+                return;
+            }
+
+            $locked->update([
+                'status' => 'approved',
+                'admin_utr_reference' => $adminUtr,
+                'admin_notes' => $adminNotes,
+                'processed_by' => Auth::id(),
+                'processed_at' => now(),
+            ]);
+
+            // In-app notification to player
+            $payoutDestination = $locked->upi_id ? "UPI ID: {$locked->upi_id}" : "Bank A/c: {$locked->bank_account_number}";
+            $locked->user->notify(new LudoInAppNotification(
+                "✅ Withdrawal Settled & Paid!",
+                "Your withdrawal of ₹{$locked->amount} has been successfully sent to your {$payoutDestination}. Payout UTR/Ref: {$adminUtr}.",
+                "ledger",
+                url('/wallet')
+            ));
+
+            LudoAdminAuditLog::log(
+                'withdrawal_settled',
+                "Settled withdrawal {$locked->withdrawal_uid} of ₹{$locked->amount} for {$locked->user->name}. Payout UTR: {$adminUtr}",
+                'LudoWithdrawalRequest',
+                $locked->id
+            );
+        });
+
+        return redirect()->back()->with('success', "Withdrawal {$withdrawal->withdrawal_uid} of ₹{$withdrawal->amount} marked as SETTLED & PAID successfully (UTR: {$adminUtr})!");
+    }
+
+    /**
+     * Reject a Withdrawal Request and Refund Locked Coins to Player Wallet
+     */
+    public function rejectWithdrawal(Request $request, $id)
+    {
+        $withdrawal = LudoWithdrawalRequest::with('user')->findOrFail($id);
+
+        if ($withdrawal->status !== 'pending') {
+            return redirect()->back()->with('error', "This withdrawal request has already been processed.");
+        }
+
+        $request->validate([
+            'reason' => ['required', 'string', 'min:3', 'max:500'],
+        ], [
+            'reason.required' => 'A valid reason for rejection is mandatory.',
+        ]);
+
+        $reason = trim($request->input('reason'));
+
+        DB::transaction(function () use ($withdrawal, $reason) {
+            $locked = LudoWithdrawalRequest::where('id', $withdrawal->id)->lockForUpdate()->firstOrFail();
+            if ($locked->status !== 'pending') {
+                return;
+            }
+
+            $locked->update([
+                'status' => 'rejected',
+                'admin_notes' => $reason,
+                'processed_by' => Auth::id(),
+                'processed_at' => now(),
+            ]);
+
+            // Atomically REFUND the locked points back to the player
+            LudoLedgerTransaction::recordAdjustment(
+                $locked->user,
+                $locked->amount,
+                'refund',
+                "Withdrawal refund: {$locked->withdrawal_uid} rejected. Reason: {$reason}",
+                'successful',
+                "Admin rejection: {$reason}",
+                Auth::id()
+            );
+
+            // In-app notification to player
+            $locked->user->notify(new LudoInAppNotification(
+                "⚠️ Withdrawal Request Rejected",
+                "Your withdrawal of ₹{$locked->amount} could not be processed. Reason: {$reason}. ₹{$locked->amount} coins have been refunded to your wallet balance.",
+                "ledger",
+                url('/wallet')
+            ));
+
+            LudoAdminAuditLog::log(
+                'withdrawal_rejected',
+                "Rejected withdrawal {$locked->withdrawal_uid} of ₹{$locked->amount} for {$locked->user->name}. Refunded {$locked->amount} coins. Reason: {$reason}",
+                'LudoWithdrawalRequest',
+                $locked->id
+            );
+        });
+
+        return redirect()->back()->with('success', "Withdrawal {$withdrawal->withdrawal_uid} rejected. 🪙 {$withdrawal->amount} coins have been safely refunded to {$withdrawal->user->name}'s wallet.");
+    }
+
+    /**
+     * Real-time live polling endpoint for Admin topbar notification center
+     */
+    public function liveNotifications(Request $request)
+    {
+        $pendingDeposits = LudoUpiDeposit::where('status', 'pending')->count();
+        $pendingWithdrawals = LudoWithdrawalRequest::where('status', 'pending')->count();
+        $pendingKyc = LudoKycSubmission::where('status', 'pending')->count();
+        $pendingDisputes = LudoDispute::where('status', 'open')->count();
+        $pendingTickets = LudoSupportTicket::where('status', 'open')->count();
+
+        $totalPending = $pendingDeposits + $pendingWithdrawals + $pendingKyc + $pendingDisputes + $pendingTickets;
+
+        return response()->json([
+            'success' => true,
+            'total_pending' => $totalPending,
+            'counts' => [
+                'deposits' => $pendingDeposits,
+                'withdrawals' => $pendingWithdrawals,
+                'kyc' => $pendingKyc,
+                'disputes' => $pendingDisputes,
+                'tickets' => $pendingTickets,
+                'total' => $totalPending,
+            ],
+            'timestamp' => now()->toIso8601String(),
+        ]);
+    }
+
+
+    /**
      * PHASE 8 — Referral Management: Records, Configuration, Duplicate Detection & Status Control
      */
     public function referrals(Request $request)
@@ -1228,6 +1573,12 @@ class LudoAdminController extends Controller
      */
     public function settings()
     {
+        $defaultSlabs = json_encode([
+            ['min' => 10, 'max' => 249, 'type' => 'percent_of_battle', 'basis' => 'battle', 'value' => 10, 'label' => '10% on battle amount'],
+            ['min' => 250, 'max' => 500, 'type' => 'fixed', 'value' => 25, 'label' => 'Flat 25 coins'],
+            ['min' => 501, 'max' => 50000, 'type' => 'percent_of_battle', 'basis' => 'battle', 'value' => 5, 'label' => '5% on battle amount'],
+        ], JSON_PRETTY_PRINT);
+
         $settings = [
             'platform_name' => LudoSetting::get('platform_name', 'Fsaludoclub'),
             'submission_window' => LudoSetting::get('submission_window', config('ludo.battle.submission_window_minutes', 15)),
@@ -1242,6 +1593,21 @@ class LudoAdminController extends Controller
             'support_hours' => LudoSetting::get('support_hours', 'Mon-Sun 10:00 AM - 10:00 PM IST'),
             'minimum_battle_amount' => LudoSetting::get('minimum_battle_amount', '50'),
             'kyc_mandatory' => LudoSetting::get('kyc_mandatory', 'off'),
+
+            // Dynamic Battle Commission Settings
+            'battle_commission_mode' => LudoSetting::get('battle_commission_mode', 'percentage'),
+            'battle_commission_percentage' => LudoSetting::get('battle_commission_percentage', '5'),
+            'battle_commission_slabs' => LudoSetting::get('battle_commission_slabs', $defaultSlabs),
+
+            // QR Code & Direct UPI Gateway Settings
+            'upi_deposits_enabled' => LudoSetting::get('upi_deposits_enabled', 'on'),
+            'upi_payee_name' => LudoSetting::get('upi_payee_name', config('ludo.upi.payee_name', 'FSALUDOCLUB ENTERPRISES')),
+            'upi_id' => LudoSetting::get('upi_id', config('ludo.upi.id', '9631608403@paytm')),
+            'upi_min_deposit' => LudoSetting::get('upi_min_deposit', (string) config('ludo.upi.min_deposit', 50)),
+            'upi_max_deposit' => LudoSetting::get('upi_max_deposit', (string) config('ludo.upi.max_deposit', 50000)),
+            'upi_qr_image' => LudoSetting::get('upi_qr_image', null),
+            'upi_instructions_en' => LudoSetting::get('upi_instructions_en', "1. Scan the QR code using Google Pay, PhonePe, Paytm, or BHIM.\n2. Pay the exact coins amount.\n3. Copy the 12-digit UTR/Reference number.\n4. Enter the UTR and upload payment screenshot below."),
+            'upi_instructions_hi' => LudoSetting::get('upi_instructions_hi', "1. किसी भी UPI ऐप (Paytm, PhonePe, GPay) से QR कोड स्कैन करें।\n2. सटीक राशि का भुगतान करें।\n3. 12 अंकों का UTR / रेफ़रंस नंबर कॉपी करें।\n4. नीचे UTR दर्ज करें और रसीद अपलोड करें।"),
         ];
 
         return view('admin.ludo.settings.index', [
@@ -1271,17 +1637,46 @@ class LudoAdminController extends Controller
             'support_hours' => ['nullable', 'string', 'max:100'],
             'minimum_battle_amount' => ['required', 'integer', 'min:10', 'max:1000'],
             'kyc_mandatory' => ['required', 'in:on,off'],
+
+            // Commission Validation
+            'battle_commission_mode' => ['nullable', 'in:percentage,slabs'],
+            'battle_commission_percentage' => ['nullable', 'numeric', 'min:0', 'max:50'],
+            'battle_commission_slabs' => ['nullable', 'string'],
+
+            // UPI & QR Validation
+            'upi_deposits_enabled' => ['nullable', 'in:on,off'],
+            'upi_payee_name' => ['nullable', 'string', 'max:100'],
+            'upi_id' => ['nullable', 'string', 'max:100'],
+            'upi_min_deposit' => ['nullable', 'integer', 'min:10', 'max:10000'],
+            'upi_max_deposit' => ['nullable', 'integer', 'min:100', 'max:500000'],
+            'upi_qr_image' => ['nullable', 'image', 'mimes:jpeg,png,jpg,webp', 'max:5120'],
+            'upi_instructions_en' => ['nullable', 'string', 'max:2000'],
+            'upi_instructions_hi' => ['nullable', 'string', 'max:2000'],
         ]);
 
+        // Handle QR image upload if provided
+        if ($request->hasFile('upi_qr_image')) {
+            $qrPath = $request->file('upi_qr_image')->store('qr', 'public');
+            LudoSetting::set('upi_qr_image', $qrPath, 'payment');
+        }
+
+        // Validate slabs JSON if provided
+        if (!empty($validated['battle_commission_slabs'])) {
+            $decodedSlabs = json_decode($validated['battle_commission_slabs'], true);
+            if (json_last_error() === JSON_ERROR_NONE && is_array($decodedSlabs)) {
+                LudoSetting::set('battle_commission_slabs', json_encode($decodedSlabs), 'battle');
+            }
+        }
+
         foreach ($validated as $k => $v) {
-            if (!is_null($v)) {
+            if ($k !== 'upi_qr_image' && $k !== 'battle_commission_slabs' && !is_null($v)) {
                 LudoSetting::set($k, $v, 'system');
             }
         }
 
-        LudoAdminAuditLog::log('settings_updated', "Updated platform system configurations and policy limits.");
+        LudoAdminAuditLog::log('settings_updated', "Updated platform system configurations, dynamic commissions, and QR deposit gateway.");
 
-        return redirect()->back()->with('success', 'System configurations updated.');
+        return redirect()->back()->with('success', 'Platform configurations, commission rules, and payment settings saved successfully.');
     }
 
     /**

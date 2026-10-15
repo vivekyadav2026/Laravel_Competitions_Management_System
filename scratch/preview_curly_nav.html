@@ -1,0 +1,314 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Curly Navigation Preview</title>
+<link href="https://fonts.googleapis.com/css2?family=Poppins:wght@500;700;800&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body {
+    background: #030712;
+    font-family: 'Poppins', sans-serif;
+    min-height: 100vh;
+    display: flex;
+    flex-direction: column;
+    justify-content: flex-end;
+    align-items: center;
+    padding-bottom: 30px;
+  }
+
+  .mobile-frame {
+    width: 390px;
+    height: 320px;
+    background: #040814;
+    position: relative;
+    border: 1px solid #1e293b;
+    border-radius: 28px;
+    overflow: hidden;
+    display: flex;
+    flex-direction: column;
+    justify-content: flex-end;
+    box-shadow: 0 20px 50px rgba(0, 0, 0, 0.9);
+  }
+
+  .preview-content {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    color: #94a3b8;
+    font-size: 13px;
+    gap: 8px;
+  }
+
+  .preview-title {
+    font-size: 16px;
+    font-weight: 700;
+    color: #f8fafc;
+  }
+
+  /* ==========================================================================
+     FSALUDOCLUB SIGNATURE CURLY BOTTOM NAVIGATION
+     ========================================================================== */
+  .ludo-bottom-nav {
+    position: relative;
+    width: 100%;
+    height: 68px;
+    background: #070d1e;
+    display: flex;
+    align-items: center;
+    justify-content: space-around;
+    border-top: 1.5px solid rgba(0, 210, 255, 0.25);
+    box-shadow: 0 -8px 25px rgba(0, 0, 0, 0.7);
+    z-index: 100;
+    padding: 0 4px;
+  }
+
+  .ludo-nav-item {
+    position: relative;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    flex: 1;
+    height: 100%;
+    text-decoration: none;
+    color: #64748b;
+    z-index: 105;
+    cursor: pointer;
+    user-select: none;
+    padding-bottom: 4px;
+    transition: color 0.25s ease;
+  }
+
+  /* Circle Wrapper for Icon */
+  .ludo-nav-circle {
+    position: relative;
+    width: 38px;
+    height: 38px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border-radius: 50%;
+    transition: all 0.35s cubic-bezier(0.34, 1.56, 0.64, 1);
+    z-index: 110;
+  }
+
+  /* Normal Inactive Icon */
+  .ludo-nav-icon {
+    font-size: 20px;
+    color: #64748b;
+    transition: all 0.25s ease;
+  }
+
+  .ludo-nav-label {
+    font-size: 10.5px;
+    font-weight: 600;
+    letter-spacing: 0.2px;
+    color: #64748b;
+    transition: all 0.25s ease;
+    margin-top: 2px;
+    z-index: 110;
+  }
+
+  /* ==========================================================================
+     ACTIVE STATE: SIZE BADI HO + CURLY NOTCH + GLOW
+     ========================================================================== */
+  .ludo-nav-item.active {
+    color: #ffffff;
+  }
+
+  /* Glowing Curly Cradle Arc beneath Active Circle */
+  .ludo-nav-curly-arc {
+    position: absolute;
+    top: -2px;
+    left: 50%;
+    transform: translateX(-50%);
+    width: 84px;
+    height: 24px;
+    pointer-events: none;
+    opacity: 0;
+    transition: opacity 0.3s cubic-bezier(0.34, 1.56, 0.64, 1), transform 0.3s cubic-bezier(0.34, 1.56, 0.64, 1);
+    z-index: 102;
+  }
+
+  .ludo-nav-item.active .ludo-nav-curly-arc {
+    opacity: 1;
+    transform: translateX(-50%) scale(1);
+  }
+
+  .ludo-nav-curly-arc svg {
+    width: 100%;
+    height: 100%;
+    display: block;
+    filter: drop-shadow(0 2px 6px rgba(0, 210, 255, 0.8));
+  }
+
+  /* Active Floating Circle: Diameter 54px (Size Badi Ho) */
+  .ludo-nav-item.active .ludo-nav-circle {
+    position: absolute;
+    top: -24px;
+    width: 54px;
+    height: 54px;
+    background: linear-gradient(135deg, #00f0ff 0%, #0062ff 60%, #003bb3 100%);
+    border: 4px solid #070d1e;
+    box-shadow: 0 8px 24px rgba(0, 210, 255, 0.7), 0 0 18px rgba(0, 102, 255, 0.5);
+    transform: scale(1.06);
+  }
+
+  /* Curly Wings (Inverted curved notch flares) */
+  .ludo-nav-item.active::before,
+  .ludo-nav-item.active::after {
+    content: '';
+    position: absolute;
+    top: -1.5px;
+    width: 18px;
+    height: 18px;
+    background: transparent;
+    pointer-events: none;
+    z-index: 108;
+    animation: ludoWingPop 0.35s cubic-bezier(0.34, 1.56, 0.64, 1);
+  }
+
+  .ludo-nav-item.active::before {
+    left: calc(50% - 27px - 18px);
+    border-top-right-radius: 18px;
+    box-shadow: 4px -4px 0 2px #070d1e;
+  }
+
+  .ludo-nav-item.active::after {
+    right: calc(50% - 27px - 18px);
+    border-top-left-radius: 18px;
+    box-shadow: -4px -4px 0 2px #070d1e;
+  }
+
+  @keyframes ludoWingPop {
+    from { opacity: 0; transform: scale(0.6); }
+    to { opacity: 1; transform: scale(1); }
+  }
+
+  /* Active Icon: Badi Size, Crisp White, Drop Shadow */
+  .ludo-nav-item.active .ludo-nav-icon {
+    font-size: 25px;
+    color: #ffffff;
+    filter: drop-shadow(0 2px 4px rgba(0, 0, 0, 0.5));
+    transform: scale(1.15);
+  }
+
+  /* Active Label: Cyan Highlight, Shifted Down, Glowing Text */
+  .ludo-nav-item.active .ludo-nav-label {
+    color: #00d2ff;
+    font-weight: 800;
+    transform: translateY(16px);
+    text-shadow: 0 0 10px rgba(0, 210, 255, 0.6);
+  }
+
+  /* Subtle pulsing neon ring around active circle */
+  .ludo-nav-item.active .ludo-nav-circle::after {
+    content: '';
+    position: absolute;
+    inset: -6px;
+    border-radius: 50%;
+    border: 1.5px solid rgba(0, 210, 255, 0.5);
+    animation: ludoPulseRing 2s infinite ease-out;
+    pointer-events: none;
+  }
+
+  @keyframes ludoPulseRing {
+    0% { transform: scale(0.95); opacity: 0.9; }
+    50% { transform: scale(1.1); opacity: 0.2; }
+    100% { transform: scale(0.95); opacity: 0.9; }
+  }
+</style>
+</head>
+<body>
+
+<div class="mobile-frame">
+  <div class="preview-content">
+    <div class="preview-title">Fsaludoclub Interactive UI</div>
+    <div style="font-size: 11.5px;">Click any navigation tab to test</div>
+  </div>
+
+  <nav class="ludo-bottom-nav">
+    {{-- 1. Wallet --}}
+    <div class="ludo-nav-item" data-index="0">
+      <div class="ludo-nav-curly-arc">
+        <svg viewBox="0 0 84 22" preserveAspectRatio="none">
+          <path d="M 0,1 C 18,1 25,20 42,20 C 59,20 66,1 84,1" fill="none" stroke="#00d2ff" stroke-width="2.5" stroke-linecap="round" />
+        </svg>
+      </div>
+      <div class="ludo-nav-circle">
+        <i class="fa-solid fa-wallet ludo-nav-icon"></i>
+      </div>
+      <span class="ludo-nav-label">Wallet</span>
+    </div>
+
+    {{-- 2. Refer --}}
+    <div class="ludo-nav-item" data-index="1">
+      <div class="ludo-nav-curly-arc">
+        <svg viewBox="0 0 84 22" preserveAspectRatio="none">
+          <path d="M 0,1 C 18,1 25,20 42,20 C 59,20 66,1 84,1" fill="none" stroke="#00d2ff" stroke-width="2.5" stroke-linecap="round" />
+        </svg>
+      </div>
+      <div class="ludo-nav-circle">
+        <i class="fa-solid fa-gift ludo-nav-icon"></i>
+      </div>
+      <span class="ludo-nav-label">Refer</span>
+    </div>
+
+    {{-- 3. Home (Active) --}}
+    <div class="ludo-nav-item active" data-index="2">
+      <div class="ludo-nav-curly-arc">
+        <svg viewBox="0 0 84 22" preserveAspectRatio="none">
+          <path d="M 0,1 C 18,1 25,20 42,20 C 59,20 66,1 84,1" fill="none" stroke="#00d2ff" stroke-width="2.5" stroke-linecap="round" />
+        </svg>
+      </div>
+      <div class="ludo-nav-circle">
+        <i class="fa-solid fa-house ludo-nav-icon"></i>
+      </div>
+      <span class="ludo-nav-label">Home</span>
+    </div>
+
+    {{-- 4. Support --}}
+    <div class="ludo-nav-item" data-index="3">
+      <div class="ludo-nav-curly-arc">
+        <svg viewBox="0 0 84 22" preserveAspectRatio="none">
+          <path d="M 0,1 C 18,1 25,20 42,20 C 59,20 66,1 84,1" fill="none" stroke="#00d2ff" stroke-width="2.5" stroke-linecap="round" />
+        </svg>
+      </div>
+      <div class="ludo-nav-circle">
+        <i class="fa-solid fa-headset ludo-nav-icon"></i>
+      </div>
+      <span class="ludo-nav-label">Support</span>
+    </div>
+
+    {{-- 5. Profile --}}
+    <div class="ludo-nav-item" data-index="4">
+      <div class="ludo-nav-curly-arc">
+        <svg viewBox="0 0 84 22" preserveAspectRatio="none">
+          <path d="M 0,1 C 18,1 25,20 42,20 C 59,20 66,1 84,1" fill="none" stroke="#00d2ff" stroke-width="2.5" stroke-linecap="round" />
+        </svg>
+      </div>
+      <div class="ludo-nav-circle">
+        <i class="fa-solid fa-user ludo-nav-icon"></i>
+      </div>
+      <span class="ludo-nav-label">Profile</span>
+    </div>
+  </nav>
+</div>
+
+<script>
+  const items = document.querySelectorAll('.ludo-nav-item');
+  items.forEach(item => {
+    item.addEventListener('click', () => {
+      items.forEach(i => i.classList.remove('active'));
+      item.classList.add('active');
+    });
+  });
+</script>
+
+</body>
+</html>

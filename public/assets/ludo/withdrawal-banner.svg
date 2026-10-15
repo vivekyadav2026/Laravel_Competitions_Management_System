@@ -20,6 +20,31 @@
     <filter id="glowF">
       <feDropShadow dx="0" dy="2" stdDeviation="3" flood-color="#00D2FF" flood-opacity="0.6"/>
     </filter>
+    <style>
+      @keyframes needleSpeed {
+        0%, 100% { transform: rotate(0deg); }
+        25% { transform: rotate(15deg); }
+        45% { transform: rotate(5deg); }
+        70% { transform: rotate(22deg); }
+        85% { transform: rotate(12deg); }
+      }
+      @keyframes trailsPulse {
+        0%, 100% { opacity: 0.4; transform: translateX(0); }
+        50% { opacity: 1; transform: translateX(5px); }
+      }
+      @keyframes badgeBreath {
+        0%, 100% { transform: translate(525px, 65px) scale(1); }
+        50% { transform: translate(525px, 65px) scale(1.06); }
+      }
+      @keyframes greenBlink {
+        0%, 100% { opacity: 0.6; transform: scale(0.9); }
+        50% { opacity: 1; transform: scale(1.35); }
+      }
+      #animNeedle { animation: needleSpeed 2.8s ease-in-out infinite; transform-origin: 0px 0px; }
+      #animTrails { animation: trailsPulse 1.4s ease-in-out infinite; }
+      #animBadge24 { animation: badgeBreath 3s ease-in-out infinite; }
+      #animGreenDot { animation: greenBlink 1.5s ease-in-out infinite; transform-origin: 6px -4px; }
+    </style>
   </defs>
 
   <!-- Banner Container -->
@@ -32,10 +57,14 @@
     <path d="M -45,15 A 48 48 0 1 1 45,15" fill="none" stroke="#1E3A8A" stroke-width="8" stroke-linecap="round"/>
     <path d="M -45,15 A 48 48 0 0 1 20,-43" fill="none" stroke="#00D2FF" stroke-width="8" stroke-linecap="round" filter="url(#glowF)"/>
     <!-- Speed needle pointing fast right -->
-    <polygon points="0,0 26,-36 4,-4" fill="#FF3B30"/>
-    <circle cx="0" cy="0" r="7" fill="#FFF"/>
+    <g id="animNeedle">
+      <polygon points="0,0 26,-36 4,-4" fill="#FF3B30"/>
+      <circle cx="0" cy="0" r="7" fill="#FFF"/>
+    </g>
     <!-- Speed trails -->
-    <path d="M -30,-15 L -60,-15 M -35,-30 L -62,-30" stroke="#00D2FF" stroke-width="2.5" stroke-linecap="round" opacity="0.8"/>
+    <g id="animTrails">
+      <path d="M -30,-15 L -60,-15 M -35,-30 L -62,-30" stroke="#00D2FF" stroke-width="2.5" stroke-linecap="round" opacity="0.8"/>
+    </g>
   </g>
 
   <!-- Middle: Text Content -->
@@ -47,7 +76,7 @@
       SUPPORT SERVICE 24*7
     </text>
     <g transform="translate(0, 96)">
-      <circle cx="6" cy="-4" r="4" fill="#00FF87"/>
+      <circle id="animGreenDot" cx="6" cy="-4" r="4" fill="#00FF87"/>
       <text x="16" y="0" font-family="'Poppins', sans-serif" font-weight="600" font-size="12" fill="#93C5FD">
         24/7 SUPPORT • INSTANT PAYOUTS VIA UPI
       </text>
@@ -55,7 +84,7 @@
   </g>
 
   <!-- Right: 24 Service Badge -->
-  <g transform="translate(525, 65)" filter="url(#glowF)">
+  <g id="animBadge24" transform="translate(525, 65)" filter="url(#glowF)">
     <circle cx="0" cy="0" r="38" fill="#0A1E4A" stroke="#00D2FF" stroke-width="2.5"/>
     <text x="0" y="-2" font-family="'Impact', 'Arial Black', sans-serif" font-weight="900" font-size="26" fill="#FFFFFF" text-anchor="middle">
       24

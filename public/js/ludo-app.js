@@ -87,4 +87,23 @@ document.addEventListener('DOMContentLoaded', function () {
             showLudoToast('To install, tap browser menu and choose "Add to Home Screen"');
         });
     });
+
+    // 6. Ensure Bootstrap modals are attached directly to document.body
+    // This eliminates local stacking context traps, keeping backdrops strictly behind modal content
+    document.addEventListener('show.bs.modal', function (e) {
+        if (e.target && e.target.classList && e.target.classList.contains('modal')) {
+            if (e.target.parentElement !== document.body) {
+                document.body.appendChild(e.target);
+            }
+        }
+    });
+
+    // 7. Signature Curly Bottom Navigation Interactive Feedback
+    const bottomNavItems = document.querySelectorAll('.ludo-bottom-nav .ludo-nav-item');
+    bottomNavItems.forEach(item => {
+        item.addEventListener('click', function () {
+            bottomNavItems.forEach(i => i.classList.remove('active'));
+            this.classList.add('active');
+        });
+    });
 });

@@ -14,8 +14,9 @@
 
         {{-- Game Logo --}}
         <a href="{{ url('/') }}" class="d-inline-flex align-items-center">
-            <img src="{{ asset('assets/images/fsaludoclub-logo.png') }}" alt="{{ config('ludo.brand_name', 'Fsaludoclub') }} Logo" class="ludo-header-logo">
+            <img src="{{ asset(config('ludo.logo_path', 'assets/images/fsaludoclub-logo.png')) }}" alt="{{ config('ludo.brand_name', 'Fsaludoclub') }} Logo" class="ludo-header-logo">
         </a>
+
     </div>
 
     {{-- Header Balances --}}

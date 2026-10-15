@@ -14,17 +14,41 @@ return [
 
     /*
     |--------------------------------------------------------------------------
+    | Real-Money / UPI Deposit Operational Switch
+    |--------------------------------------------------------------------------
+    | Initial platform operates on free participation and non-cash virtual points.
+    | Set to false by default for compliance.
+    */
+    'upi_deposits_enabled' => env('UPI_DEPOSITS_ENABLED', false),
+
+    /*
+    |--------------------------------------------------------------------------
+    | Direct UPI Payment Configuration (Disabled by default)
+    |--------------------------------------------------------------------------
+    */
+    'upi' => [
+        'id' => env('UPI_ID', '9631608403@paytm'),
+        'payee_name' => env('UPI_PAYEE_NAME', 'FSALUDOCLUB'),
+        'whatsapp' => env('UPI_WHATSAPP', '9631608403'),
+        'auto_approve' => env('UPI_AUTO_APPROVE', false),
+        'min_deposit' => (int) env('UPI_MIN_DEPOSIT', 50),
+        'max_deposit' => (int) env('UPI_MAX_DEPOSIT', 50000),
+    ],
+
+    /*
+    |--------------------------------------------------------------------------
     | Ludo Platform Support Configuration
     |--------------------------------------------------------------------------
     */
     'support' => [
         'heading' => env('LUDO_SUPPORT_HEADING', 'Support Center'),
         'subtitle' => env('LUDO_SUPPORT_SUBTITLE', 'Need assistance? Reach our support desk through official channels or ticket inquiry.'),
-        'team_whatsapp_url' => env('LUDO_SUPPORT_WHATSAPP', 'https://wa.me/919876543210?text=Hello%20Fsaludoclub%20Support'),
+        'team_whatsapp_url' => env('LUDO_SUPPORT_WHATSAPP', 'https://wa.me/919631608403?text=Hello%20Fsaludoclub%20Support'),
         'telegram_url' => env('LUDO_SUPPORT_TELEGRAM', 'https://t.me/fsaludoclub'),
-        'contact_url' => env('LUDO_SUPPORT_CONTACT_URL', 'mailto:support@fsaludoclub.test'),
+        'contact_url' => env('LUDO_SUPPORT_CONTACT_URL', 'mailto:support@fsaludoclub.com'),
         'availability_notice' => env('LUDO_SUPPORT_AVAILABILITY', 'Standard response time: Mon-Sun 10:00 AM - 10:00 PM IST'),
     ],
+
 
     /*
     |--------------------------------------------------------------------------

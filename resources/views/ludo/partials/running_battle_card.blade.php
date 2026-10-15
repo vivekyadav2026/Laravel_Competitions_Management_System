@@ -1,126 +1,79 @@
 @php
     $p1 = $running->creator->name ?? 'Player_1';
     $p2 = $running->joiner->name ?? 'Player_2';
+    $isParticipant = auth()->check() && (auth()->id() === $running->creator_id || auth()->id() === $running->joiner_id);
+    $isAdmin = auth()->check() && (auth()->user()->role === 'admin' || auth()->user()->is_admin);
 @endphp
-<div class="ludo-running-card" data-battle-id="{{ $running->id }}">
+
+<div class="ludo-running-card {{ $isParticipant ? 'running-card-mine' : '' }}" data-battle-id="{{ $running->id }}" data-battle-uid="{{ $running->battle_uid }}">
+    {{-- Top Row: "Playing For" & Player Names --}}
     <div class="ludo-running-header">
-        <span class="ludo-running-label">Playing For</span>
-        <span class="ludo-running-players-badge">
-            {{ $p1 }} <span class="text-warning">&</span> {{ $p2 }}
-        </span>
+        <div class="d-flex align-items-center gap-2">
+            <span class="ludo-running-pulse-dot"></span>
+            <span class="ludo-running-label">Playing For</span>
+        </div>
+        <div class="ludo-running-players-badge text-truncate" title="{{ $p1 }} vs {{ $p2 }}">
+            <span class="text-truncate" style="max-width: 110px;">{{ $p1 }}</span>
+            <span class="ludo-vs-text">VS</span>
+            <span class="text-truncate" style="max-width: 110px;">{{ $p2 }}</span>
+        </div>
     </div>
 
+    {{-- Middle Row: Entry Fee | VS | Winning Prize --}}
     <div class="ludo-running-matchup">
         <div class="ludo-matchup-box">
-            <div class="ludo-price-label">ENTRY FEE</div>
-            <div class="ludo-price-fee text-info">🪙 {{ number_format($running->entry_fee) }}</div>
+            <div class="ludo-price-label text-warning">ENTRY FEE</div>
+            <div class="ludo-price-fee text-warning fw-bold">🪙 {{ number_format($running->entry_fee) }}</div>
         </div>
 
-        <img src="{{ asset('assets/ludo/vs-badge.svg') }}" alt="VS" class="ludo-matchup-vs">
+        <div class="ludo-matchup-vs-container">
+            <img src="{{ asset('assets/ludo/vs-badge.svg') }}" alt="VS" class="ludo-matchup-vs">
+        </div>
 
         <div class="ludo-matchup-box">
-            <div class="ludo-price-label">WINNING PRIZE</div>
-            <div class="ludo-price-win">🪙 {{ number_format($running->prize) }}</div>
+            <div class="ludo-price-label text-warning">WINNING PRIZE</div>
+            <div class="ludo-price-win text-success fw-bold">🪙 {{ number_format($running->prize) }}</div>
         </div>
     </div>
 
-    @if($running->room_code)
-        <div class="mt-2 pt-2 border-top border-secondary border-opacity-25 d-flex justify-content-between align-items-center">
-            <span class="text-secondary small" style="font-size: 10px;">Ref: {{ $running->battle_uid }}</span>
-            <span class="badge bg-dark text-warning border border-warning border-opacity-50" style="font-size: 10px;">
-                Room: {{ $running->room_code }}
+    {{-- Bottom Row: Battle Reference, Match Time, Room Status & Action Button --}}
+    <div class="ludo-running-footer">
+        <div class="ludo-running-meta">
+            <span class="ludo-running-ref">
+                Ref: <strong class="text-info">{{ $running->battle_uid }}</strong>
             </span>
+            @if($running->started_at)
+                <span class="ludo-running-elapsed">
+                    <i class="fa-regular fa-clock me-1"></i>{{ $running->started_at->diffForHumans(null, true, true) }}
+                </span>
+            @endif
         </div>
-    @endif
 
-    {{-- Participant Result & Dispute Actions --}}
-    @auth
-        @if(Auth::id() === $running->creator_id || Auth::id() === $running->joiner_id)
-            <div class="mt-2 pt-2 border-top border-secondary border-opacity-25 d-flex gap-2 justify-content-end">
-                <button type="button" class="btn btn-sm btn-success rounded-pill px-3 py-1 fw-bold" style="font-size: 11px;" data-bs-toggle="modal" data-bs-target="#resultModal{{ $running->id }}">
-                    <i class="fa-solid fa-trophy me-1"></i> Submit Result
-                </button>
-                <button type="button" class="btn btn-sm btn-outline-danger rounded-pill px-3 py-1" style="font-size: 11px;" data-bs-toggle="modal" data-bs-target="#disputeModal{{ $running->id }}">
-                    <i class="fa-solid fa-triangle-exclamation me-1"></i> Dispute
-                </button>
-            </div>
-
-            {{-- Result Modal --}}
-            <div class="modal fade" id="resultModal{{ $running->id }}" tabindex="-1" aria-hidden="true">
-                <div class="modal-dialog modal-dialog-centered px-3">
-                    <div class="modal-content ludo-modal-dialog">
-                        <div class="modal-header border-secondary border-opacity-25 pb-2">
-                            <h5 class="modal-title fw-bold fs-6">Submit Match Result (15-Min Window)</h5>
-                            <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
-                        </div>
-                        <form action="{{ route('ludo.battles.result', $running->id) }}" method="POST" enctype="multipart/form-data">
-                            @csrf
-                            <div class="modal-body text-secondary small py-3">
-                                <div class="mb-2">
-                                    <label class="form-label text-light fw-bold small">Your Result Claim <span class="text-danger">*</span></label>
-                                    <select name="result" class="form-select bg-dark text-light border-secondary border-opacity-50 small" required>
-                                        <option value="won">I Won the Match</option>
-                                        <option value="lost">I Lost the Match</option>
-                                        <option value="cancelled">Match Not Started / Cancelled</option>
-                                    </select>
-                                </div>
-                                <div class="mb-2">
-                                    <label class="form-label text-light fw-bold small">Winning Screenshot (Optional if opponent agrees)</label>
-                                    <input type="file" name="evidence" class="form-control bg-dark text-light border-secondary border-opacity-50 small" accept=".jpg,.jpeg,.png,.webp">
-                                    <small class="text-secondary d-block mt-1">Upload clear winning screen to guarantee fast verification.</small>
-                                </div>
-                            </div>
-                            <div class="modal-footer border-secondary border-opacity-25 pt-2">
-                                <button type="button" class="btn btn-sm btn-outline-secondary rounded-pill" data-bs-dismiss="modal">Close</button>
-                                <button type="submit" class="btn btn-sm btn-success rounded-pill px-4 fw-bold">Submit Claim</button>
-                            </div>
-                        </form>
-                    </div>
-                </div>
-            </div>
-
-            {{-- Dispute Modal --}}
-            <div class="modal fade" id="disputeModal{{ $running->id }}" tabindex="-1" aria-hidden="true">
-                <div class="modal-dialog modal-dialog-centered px-3">
-                    <div class="modal-content ludo-modal-dialog">
-                        <div class="modal-header border-secondary border-opacity-25 pb-2">
-                            <h5 class="modal-title fw-bold fs-6 text-danger">
-                                <i class="fa-solid fa-gavel me-1"></i> Open Dispute (Battle {{ $running->battle_uid }})
-                            </h5>
-                            <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
-                        </div>
-                        <form action="{{ route('ludo.dispute.open', $running->id) }}" method="POST" enctype="multipart/form-data">
-                            @csrf
-                            <div class="modal-body text-secondary small py-3">
-                                <div class="mb-2">
-                                    <label class="form-label text-light fw-bold small">Dispute Reason <span class="text-danger">*</span></label>
-                                    <select name="reason_category" class="form-select bg-dark text-light border-secondary border-opacity-50 small" required>
-                                        <option value="wrong_result">Opponent Submitted False Result</option>
-                                        <option value="opponent_left">Opponent Left Mid-Match</option>
-                                        <option value="fake_screenshot">Fake / Edited Screenshot Uploaded</option>
-                                        <option value="app_crash">Game / Server App Crashed</option>
-                                        <option value="timer_expired">Timer Expired / No Room Code</option>
-                                        <option value="other">Other Violation</option>
-                                    </select>
-                                </div>
-                                <div class="mb-2">
-                                    <label class="form-label text-light fw-bold small">Explanation <span class="text-danger">*</span></label>
-                                    <textarea name="description" rows="3" class="form-control bg-dark text-light border-secondary border-opacity-50 small" placeholder="Explain the match incident clearly..." required minlength="10"></textarea>
-                                </div>
-                                <div class="mb-2">
-                                    <label class="form-label text-light fw-bold small">Evidence Screenshot/Video <span class="text-danger">*</span></label>
-                                    <input type="file" name="evidence" class="form-control bg-dark text-light border-secondary border-opacity-50 small" accept=".jpg,.jpeg,.png,.webp,.mp4" required>
-                                    <small class="text-secondary d-block mt-1">Stored securely in private storage for compliance review.</small>
-                                </div>
-                            </div>
-                            <div class="modal-footer border-secondary border-opacity-25 pt-2">
-                                <button type="button" class="btn btn-sm btn-outline-secondary rounded-pill" data-bs-dismiss="modal">Cancel</button>
-                                <button type="submit" class="btn btn-sm btn-danger rounded-pill px-4 fw-bold">Lodge Dispute</button>
-                            </div>
-                        </form>
-                    </div>
-                </div>
-            </div>
-        @endif
-    @endauth
+        <div class="d-flex align-items-center gap-2">
+            @if($isParticipant || $isAdmin)
+                @if($running->room_code)
+                    <span class="badge bg-dark text-warning border border-warning border-opacity-50 px-2 py-1" style="font-size: 10px;" title="Ludo King Room Code">
+                        <i class="fa-solid fa-key me-1"></i>Room: {{ $running->room_code }}
+                    </span>
+                @else
+                    <span class="badge bg-dark text-secondary border border-secondary border-opacity-50 px-2 py-1" style="font-size: 9.5px;">
+                        <span class="spinner-grow spinner-grow-sm me-1 text-warning" style="width: 5px; height: 5px;"></span>Room Pending
+                    </span>
+                @endif
+                <a href="{{ route('ludo.battles.view', $running->id) }}" class="ludo-running-arena-btn" title="Open Match Arena">
+                    <i class="fa-solid fa-gamepad me-1"></i> Match Arena
+                </a>
+            @else
+                @if($running->room_code)
+                    <span class="badge bg-dark text-info border border-info border-opacity-50 px-2 py-1" style="font-size: 9.5px;">
+                        <span class="live-dot d-inline-block me-1" style="width: 5px; height: 5px; background: #00ff87; border-radius: 50%;"></span>In Play
+                    </span>
+                @else
+                    <span class="badge bg-dark text-secondary border border-secondary border-opacity-50 px-2 py-1" style="font-size: 9.5px;">
+                        <span class="spinner-grow spinner-grow-sm me-1 text-info" style="width: 5px; height: 5px;"></span>Starting...
+                    </span>
+                @endif
+            @endif
+        </div>
+    </div>
 </div>

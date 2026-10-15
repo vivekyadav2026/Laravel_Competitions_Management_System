@@ -26,6 +26,9 @@ class LudoBattle extends Model
         'creator_claimed_result',
         'joiner_claimed_result',
         'submission_deadline_at',
+        'room_code_expires_at',
+        'cancellation_reason',
+        'cancelled_by_id',
         'dispute_id',
         'started_at',
         'completed_at',
@@ -35,9 +38,11 @@ class LudoBattle extends Model
         'entry_fee' => 'integer',
         'prize' => 'integer',
         'submission_deadline_at' => 'datetime',
+        'room_code_expires_at' => 'datetime',
         'started_at' => 'datetime',
         'completed_at' => 'datetime',
     ];
+
 
     /**
      * Match creator (player 1)
@@ -64,12 +69,82 @@ class LudoBattle extends Model
     }
 
     /**
-     * Compute platform commission prize (typically 95% of total pool: 2 * entry_fee * 0.95)
+     * Compute platform commission and prize based on dynamic database settings / slabs.
+     * 
+     * @param int $entryFee
+     * @return array ['pool' => int, 'commission' => int, 'prize' => int, 'rate_applied' => string]
+     */
+    public static function calculateCommission(int $entryFee): array
+    {
+        $pool = $entryFee * 2;
+        $mode = LudoSetting::get('battle_commission_mode', 'percentage');
+
+        // Check if slab mode is enabled
+        if ($mode === 'slabs') {
+            $slabsJson = LudoSetting::get('battle_commission_slabs');
+            $slabs = is_string($slabsJson) ? json_decode($slabsJson, true) : $slabsJson;
+
+            if (is_array($slabs) && !empty($slabs)) {
+                foreach ($slabs as $slab) {
+                    $min = (int) ($slab['min'] ?? 0);
+                    $max = (int) ($slab['max'] ?? PHP_INT_MAX);
+
+                    if ($entryFee >= $min && $entryFee <= $max) {
+                        $type = $slab['type'] ?? 'percent';
+                        $value = (float) ($slab['value'] ?? 5);
+
+                        if ($type === 'fixed') {
+                            $commission = (int) round($value);
+                            $rateApplied = "Fixed: {$commission} coins";
+                        } elseif ($type === 'percent_of_battle' || $type === 'percent_of_entry' || ($slab['basis'] ?? '') === 'battle' || ($slab['basis'] ?? '') === 'entry') {
+                            $commission = (int) round($entryFee * ($value / 100));
+                            $rateApplied = "{$value}% of battle amount";
+                        } else {
+                            // Percentage of total pool
+                            $commission = (int) round($pool * ($value / 100));
+                            $rateApplied = "{$value}% of pool";
+                        }
+
+                        $commission = max(0, min($commission, $pool));
+                        $prize = $pool - $commission;
+
+                        return [
+                            'pool' => $pool,
+                            'commission' => $commission,
+                            'prize' => $prize,
+                            'rate_applied' => $rateApplied,
+                        ];
+                    }
+                }
+            }
+        }
+
+        // Standard / Percentage mode (default: 5% platform fee on pool => 1.9x entry fee)
+        $pctSetting = LudoSetting::get('battle_commission_percentage', '5');
+        // Clean any '%' sign from setting
+        $pct = (float) str_replace('%', '', (string) $pctSetting);
+        if ($pct <= 0) {
+            $pct = 5.0;
+        }
+
+        $commission = (int) round($pool * ($pct / 100));
+        $commission = max(0, min($commission, $pool));
+        $prize = $pool - $commission;
+
+        return [
+            'pool' => $pool,
+            'commission' => $commission,
+            'prize' => $prize,
+            'rate_applied' => "{$pct}% standard platform commission",
+        ];
+    }
+
+    /**
+     * Compute platform commission prize using authoritative dynamic configuration
      */
     public static function calculatePrize(int $entryFee): int
     {
-        // 5% platform virtual fee deduction: total pool = $entryFee * 2; prize = pool * 0.95 = 1.9 * entryFee
-        return (int) round($entryFee * 1.9);
+        return self::calculateCommission($entryFee)['prize'];
     }
 
     /**

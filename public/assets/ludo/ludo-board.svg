@@ -13,6 +13,36 @@
     <filter id="shadow3d">
       <feDropShadow dx="0" dy="6" stdDeviation="5" flood-color="#000" flood-opacity="0.8"/>
     </filter>
+    <style>
+      @keyframes floatDie1 {
+        0%, 100% { transform: translate(25px, 80px) rotate(-18deg); }
+        50% { transform: translate(25px, 70px) rotate(-10deg) scale(1.06); }
+      }
+      @keyframes floatDie2 {
+        0%, 100% { transform: translate(235px, 120px) rotate(22deg); }
+        50% { transform: translate(235px, 110px) rotate(32deg) scale(1.06); }
+      }
+      @keyframes boardLevitate {
+        0%, 100% { transform: translate(150px, 185px) scale(0.9, 0.55) rotate(45deg); }
+        50% { transform: translate(150px, 178px) scale(0.92, 0.56) rotate(45deg); }
+      }
+      @keyframes sparkleTwinkle {
+        0%, 100% { opacity: 0.2; transform: scale(0.7); }
+        50% { opacity: 1; transform: scale(1.6); }
+      }
+      @keyframes textGlow {
+        0%, 100% { filter: drop-shadow(0 0 2px rgba(255, 215, 0, 0.3)); }
+        50% { filter: drop-shadow(0 0 8px rgba(255, 215, 0, 0.8)); }
+      }
+      #animRedDie { animation: floatDie1 3s ease-in-out infinite; }
+      #animGoldDie { animation: floatDie2 3.4s ease-in-out infinite 0.5s; }
+      #animBoard { animation: boardLevitate 4s ease-in-out infinite; }
+      #animTitle { animation: textGlow 2.5s ease-in-out infinite; }
+      .spk-1 { animation: sparkleTwinkle 2.2s infinite ease-in-out; transform-origin: 40px 50px; }
+      .spk-2 { animation: sparkleTwinkle 2.6s infinite ease-in-out 0.8s; transform-origin: 260px 80px; }
+      .spk-3 { animation: sparkleTwinkle 1.9s infinite ease-in-out 1.2s; transform-origin: 80px 220px; }
+      .spk-4 { animation: sparkleTwinkle 2.4s infinite ease-in-out 0.4s; transform-origin: 240px 240px; }
+    </style>
   </defs>
 
   <!-- Card Background -->
@@ -22,13 +52,13 @@
   <rect x="2" y="2" width="296" height="296" rx="18" fill="none" stroke="#00D2FF" stroke-width="1.5" stroke-opacity="0.4"/>
 
   <!-- Starry sparkles background -->
-  <circle cx="40" cy="50" r="1.5" fill="#FFF"/>
-  <circle cx="260" cy="80" r="1.5" fill="#FFF"/>
-  <circle cx="80" cy="220" r="1.2" fill="#00D2FF"/>
-  <circle cx="240" cy="240" r="1.5" fill="#FFD700"/>
+  <circle cx="40" cy="50" r="2" fill="#FFF" class="spk-1"/>
+  <circle cx="260" cy="80" r="2.2" fill="#FFF" class="spk-2"/>
+  <circle cx="80" cy="220" r="1.8" fill="#00D2FF" class="spk-3"/>
+  <circle cx="240" cy="240" r="2" fill="#FFD700" class="spk-4"/>
 
   <!-- 3D Perspective Ludo Board -->
-  <g transform="translate(150, 185) scale(0.9, 0.55) rotate(45)" filter="url(#shadow3d)">
+  <g id="animBoard" transform="translate(150, 185) scale(0.9, 0.55) rotate(45)" filter="url(#shadow3d)">
     <!-- Board Base -->
     <rect x="-90" y="-90" width="180" height="180" rx="14" fill="#FFFFFF" stroke="url(#goldPlate)" stroke-width="6"/>
     <!-- Red Home Base (Top Left) -->
@@ -55,7 +85,7 @@
   </g>
 
   <!-- Left 3D Red Die -->
-  <g transform="translate(25, 80) rotate(-18)" filter="url(#shadow3d)">
+  <g id="animRedDie" transform="translate(25, 80) rotate(-18)" filter="url(#shadow3d)">
     <rect width="40" height="40" rx="8" fill="#DC2626" stroke="#FCA5A5" stroke-width="1.5"/>
     <circle cx="12" cy="12" r="3.5" fill="#FFF"/>
     <circle cx="28" cy="28" r="3.5" fill="#FFF"/>
@@ -63,7 +93,7 @@
   </g>
 
   <!-- Right 3D Gold Die -->
-  <g transform="translate(235, 120) rotate(22)" filter="url(#shadow3d)">
+  <g id="animGoldDie" transform="translate(235, 120) rotate(22)" filter="url(#shadow3d)">
     <rect width="38" height="38" rx="8" fill="url(#goldPlate)" stroke="#FFF" stroke-width="1.5"/>
     <circle cx="11" cy="11" r="3.2" fill="#451A03"/>
     <circle cx="27" cy="11" r="3.2" fill="#451A03"/>
@@ -72,7 +102,7 @@
   </g>
 
   <!-- Title Ribbon -->
-  <g filter="url(#shadow3d)">
+  <g id="animTitle" filter="url(#shadow3d)">
     <text x="150" y="80" font-family="'Cinzel', 'Poppins', sans-serif" font-weight="900" font-size="24"
           fill="url(#goldPlate)" text-anchor="middle" letter-spacing="1.5">
       FSALUDOCLUB

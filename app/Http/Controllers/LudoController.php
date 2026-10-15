@@ -11,7 +11,10 @@ use App\Models\LudoDisputeEvidence;
 use App\Models\LudoLedgerTransaction;
 use App\Models\LudoTournament;
 use App\Models\LudoTournamentParticipant;
+use App\Models\LudoUpiDeposit;
+use App\Models\LudoWithdrawalRequest;
 use App\Models\LudoSetting;
+
 use App\Models\LudoAdminAuditLog;
 use App\Models\User;
 use App\Notifications\LudoInAppNotification;
@@ -47,15 +50,43 @@ class LudoController extends Controller
     public function battles()
     {
         $user = Auth::user();
-        $coins = $user ? $user->coins : 0;
-        $referral = $user ? $user->referral_balance : 0.00;
+        $coins = $user ? $user->fresh()->coins : 0;
+        $referral = $user ? $user->fresh()->referral_balance : 0.00;
         $announcement = LudoSetting::get('announcement_hi', '⭐ 🙏 🙏 सभी यूजर ध्यान दें: मैच शुरू होने के 15 मिनट के अंदर रूम कोड डालें। किसी भी विवाद की स्थिति में स्क्रीनशॉट अनिवार्य है।');
         $minBattlePoints = (int) LudoSetting::get('minimum_battle_amount', 50);
 
-        // Fetch initial batch of 5 Open Battles
-        $openBattles = LudoBattle::with('creator')
-            ->where('status', 'open')
-            ->latest('id')
+        $filterRealUsers = function ($query) {
+            if (!app()->environment('testing')) {
+                $query->whereHas('creator', function ($q) {
+                    $q->where(function ($sub) {
+                        $sub->whereNotNull('phone')
+                            ->orWhere('email', 'like', '%@fsaludoclub%');
+                    })
+                    ->where('email', 'not like', '%@royalludo.test%')
+                    ->where('email', 'not like', '%@ludoking.test%')
+                    ->where('email', 'not like', '%fakedata%');
+                });
+            }
+        };
+
+        // Fetch initial batch of 5 Open Battles (and requested battles only for participating players)
+        $currentUserId = auth()->id();
+        $openQuery = LudoBattle::with(['creator', 'joiner'])
+            ->where(function ($q) use ($currentUserId) {
+                $q->where('status', 'open');
+                if ($currentUserId) {
+                    $q->orWhere(function ($sub) use ($currentUserId) {
+                        $sub->where('status', 'requested')
+                            ->where(function ($userSub) use ($currentUserId) {
+                                $userSub->where('creator_id', $currentUserId)
+                                        ->orWhere('joiner_id', $currentUserId);
+                            });
+                    });
+                }
+            });
+        $filterRealUsers($openQuery);
+
+        $openBattles = $openQuery->latest('id')
             ->take(6)
             ->get();
 
@@ -65,9 +96,12 @@ class LudoController extends Controller
         }
 
         // Fetch initial batch of 5 Running Battles
-        $runningBattles = LudoBattle::with(['creator', 'joiner'])
+        $runningQuery = LudoBattle::with(['creator', 'joiner'])
             ->where('status', 'running')
-            ->latest('started_at')
+            ->whereNotNull('joiner_id');
+        $filterRealUsers($runningQuery);
+
+        $runningBattles = $runningQuery->latest('started_at')
             ->latest('id')
             ->take(6)
             ->get();
@@ -106,11 +140,41 @@ class LudoController extends Controller
         $type = $validated['type'];
         $limit = (int) ($validated['per_page'] ?? 5);
 
+        $filterRealUsers = function ($query) {
+            if (!app()->environment('testing')) {
+                $query->whereHas('creator', function ($q) {
+                    $q->where(function ($sub) {
+                        $sub->whereNotNull('phone')
+                            ->orWhere('email', 'like', '%@fsaludoclub%');
+                    })
+                    ->where('email', 'not like', '%@royalludo.test%')
+                    ->where('email', 'not like', '%@ludoking.test%')
+                    ->where('email', 'not like', '%fakedata%');
+                });
+            }
+        };
+
         if ($type === 'open') {
+            $currentUserId = auth()->id();
             $query = LudoBattle::with(['creator' => function ($q) {
-                $q->select('id', 'name');
+                $q->select('id', 'name', 'phone');
+            }, 'joiner' => function ($q) {
+                $q->select('id', 'name', 'phone');
             }])
-            ->where('status', 'open');
+            ->where(function ($q) use ($currentUserId) {
+                $q->where('status', 'open');
+                if ($currentUserId) {
+                    $q->orWhere(function ($sub) use ($currentUserId) {
+                        $sub->where('status', 'requested')
+                            ->where(function ($userSub) use ($currentUserId) {
+                                $userSub->where('creator_id', $currentUserId)
+                                        ->orWhere('joiner_id', $currentUserId);
+                            });
+                    });
+                }
+            });
+
+            $filterRealUsers($query);
 
             if ($request->filled('cursor')) {
                 // Strictly monotonic cursor on ID
@@ -147,7 +211,7 @@ class LudoController extends Controller
                         'id' => $b->id,
                         'battle_uid' => $b->battle_uid,
                         'creator_id' => $b->creator_id,
-                        'creator_name' => $b->creator->name ?? 'Player_' . $b->creator_id,
+                        'creator_name' => $b->creator ? ($b->creator->name ?: 'Player_' . substr($b->creator->phone ?? $b->creator->id, -4)) : 'Player_' . $b->creator_id,
                         'entry_fee' => $b->entry_fee,
                         'prize' => $b->prize,
                         'status' => $b->status,
@@ -157,10 +221,13 @@ class LudoController extends Controller
             ]);
         } else {
             $query = LudoBattle::with([
-                'creator' => function ($q) { $q->select('id', 'name'); },
-                'joiner' => function ($q) { $q->select('id', 'name'); },
+                'creator' => function ($q) { $q->select('id', 'name', 'phone'); },
+                'joiner' => function ($q) { $q->select('id', 'name', 'phone'); },
             ])
-            ->where('status', 'running');
+            ->where('status', 'running')
+            ->whereNotNull('joiner_id');
+
+            $filterRealUsers($query);
 
             if ($request->filled('cursor')) {
                 $query->where('id', '<', (int) $request->cursor);
@@ -229,123 +296,509 @@ class LudoController extends Controller
 
         $amount = (int) $validated['amount'];
 
-        // User must be authenticated
         $user = Auth::user();
         if (!$user) {
+            if ($request->expectsJson()) {
+                return response()->json(['success' => false, 'message' => 'Unauthenticated.'], 401);
+            }
             return redirect()->route('login');
         }
 
         // KYC check if mandatory
         $isKycMandatory = LudoSetting::get('kyc_mandatory', 'off') === 'on' || config('ludo.kyc.required_for_battles', false);
         if ($isKycMandatory && $user->kyc_status !== 'verified') {
+            if ($request->expectsJson()) {
+                return response()->json(['success' => false, 'message' => 'KYC identity verification is required before creating tournament battles.'], 403);
+            }
             return redirect()->route('ludo.kyc')
                 ->with('error', 'KYC identity verification is required before creating tournament battles.');
         }
 
-        // Check virtual points balance
-        if ($user->coins < $amount) {
-            return redirect()->back()
-                ->with('error', "Insufficient tournament coins! You have 🪙 {$user->coins}, but need 🪙 {$amount}. Add virtual points from My Wallet.")
-                ->withInput();
-        }
+        return DB::transaction(function () use ($user, $amount, $request) {
+            $lockedUser = User::lockForUpdate()->find($user->id);
 
-        // Prevent duplicate open battles by the same creator for the same amount
-        $existingOpen = LudoBattle::where('creator_id', $user->id)
-            ->where('status', 'open')
-            ->where('entry_fee', $amount)
-            ->first();
+            // Check virtual points balance
+            if ($lockedUser->coins < $amount) {
+                if ($request->expectsJson()) {
+                    return response()->json(['success' => false, 'message' => "Insufficient tournament coins! You have 🪙 {$lockedUser->coins}, but need 🪙 {$amount}."], 422);
+                }
+                return redirect()->back()
+                    ->with('error', "Insufficient tournament coins! You have 🪙 {$lockedUser->coins}, but need 🪙 {$amount}. Add virtual points from My Wallet.")
+                    ->withInput();
+            }
 
-        if ($existingOpen) {
-            return redirect()->back()
-                ->with('error', "You already have an active open battle for 🪙 {$amount} (ID: {$existingOpen->battle_uid}).");
-        }
+            // Prevent duplicate open battles by the same creator for the same amount
+            $existingOpen = LudoBattle::where('creator_id', $lockedUser->id)
+                ->whereIn('status', ['open', 'requested'])
+                ->where('entry_fee', $amount)
+                ->first();
 
-        // Use atomic ledger transaction for balance change
-        \App\Models\LudoLedgerTransaction::recordAdjustment(
-            $user,
-            -$amount,
-            'entry_fee',
-            "Battle creation points entry for 🪙 {$amount}",
-            'successful'
-        );
+            if ($existingOpen) {
+                if ($request->expectsJson()) {
+                    return response()->json(['success' => false, 'message' => "You already have an active battle for 🪙 {$amount} (ID: {$existingOpen->battle_uid})."], 422);
+                }
+                return redirect()->back()
+                    ->with('error', "You already have an active open battle for 🪙 {$amount} (ID: {$existingOpen->battle_uid}).");
+            }
 
-        // Create the battle record
-        $battle = LudoBattle::create([
-            'battle_uid' => 'BAT-' . strtoupper(Str::random(8)),
-            'creator_id' => $user->id,
-            'entry_fee' => $amount,
-            'prize' => LudoBattle::calculatePrize($amount),
-            'status' => 'open',
-            'claimed_result' => 'pending',
-            'final_result' => 'pending',
-            'review_status' => 'auto_approved',
-        ]);
+            // Use atomic ledger transaction for balance change
+            \App\Models\LudoLedgerTransaction::recordAdjustment(
+                $lockedUser,
+                -$amount,
+                'entry_fee',
+                "Battle creation points entry for 🪙 {$amount}",
+                'successful'
+            );
 
-        return redirect()->back()->with('success', "🎉 Battle {$battle->battle_uid} created for 🪙 {$amount}! Waiting for an opponent to join.");
+            // Create the battle record
+            $battle = LudoBattle::create([
+                'battle_uid' => 'BAT-' . strtoupper(Str::random(8)),
+                'creator_id' => $lockedUser->id,
+                'entry_fee' => $amount,
+                'prize' => LudoBattle::calculatePrize($amount),
+                'status' => 'open',
+                'claimed_result' => 'pending',
+                'final_result' => 'pending',
+                'review_status' => 'auto_approved',
+            ]);
+
+            // Load creator relation for partial view rendering
+            $battle->load('creator');
+
+            if ($request->expectsJson() || $request->ajax()) {
+                $html = view('ludo.partials.open_battle_card', ['battle' => $battle])->render();
+                return response()->json([
+                    'success' => true,
+                    'message' => "🎉 Battle {$battle->battle_uid} created for 🪙 {$amount}!",
+                    'battle' => $battle,
+                    'html' => $html,
+                    'coins' => $lockedUser->fresh()->coins,
+                ]);
+            }
+
+            return redirect()->back()->with('success', "🎉 Battle {$battle->battle_uid} created for 🪙 {$amount}! Waiting for an opponent to join.");
+        });
     }
 
     /**
-     * Join an Open Battle Action
+     * Join an Open Battle Action (Pessimistic Concurrency Safe)
      */
     public function joinBattle(Request $request, $id)
     {
-        $battle = LudoBattle::findOrFail($id);
-
-        // Check if battle is open
-        if ($battle->status !== 'open') {
-            return redirect()->back()->with('error', 'This battle is no longer open for joining.');
-        }
-
         $user = Auth::user();
         if (!$user) {
+            if ($request->expectsJson() || $request->ajax()) {
+                return response()->json(['success' => false, 'message' => 'Please login to accept battles.'], 401);
+            }
             return redirect()->route('login');
         }
 
         // KYC check if mandatory
         $isKycMandatory = LudoSetting::get('kyc_mandatory', 'off') === 'on' || config('ludo.kyc.required_for_battles', false);
         if ($isKycMandatory && $user->kyc_status !== 'verified') {
+            if ($request->expectsJson() || $request->ajax()) {
+                return response()->json(['success' => false, 'message' => 'KYC identity verification is required before joining tournament battles.'], 403);
+            }
             return redirect()->route('ludo.kyc')
                 ->with('error', 'KYC identity verification is required before joining tournament battles.');
         }
 
-        // Prevent creator from playing against themselves
-        if ($battle->creator_id === $user->id) {
-            return redirect()->back()->with('error', 'You cannot join your own battle challenge.');
+        return DB::transaction(function () use ($id, $user, $request) {
+            // Lock battle exclusively to prevent race conditions
+            $battle = LudoBattle::with('creator')->lockForUpdate()->find($id);
+
+            if (!$battle) {
+                if ($request->expectsJson() || $request->ajax()) {
+                    return response()->json(['success' => false, 'message' => 'Battle challenge not found.'], 404);
+                }
+                return redirect()->back()->with('error', 'Battle challenge not found.');
+            }
+
+            // Verify battle is open
+            if ($battle->status !== 'open') {
+                if ($request->expectsJson() || $request->ajax()) {
+                    return response()->json(['success' => false, 'message' => 'This battle is no longer open for joining.'], 422);
+                }
+                return redirect()->back()->with('error', 'This battle is no longer open for joining.');
+            }
+
+            // Prevent creator from playing against themselves
+            if ($battle->creator_id === $user->id) {
+                if ($request->expectsJson() || $request->ajax()) {
+                    return response()->json(['success' => false, 'message' => 'You cannot join your own battle challenge.'], 422);
+                }
+                return redirect()->back()->with('error', 'You cannot join your own battle challenge.');
+            }
+
+            // Check if opponent seat has already been taken
+            if ($battle->joiner_id !== null) {
+                if ($request->expectsJson() || $request->ajax()) {
+                    return response()->json(['success' => false, 'message' => 'This battle seat has already been taken by another player.'], 422);
+                }
+                return redirect()->back()->with('error', 'This battle seat has already been taken by another player.');
+            }
+
+            // Lock joining player row exclusively
+            $lockedUser = User::lockForUpdate()->find($user->id);
+
+            // Check points balance
+            if ($lockedUser->coins < $battle->entry_fee) {
+                if ($request->expectsJson() || $request->ajax()) {
+                    return response()->json([
+                        'success' => false, 
+                        'message' => "Insufficient points! You have 🪙 {$lockedUser->coins}, but this battle requires 🪙 {$battle->entry_fee}."
+                    ], 422);
+                }
+                return redirect()->back()->with('error', "Insufficient points! You have 🪙 {$lockedUser->coins}, but this battle requires 🪙 {$battle->entry_fee}.");
+            }
+
+            $creatorDisplayName = $battle->creator ? ($battle->creator->name ?: 'Player_' . substr($battle->creator->phone ?? $battle->creator->id, -4)) : 'Player_' . $battle->creator_id;
+            $joinerDisplayName = $lockedUser->name ?: 'Player_' . substr($lockedUser->phone ?? $lockedUser->id, -4);
+
+            // Deduct points from joiner atomically via ledger
+            \App\Models\LudoLedgerTransaction::recordAdjustment(
+                $lockedUser,
+                -$battle->entry_fee,
+                'entry_fee',
+                "Joined Battle {$battle->battle_uid} vs {$creatorDisplayName}",
+                'successful'
+            );
+
+            // Transition battle to requested state so creator sees START & CANCEL buttons
+            $battle->update([
+                'joiner_id' => $lockedUser->id,
+                'status' => 'requested',
+                'room_code_expires_at' => now()->addSeconds(180),
+            ]);
+
+            // Send in-app notification to creator
+            $battle->creator->notify(new LudoInAppNotification(
+                "⚔️ Opponent Joined!",
+                "{$joinerDisplayName} accepted your challenge {$battle->battle_uid}. Click START to play!",
+                "match",
+                route('ludo.battles.view', $battle->id)
+            ));
+
+            if ($request->expectsJson() || $request->ajax()) {
+                return response()->json([
+                    'success' => true,
+                    'message' => "⚔️ You joined {$battle->battle_uid} against {$creatorDisplayName}!",
+                    'redirect' => route('ludo.battles.view', $battle->id),
+                    'battle_id' => $battle->id,
+                    'coins' => $lockedUser->fresh()->coins,
+                    'status' => 'requested'
+                ]);
+            }
+
+            return redirect()->route('ludo.battles.view', $battle->id)->with('success', "⚔️ You joined {$battle->battle_uid} against {$creatorDisplayName}!");
+        });
+    }
+
+    /**
+     * Start a Requested Battle (Creator clicks START)
+     */
+    public function startBattle(Request $request, $id)
+    {
+        $user = Auth::user();
+        if (!$user) {
+            if ($request->expectsJson() || $request->ajax()) {
+                return response()->json(['success' => false, 'message' => 'Unauthenticated.'], 401);
+            }
+            return redirect()->route('login');
         }
 
-        // Check points balance
-        if ($user->coins < $battle->entry_fee) {
-            return redirect()->back()->with('error', "Insufficient coins! You need 🪙 {$battle->entry_fee} to accept this battle.");
+        return DB::transaction(function () use ($id, $user, $request) {
+            $battle = LudoBattle::with(['creator', 'joiner'])->lockForUpdate()->find($id);
+
+            if (!$battle) {
+                if ($request->expectsJson() || $request->ajax()) {
+                    return response()->json(['success' => false, 'message' => 'Battle not found.'], 404);
+                }
+                return redirect()->back()->with('error', 'Battle not found.');
+            }
+
+            if ($battle->creator_id !== $user->id) {
+                if ($request->expectsJson() || $request->ajax()) {
+                    return response()->json(['success' => false, 'message' => 'Only the match creator can start the battle.'], 403);
+                }
+                return redirect()->back()->with('error', 'Only the match creator can start the battle.');
+            }
+
+            if ($battle->status === 'open') {
+                if ($request->expectsJson() || $request->ajax()) {
+                    return response()->json(['success' => false, 'message' => 'Waiting for an opponent to join before starting.'], 422);
+                }
+                return redirect()->back()->with('error', 'Waiting for an opponent to join before starting.');
+            }
+
+            if ($battle->status !== 'requested') {
+                if ($request->expectsJson() || $request->ajax()) {
+                    return response()->json([
+                        'success' => true,
+                        'redirect' => route('ludo.battles.view', $battle->id),
+                        'status' => $battle->status
+                    ]);
+                }
+                return redirect()->route('ludo.battles.view', $battle->id);
+            }
+
+            $submissionWindow = (int) LudoSetting::get('submission_window', config('ludo.battle.submission_window_minutes', 15));
+            $battle->update([
+                'status' => 'running',
+                'started_at' => now(),
+                'submission_deadline_at' => now()->addMinutes($submissionWindow),
+                'room_code_expires_at' => now()->addSeconds(180),
+            ]);
+
+            // Notify joiner that match has started
+            if ($battle->joiner) {
+                $battle->joiner->notify(new LudoInAppNotification(
+                    "🎮 Match Started!",
+                    "Match {$battle->battle_uid} has started! Room code upload is active (180s countdown).",
+                    "match",
+                    route('ludo.battles.view', $battle->id)
+                ));
+            }
+
+            if ($request->expectsJson() || $request->ajax()) {
+                return response()->json([
+                    'success' => true,
+                    'message' => '⚔️ Match started! Please upload or enter the Ludo King Room Code.',
+                    'redirect' => route('ludo.battles.view', $battle->id),
+                    'battle_id' => $battle->id,
+                    'status' => 'running'
+                ]);
+            }
+
+            return redirect()->route('ludo.battles.view', $battle->id)->with('success', "⚔️ Match started! Please upload or enter the Ludo King Room Code.");
+        });
+    }
+
+    /**
+     * View Match Arena / Room Code Screen (Screenshot #4 & #5)
+     */
+    public function viewBattle(Request $request, $id)
+    {
+        $battle = LudoBattle::with(['creator', 'joiner'])->findOrFail($id);
+        $user = Auth::user();
+
+        $coins = $user ? $user->coins : 0;
+        $referral = $user ? $user->referral_balance : 0.00;
+        $announcement = '🙏 🙏 सभी प्लेयरों से निवेदन है कि रिजल्ट सही डालें यदि बिना गोटी ओपन हुए कोई बंदा लेफ्ट हो जाता है या ऑटो एग्जिट हो जाता है तो टेबल कैंसिल ही मानी जाएगी अत्यंत नियोजन है कि उसमें स्क्रीनशॉट अपलोड ना करें और टेबल कैंसिल होगी तो कैंसिल रिजल्ट डालें उसमें 📢';
+
+        $isCreator = $user && $user->id === $battle->creator_id;
+        $isJoiner = $user && $user->id === $battle->joiner_id;
+
+        // Calculate countdown for Room Code upload (180s from start or creation)
+        $remainingSeconds = 180;
+        if ($battle->room_code_expires_at) {
+            $remainingSeconds = max(0, now()->diffInSeconds($battle->room_code_expires_at, false));
         }
 
-        // Deduct points from joiner atomically via ledger
-        \App\Models\LudoLedgerTransaction::recordAdjustment(
-            $user,
-            -$battle->entry_fee,
-            'entry_fee',
-            "Joined Battle {$battle->battle_uid} vs {$battle->creator->name}",
-            'successful'
-        );
+        return view('ludo.match_arena', [
+            'battle' => $battle,
+            'user' => $user,
+            'isCreator' => $isCreator,
+            'isJoiner' => $isJoiner,
+            'coins' => $coins,
+            'referral' => $referral,
+            'announcement' => $announcement,
+            'remainingSeconds' => $remainingSeconds,
+            'activeTab' => 'home',
+        ]);
+    }
 
-        // Transition battle to running state with configurable submission deadline
-        $submissionWindow = (int) LudoSetting::get('submission_window', config('ludo.battle.submission_window_minutes', 15));
-        $battle->update([
-            'joiner_id' => $user->id,
-            'status' => 'running',
-            'room_code' => (string) rand(10000000, 99999999),
-            'started_at' => now(),
-            'submission_deadline_at' => now()->addMinutes($submissionWindow),
+    /**
+     * Set Ludo King Room Code for Battle (Concurrency-safe & Immutable once set)
+     */
+    public function setRoomCode(Request $request, $id)
+    {
+        $user = Auth::user();
+        if (!$user) {
+            if ($request->expectsJson() || $request->ajax()) {
+                return response()->json(['success' => false, 'message' => 'Unauthenticated.'], 401);
+            }
+            return redirect()->route('login');
+        }
+
+        $validated = $request->validate([
+            'room_code' => ['required', 'string', 'min:4', 'max:25'],
+        ], [
+            'room_code.required' => 'Please enter the Ludo King Room Code.',
         ]);
 
-        // Send in-app notification to creator
-        $battle->creator->notify(new LudoInAppNotification(
-            "⚔️ Match Started!",
-            "{$user->name} joined your challenge {$battle->battle_uid}. Room Code: {$battle->room_code}",
-            "match",
-            url('/play')
-        ));
+        $cleanCode = strtoupper(preg_replace('/\s+/', '', $validated['room_code']));
 
-        return redirect()->back()->with('success', "⚔️ Match started! You joined {$battle->battle_uid} against {$battle->creator->name}. Room code: {$battle->room_code}");
+        return DB::transaction(function () use ($id, $user, $cleanCode, $request) {
+            $battle = LudoBattle::with(['creator', 'joiner'])->lockForUpdate()->find($id);
+
+            if (!$battle) {
+                if ($request->expectsJson() || $request->ajax()) {
+                    return response()->json(['success' => false, 'message' => 'Battle not found.'], 404);
+                }
+                return redirect()->back()->with('error', 'Battle not found.');
+            }
+
+            if ($user->id !== $battle->creator_id && $user->id !== $battle->joiner_id) {
+                if ($request->expectsJson() || $request->ajax()) {
+                    return response()->json(['success' => false, 'message' => 'Unauthorized: Only participating players can upload the room code.'], 403);
+                }
+                return redirect()->back()->with('error', 'Unauthorized: Only participating players can upload the room code.');
+            }
+
+            if ($battle->status !== 'running') {
+                if ($request->expectsJson() || $request->ajax()) {
+                    return response()->json(['success' => false, 'message' => "Cannot set room code for a {$battle->status} match."], 422);
+                }
+                return redirect()->back()->with('error', "Cannot set room code for a {$battle->status} match.");
+            }
+
+            // Prevent unauthorized replacement if already set
+            if (!empty($battle->room_code)) {
+                if ($request->expectsJson() || $request->ajax()) {
+                    return response()->json(['success' => false, 'message' => "Room code is already set to {$battle->room_code} and cannot be overwritten."], 422);
+                }
+                return redirect()->back()->with('error', "Room code is already set to {$battle->room_code} and cannot be overwritten.");
+            }
+
+            // Check timer expiry
+            if ($battle->room_code_expires_at && now()->greaterThan($battle->room_code_expires_at)) {
+                if ($request->expectsJson() || $request->ajax()) {
+                    return response()->json(['success' => false, 'message' => 'Room code countdown has expired.'], 422);
+                }
+                return redirect()->back()->with('error', 'Room code countdown has expired.');
+            }
+
+            $battle->update([
+                'room_code' => $cleanCode,
+                'started_at' => $battle->started_at ?? now(),
+            ]);
+
+            // Notify opponent
+            $opponent = $user->id === $battle->creator_id ? $battle->joiner : $battle->creator;
+            if ($opponent) {
+                $opponent->notify(new LudoInAppNotification(
+                    "🎮 Room Code Set!",
+                    "Room code {$cleanCode} has been uploaded for battle {$battle->battle_uid}. Open Ludo King to join!",
+                    "match",
+                    route('ludo.battles.view', $battle->id)
+                ));
+            }
+
+            if ($request->expectsJson() || $request->ajax()) {
+                return response()->json([
+                    'success' => true,
+                    'message' => "🎮 Room code set to {$cleanCode}! Open Ludo King app and play.",
+                    'room_code' => $cleanCode,
+                ]);
+            }
+
+            return redirect()->back()->with('success', "🎮 Room code set to {$cleanCode}! Open Ludo King app and play.");
+        });
+    }
+
+    /**
+     * Cancel Match with Specific Reason (Screenshot #5 Modal Submission)
+     */
+    public function cancelWithReason(Request $request, $id)
+    {
+        $user = Auth::user();
+        if (!$user) {
+            if ($request->expectsJson() || $request->ajax()) {
+                return response()->json(['success' => false, 'message' => 'Unauthenticated.'], 401);
+            }
+            return redirect()->route('login');
+        }
+
+        $allowedReasons = [
+            'No Room code',
+            'Not joined',
+            'Not Playing',
+            'Dont Want to Play',
+            'Opponent Abusing',
+            'Game not Started',
+            'Others'
+        ];
+
+        $reason = $request->input('reason', 'Cancelled by player');
+        if (!in_array($reason, $allowedReasons)) {
+            $reason = 'Others';
+        }
+
+        return DB::transaction(function () use ($id, $user, $reason, $request) {
+            $battle = LudoBattle::with(['creator', 'joiner'])->lockForUpdate()->find($id);
+
+            if (!$battle) {
+                if ($request->expectsJson() || $request->ajax()) {
+                    return response()->json(['success' => false, 'message' => 'Battle not found.'], 404);
+                }
+                return redirect()->route('ludo.battles')->with('error', 'Battle not found.');
+            }
+
+            if ($user->id !== $battle->creator_id && $user->id !== $battle->joiner_id) {
+                if ($request->expectsJson() || $request->ajax()) {
+                    return response()->json(['success' => false, 'message' => 'Unauthorized: You are not a participant in this match.'], 403);
+                }
+                return redirect()->back()->with('error', 'Unauthorized: You are not a participant in this match.');
+            }
+
+            if (in_array($battle->status, ['completed', 'cancelled'])) {
+                if ($request->expectsJson() || $request->ajax()) {
+                    return response()->json(['success' => false, 'message' => 'This match is already finalized.'], 422);
+                }
+                return redirect()->route('ludo.battles')->with('error', 'This match is already finalized.');
+            }
+
+            // Refund points to creator
+            if ($battle->creator) {
+                \App\Models\LudoLedgerTransaction::recordAdjustment(
+                    $battle->creator,
+                    $battle->entry_fee,
+                    'refund',
+                    "Match {$battle->battle_uid} cancelled: {$reason}",
+                    'successful'
+                );
+            }
+
+            // Refund points to joiner if joined
+            if ($battle->joiner) {
+                \App\Models\LudoLedgerTransaction::recordAdjustment(
+                    $battle->joiner,
+                    $battle->entry_fee,
+                    'refund',
+                    "Match {$battle->battle_uid} cancelled: {$reason}",
+                    'successful'
+                );
+            }
+
+            $battle->update([
+                'status' => 'cancelled',
+                'cancellation_reason' => $reason,
+                'cancelled_by_id' => $user->id,
+                'completed_at' => now(),
+            ]);
+
+            // Notify other participant
+            $otherParticipant = $user->id === $battle->creator_id ? $battle->joiner : $battle->creator;
+            if ($otherParticipant) {
+                $otherParticipant->notify(new LudoInAppNotification(
+                    "🚫 Match Cancelled",
+                    "Match {$battle->battle_uid} was cancelled ({$reason}). 🪙 {$battle->entry_fee} points refunded.",
+                    "ledger",
+                    url('/wallet')
+                ));
+            }
+
+            if ($request->expectsJson() || $request->ajax()) {
+                return response()->json([
+                    'success' => true,
+                    'message' => "Match cancelled (Reason: {$reason}). 🪙 {$battle->entry_fee} refunded.",
+                    'redirect' => route('ludo.battles')
+                ]);
+            }
+
+            return redirect()->route('ludo.battles')->with('success', "Match cancelled (Reason: {$reason}). 🪙 {$battle->entry_fee} refunded.");
+        });
     }
 
     /**
@@ -353,33 +806,215 @@ class LudoController extends Controller
      */
     public function cancelBattle(Request $request, $id)
     {
-        $battle = LudoBattle::findOrFail($id);
         $user = Auth::user();
-
-        if (!$user || $battle->creator_id !== $user->id) {
-            return redirect()->back()->with('error', 'Unauthorized: You can only cancel your own open challenges.');
+        if (!$user) {
+            if ($request->expectsJson() || $request->ajax()) {
+                return response()->json(['success' => false, 'message' => 'Unauthenticated.'], 401);
+            }
+            return redirect()->route('login');
         }
 
-        if ($battle->status !== 'open') {
-            return redirect()->back()->with('error', 'Only open battles can be cancelled.');
-        }
+        return DB::transaction(function () use ($id, $user, $request) {
+            $battle = LudoBattle::with(['creator', 'joiner'])->lockForUpdate()->find($id);
 
-        // Refund points atomically via ledger
-        \App\Models\LudoLedgerTransaction::recordAdjustment(
-            $user,
-            $battle->entry_fee,
-            'refund',
-            "Refund for cancelled Battle {$battle->battle_uid}",
-            'successful'
-        );
+            if (!$battle) {
+                if ($request->expectsJson() || $request->ajax()) {
+                    return response()->json(['success' => false, 'message' => 'Battle not found.'], 404);
+                }
+                return redirect()->back()->with('error', 'Battle not found.');
+            }
 
-        $battle->update([
-            'status' => 'cancelled',
-            'completed_at' => now(),
-        ]);
+            if ($battle->creator_id !== $user->id && $battle->joiner_id !== $user->id) {
+                if ($request->expectsJson() || $request->ajax()) {
+                    return response()->json(['success' => false, 'message' => 'Unauthorized: Only match participants can cancel.'], 403);
+                }
+                return redirect()->back()->with('error', 'Unauthorized: Only match participants can cancel.');
+            }
 
-        return redirect()->back()->with('success', "Battle {$battle->battle_uid} cancelled. 🪙 {$battle->entry_fee} refunded to your balance.");
+            if (!in_array($battle->status, ['open', 'requested'])) {
+                if ($request->expectsJson() || $request->ajax()) {
+                    return response()->json(['success' => false, 'message' => 'This battle cannot be cancelled.'], 422);
+                }
+                return redirect()->back()->with('error', 'This battle cannot be cancelled.');
+            }
+
+            // Refund creator
+            \App\Models\LudoLedgerTransaction::recordAdjustment(
+                $battle->creator,
+                $battle->entry_fee,
+                'refund',
+                "Refund for cancelled Battle {$battle->battle_uid}",
+                'successful'
+            );
+
+            // Refund joiner if present
+            if ($battle->joiner) {
+                \App\Models\LudoLedgerTransaction::recordAdjustment(
+                    $battle->joiner,
+                    $battle->entry_fee,
+                    'refund',
+                    "Refund for cancelled Battle {$battle->battle_uid}",
+                    'successful'
+                );
+            }
+
+            $battle->update([
+                'status' => 'cancelled',
+                'cancellation_reason' => 'Cancelled by player',
+                'cancelled_by_id' => $user->id,
+                'completed_at' => now(),
+            ]);
+
+            if ($request->expectsJson() || $request->ajax()) {
+                return response()->json([
+                    'success' => true,
+                    'message' => "Battle {$battle->battle_uid} cancelled. 🪙 {$battle->entry_fee} refunded.",
+                    'battle_id' => $battle->id,
+                    'coins' => $user->fresh()->coins,
+                ]);
+            }
+
+            return redirect()->back()->with('success', "Battle {$battle->battle_uid} deleted. 🪙 {$battle->entry_fee} refunded to your balance.");
+        });
     }
+
+    /**
+     * Real-time Synchronization Endpoint for Lobby & Active Arena
+     */
+    public function syncState(Request $request)
+    {
+        $user = Auth::user();
+        if (!$user) {
+            return response()->json(['authenticated' => false]);
+        }
+
+        $data = [
+            'authenticated' => true,
+            'user_id' => $user->id,
+            'coins' => $user->coins,
+            'open_battles_count' => LudoBattle::whereIn('status', ['open', 'requested'])->count(),
+        ];
+
+        // 1. If checking specific battle (in Match Arena)
+        if ($request->filled('battle_id')) {
+            $battle = LudoBattle::with(['creator', 'joiner'])->find($request->battle_id);
+            if ($battle) {
+                $remSec = 180;
+                if ($battle->room_code_expires_at) {
+                    $remSec = max(0, now()->diffInSeconds($battle->room_code_expires_at, false));
+                }
+
+                $data['battle'] = [
+                    'id' => $battle->id,
+                    'status' => $battle->status,
+                    'room_code' => $battle->room_code,
+                    'remaining_seconds' => $remSec,
+                    'cancellation_reason' => $battle->cancellation_reason,
+                    'creator_name' => $battle->creator->name ?? 'Player 1',
+                    'joiner_name' => $battle->joiner ? $battle->joiner->name : null,
+                ];
+            }
+        }
+
+        // 2. Check if user has an active created battle that was just joined ('requested' state)
+        $myRequestedBattle = LudoBattle::with(['joiner', 'creator'])
+            ->where('creator_id', $user->id)
+            ->where('status', 'requested')
+            ->latest('updated_at')
+            ->first();
+
+        if ($myRequestedBattle) {
+            $eventId = 'req_' . $myRequestedBattle->id . '_' . ($myRequestedBattle->joiner_id ?? 0) . '_' . ($myRequestedBattle->updated_at?->timestamp ?? 0);
+            $data['creator_pending_start'] = [
+                'event_id' => $eventId,
+                'battle_id' => $myRequestedBattle->id,
+                'battle_uid' => $myRequestedBattle->battle_uid,
+                'status' => $myRequestedBattle->status,
+                'joiner_name' => $myRequestedBattle->joiner ? $myRequestedBattle->joiner->name : 'Opponent',
+                'entry_fee' => (int) $myRequestedBattle->entry_fee,
+                'prize' => (int) $myRequestedBattle->prize,
+                'arena_url' => route('ludo.battles.view', $myRequestedBattle->id),
+                'updated_at' => $myRequestedBattle->updated_at?->toIso8601String(),
+                'card_html' => view('ludo.partials.open_battle_card', ['battle' => $myRequestedBattle])->render(),
+            ];
+        } else {
+            $data['creator_pending_start'] = null;
+        }
+
+        // 3. Check if user is joiner on a battle that creator just started ('running' state)
+        $myRunningBattle = LudoBattle::where('joiner_id', $user->id)
+            ->where('status', 'running')
+            ->where('started_at', '>=', now()->subMinutes(5))
+            ->latest('started_at')
+            ->first();
+
+        if ($myRunningBattle) {
+            $data['joiner_started_match'] = [
+                'battle_id' => $myRunningBattle->id,
+                'battle_uid' => $myRunningBattle->battle_uid,
+                'arena_url' => route('ludo.battles.view', $myRunningBattle->id),
+            ];
+        }
+
+        // 4. Real-time Lobby Battles Synchronization Data
+        $filterRealUsers = function ($query) {
+            if (!app()->environment('testing')) {
+                $query->whereHas('creator', function ($q) {
+                    $q->where(function ($sub) {
+                        $sub->whereNotNull('phone')
+                            ->orWhere('email', 'like', '%@fsaludoclub%');
+                    })
+                    ->where('email', 'not like', '%@royalludo.test%')
+                    ->where('email', 'not like', '%@ludoking.test%')
+                    ->where('email', 'not like', '%fakedata%');
+                });
+            }
+        };
+
+        // All active open & requested IDs for instant removal of started/cancelled battles
+        $openIdsQuery = LudoBattle::where(function ($q) use ($user) {
+            $q->where('status', 'open');
+            if ($user) {
+                $q->orWhere(function ($sub) use ($user) {
+                    $sub->where('status', 'requested')
+                        ->where(function ($userSub) use ($user) {
+                            $userSub->where('creator_id', $user->id)
+                                    ->orWhere('joiner_id', $user->id);
+                        });
+                });
+            }
+        });
+        $filterRealUsers($openIdsQuery);
+        $data['open_battle_ids'] = $openIdsQuery->pluck('id')->values()->all();
+
+        // Top running battles with rendered HTML for real-time appearance
+        $runningQuery = LudoBattle::with(['creator', 'joiner'])
+            ->where('status', 'running')
+            ->whereNotNull('joiner_id');
+        $filterRealUsers($runningQuery);
+
+        $runningBattles = $runningQuery->latest('started_at')
+            ->latest('id')
+            ->take(5)
+            ->get();
+
+        $allRunningIdsQuery = LudoBattle::where('status', 'running')->whereNotNull('joiner_id');
+        $filterRealUsers($allRunningIdsQuery);
+        $data['running_battle_ids'] = $allRunningIdsQuery->pluck('id')->values()->all();
+
+        $data['running_battles'] = $runningBattles->map(function ($b) {
+            return [
+                'id' => $b->id,
+                'battle_uid' => $b->battle_uid,
+                'status' => $b->status,
+                'room_code' => $b->room_code,
+                'card_html' => view('ludo.partials.running_battle_card', ['running' => $b])->render(),
+            ];
+        })->values()->all();
+
+        return response()->json($data);
+    }
+
 
     /**
      * Refer & Earn Screen
@@ -496,12 +1131,245 @@ class LudoController extends Controller
 
         $transactions = $transactionsQuery->paginate(6);
 
+        // Fetch all user UPI deposits (both pending, approved, and rejected for history)
+        $paymentRequests = LudoUpiDeposit::where('user_id', $user->id)
+            ->latest('id')
+            ->take(20)
+            ->get();
+
+        // Fetch user withdrawal / payout settlement requests
+        $withdrawalRequests = LudoWithdrawalRequest::where('user_id', $user->id)
+            ->latest('id')
+            ->take(20)
+            ->get();
+
+        $isUpiEnabled = self::isUpiDepositsEnabled();
+        $upiId = LudoSetting::get('upi_id', config('ludo.upi.id', '9631608403@paytm'));
+        $payeeName = LudoSetting::get('upi_payee_name', config('ludo.upi.payee_name', 'FSALUDOCLUB ENTERPRISES'));
+        $supportWhatsapp = LudoSetting::get('upi_whatsapp', config('ludo.upi.whatsapp', '9631608403'));
+        $minDeposit = (int) LudoSetting::get('upi_min_deposit', config('ludo.upi.min_deposit', 50));
+        $maxDeposit = (int) LudoSetting::get('upi_max_deposit', config('ludo.upi.max_deposit', 50000));
+        $minWithdrawal = (int) LudoSetting::get('min_withdrawal_amount', 100);
+        $maxWithdrawal = (int) LudoSetting::get('max_withdrawal_amount', 50000);
+        $qrImage = LudoSetting::get('upi_qr_image', null);
+        $instructionsEn = LudoSetting::get('upi_instructions_en', "1. Scan QR with Google Pay, PhonePe, Paytm, or BHIM.\n2. Pay the exact coins amount.\n3. Enter the 12-digit UTR/Reference number.\n4. Upload payment screenshot below.");
+        $instructionsHi = LudoSetting::get('upi_instructions_hi', "1. किसी भी UPI ऐप (Paytm, PhonePe, GPay) से QR कोड स्कैन करें।\n2. सटीक राशि का भुगतान करें।\n3. 12 अंकों का UTR / रेफ़रंस नंबर दर्ज करें।\n4. पेमेंट का स्क्रीनशॉट अपलोड करें।");
+
         return view('ludo.wallet', [
             'coins' => $coins,
             'referral' => $referral,
             'transactions' => $transactions,
+            'pendingDeposits' => $paymentRequests,
+            'paymentRequests' => $paymentRequests,
+            'withdrawalRequests' => $withdrawalRequests,
+            'isUpiEnabled' => $isUpiEnabled,
+            'upiId' => $upiId,
+            'payeeName' => $payeeName,
+            'supportWhatsapp' => $supportWhatsapp,
+            'minDeposit' => $minDeposit,
+            'maxDeposit' => $maxDeposit,
+            'minWithdrawal' => $minWithdrawal,
+            'maxWithdrawal' => $maxWithdrawal,
+            'qrImage' => $qrImage,
+            'instructionsEn' => $instructionsEn,
+            'instructionsHi' => $instructionsHi,
             'activeTab' => 'wallet',
         ]);
+    }
+
+    public static function isUpiDepositsEnabled(): bool
+    {
+        $setting = LudoSetting::get('upi_deposits_enabled');
+        if ($setting !== null) {
+            return $setting === 'on';
+        }
+
+        return (bool) config('ludo.upi_deposits_enabled', true);
+    }
+
+    /**
+     * Submit Direct UPI QR Deposit (No 3rd-party Payment Gateway)
+     */
+    public function submitUpiDeposit(Request $request)
+    {
+        $user = Auth::user();
+        if (!$user) {
+            return redirect()->route('login');
+        }
+
+        $isUpiEnabled = self::isUpiDepositsEnabled();
+        if (!$isUpiEnabled) {
+            if ($request->expectsJson() || $request->ajax()) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Direct UPI deposits are currently paused by the platform administrators.'
+                ], 403);
+            }
+            return redirect()->route('ludo.wallet')->with('error', 'Direct UPI cash deposits are currently disabled. You can reload non-cash virtual points directly below.');
+        }
+
+        $minDeposit = (int) LudoSetting::get('upi_min_deposit', config('ludo.upi.min_deposit', 50));
+        $maxDeposit = (int) LudoSetting::get('upi_max_deposit', config('ludo.upi.max_deposit', 50000));
+
+        $request->validate([
+            'amount' => "required|integer|min:{$minDeposit}|max:{$maxDeposit}",
+            'utr_number' => 'required|string|min:8|max:64',
+            'screenshot' => 'nullable|image|mimes:jpeg,png,jpg,webp|max:5120',
+        ], [
+            'amount.required' => 'Please enter the deposit amount.',
+            'amount.min' => "Minimum deposit amount is ₹{$minDeposit}.",
+            'amount.max' => "Maximum deposit per request is ₹{$maxDeposit}.",
+            'utr_number.required' => 'Please enter the 12-digit UPI Reference / UTR Number.',
+            'screenshot.image' => 'Payment receipt must be a valid image file (JPG, PNG, WebP).',
+            'screenshot.max' => 'Payment receipt image must not exceed 5MB.',
+        ]);
+
+        $cleanUtr = strtoupper(trim(preg_replace('/[^0-9A-Za-z]/', '', $request->utr_number)));
+
+        // Prevent duplicate UTR submission
+        $existing = LudoUpiDeposit::where('utr_number', $cleanUtr)
+            ->whereIn('status', ['approved', 'pending'])
+            ->first();
+
+        if ($existing) {
+            return redirect()->back()
+                ->with('error', "This UTR Number ({$cleanUtr}) has already been submitted (Status: " . ucfirst($existing->status) . "). Duplicate submissions are not allowed.")
+                ->withInput();
+        }
+
+        $screenshotPath = null;
+        if ($request->hasFile('screenshot')) {
+            $screenshotPath = $request->file('screenshot')->store('deposits', 'public');
+        }
+
+        $amount = (int) $request->amount;
+        $autoApproveSetting = LudoSetting::get('upi_auto_approve', config('ludo.upi.auto_approve', false));
+        $isApproved = ($autoApproveSetting === 'on' || $autoApproveSetting === true || $autoApproveSetting === '1');
+
+        $deposit = LudoUpiDeposit::create([
+            'deposit_uid' => 'DEP-' . strtoupper(Str::random(8)),
+            'user_id' => $user->id,
+            'amount' => $amount,
+            'utr_number' => $cleanUtr,
+            'upi_id' => LudoSetting::get('upi_id', config('ludo.upi.id', '9631608403@paytm')),
+            'screenshot_path' => $screenshotPath,
+            'status' => $isApproved ? 'approved' : 'pending',
+            'approved_at' => $isApproved ? now() : null,
+        ]);
+
+        if ($isApproved) {
+            \App\Models\LudoLedgerTransaction::recordAdjustment(
+                $user,
+                $amount,
+                'deposit',
+                "Direct UPI QR Deposit (UTR: {$cleanUtr})",
+                'successful'
+            );
+
+            return redirect()->route('ludo.wallet')->with('success', "🎉 ₹{$amount} coins credited successfully to your wallet!");
+        }
+
+        // Persistent in-app notification to the player
+        $user->notify(new LudoInAppNotification(
+            "📥 Payment Request Submitted",
+            "Your UPI deposit request for ₹{$amount} (UTR: {$cleanUtr}) has been received and is pending admin verification.",
+            "deposit",
+            url('/wallet')
+        ));
+
+        return redirect()->route('ludo.wallet')->with('success', "✅ Deposit request for ₹{$amount} submitted! UTR: {$cleanUtr}. Your coins will be added within 5-10 minutes after verification.");
+    }
+
+    /**
+     * Submit Player Withdrawal / Payout Settlement Request
+     * Locks points atomically and creates pending settlement request for Admin.
+     */
+    public function requestWithdrawal(Request $request)
+    {
+        $user = Auth::user();
+        if (!$user) {
+            return redirect()->route('login');
+        }
+
+        $minWithdrawal = (int) LudoSetting::get('min_withdrawal_amount', 100);
+        $maxWithdrawal = (int) LudoSetting::get('max_withdrawal_amount', 50000);
+
+        $validated = $request->validate([
+            'amount' => ['required', 'integer', "min:{$minWithdrawal}", "max:{$maxWithdrawal}"],
+            'payout_method' => ['required', 'string', 'in:upi,bank_transfer'],
+            'upi_id' => ['required_if:payout_method,upi', 'nullable', 'string', 'regex:/^[a-zA-Z0-9.\-_]{2,256}@[a-zA-Z]{2,64}$/'],
+            'bank_account_number' => ['required_if:payout_method,bank_transfer', 'nullable', 'string', 'min:8', 'max:30'],
+            'bank_ifsc' => ['required_if:payout_method,bank_transfer', 'nullable', 'string', 'regex:/^[A-Z]{4}0[A-Z0-9]{6}$/'],
+            'bank_name' => ['nullable', 'string', 'max:100'],
+            'account_holder_name' => ['required_if:payout_method,bank_transfer', 'nullable', 'string', 'min:2', 'max:120'],
+        ], [
+            'amount.min' => "Minimum withdrawal amount is ₹{$minWithdrawal}.",
+            'amount.max' => "Maximum withdrawal amount per request is ₹{$maxWithdrawal}.",
+            'upi_id.required_if' => 'Please enter a valid UPI ID (e.g. yourname@upi).',
+            'upi_id.regex' => 'Please enter a valid UPI ID format (e.g. mobile@paytm or user@okaxis).',
+            'bank_account_number.required_if' => 'Bank Account Number is required for bank transfer.',
+            'bank_ifsc.required_if' => 'Bank IFSC code is required.',
+            'bank_ifsc.regex' => 'Please enter a valid 11-character Bank IFSC code (e.g. SBIN0001234).',
+            'account_holder_name.required_if' => 'Account Holder Name is required.',
+        ]);
+
+        $amount = (int) $validated['amount'];
+
+        if ($user->coins < $amount) {
+            return redirect()->back()
+                ->with('error', "Insufficient wallet balance! Your available balance is 🪙 " . number_format($user->coins) . " Coins.")
+                ->withInput();
+        }
+
+        // Check if player has pending withdrawal already (prevent spamming multiple pending requests)
+        $pendingCount = LudoWithdrawalRequest::where('user_id', $user->id)
+            ->where('status', 'pending')
+            ->count();
+
+        if ($pendingCount >= 3) {
+            return redirect()->back()
+                ->with('error', "You already have {$pendingCount} pending withdrawal requests. Please wait for admin to settle them before requesting more.")
+                ->withInput();
+        }
+
+        $withdrawalUid = 'WTH-' . strtoupper(Str::random(8));
+        $payoutMethod = $validated['payout_method'];
+        $payoutDetails = $payoutMethod === 'upi' ? "UPI ID: {$validated['upi_id']}" : "Bank A/c: {$validated['bank_account_number']} ({$validated['bank_ifsc']})";
+
+        DB::transaction(function () use ($user, $amount, $withdrawalUid, $validated, $payoutMethod, $payoutDetails) {
+            // Atomically lock and deduct points
+            LudoLedgerTransaction::recordAdjustment(
+                $user,
+                -$amount,
+                'admin_adjustment',
+                "Withdrawal request: ₹{$amount} to {$payoutDetails} (Pending Settlement)",
+                'successful',
+                'Withdrawal payout lock'
+            );
+
+            LudoWithdrawalRequest::create([
+                'withdrawal_uid' => $withdrawalUid,
+                'user_id' => $user->id,
+                'amount' => $amount,
+                'payout_method' => $payoutMethod,
+                'upi_id' => $validated['upi_id'] ?? null,
+                'bank_account_number' => $validated['bank_account_number'] ?? null,
+                'bank_ifsc' => isset($validated['bank_ifsc']) ? strtoupper($validated['bank_ifsc']) : null,
+                'bank_name' => $validated['bank_name'] ?? null,
+                'account_holder_name' => $validated['account_holder_name'] ?? null,
+                'status' => 'pending',
+            ]);
+
+            // Notify player
+            $user->notify(new LudoInAppNotification(
+                "📤 Withdrawal Request Placed",
+                "Your payout request for ₹{$amount} ({$payoutDetails}) has been placed. Admin will verify and transfer money shortly.",
+                "ledger",
+                url('/wallet')
+            ));
+        });
+
+        return redirect()->route('ludo.wallet')->with('success', "🎉 ₹{$amount} की निकासी का अनुरोध (Withdrawal Request) दर्ज कर लिया गया है! एडमिन द्वारा सत्यापन के बाद 15-30 मिनट में आपके खाते में भेज दिया जाएगा। Ref: {$withdrawalUid}");
     }
 
     /**
@@ -722,6 +1590,8 @@ class LudoController extends Controller
         $lang = $request->query('lang', 'en'); // 'en' or 'hi'
 
         $customRules = LudoSetting::get($lang === 'hi' ? 'rules_hi' : 'rules_en');
+        $slabsJson = LudoSetting::get('battle_commission_slabs');
+        $slabs = is_string($slabsJson) ? json_decode($slabsJson, true) : $slabsJson;
 
         return view('ludo.rules', [
             'coins' => $coins,
@@ -729,6 +1599,7 @@ class LudoController extends Controller
             'activeTab' => 'home',
             'lang' => $lang,
             'customRules' => $customRules,
+            'slabs' => $slabs,
         ]);
     }
 

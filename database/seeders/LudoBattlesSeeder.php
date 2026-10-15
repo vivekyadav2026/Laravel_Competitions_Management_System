@@ -10,26 +10,26 @@ use Illuminate\Support\Str;
 class LudoBattlesSeeder extends Seeder
 {
     /**
-     * Run the database seeds.
+     * Run the database seeds with authentic Indian player names.
      */
     public function run(): void
     {
-        // Seed tournament player accounts if none exist
+        // Indian player accounts
         $players = [
-            ['name' => 'UEsBa', 'email' => 'uesba@royalludo.test'],
-            ['name' => 'Hello...', 'email' => 'hello@royalludo.test'],
-            ['name' => 'mlEhr', 'email' => 'mlehr@royalludo.test'],
-            ['name' => 'Ztrmk...', 'email' => 'ztrmk@royalludo.test'],
-            ['name' => 'Kmyil...', 'email' => 'kmyil@royalludo.test'],
-            ['name' => 'Lalla...', 'email' => 'lalla@royalludo.test'],
-            ['name' => 'MlqwZ', 'email' => 'mlqwz@royalludo.test'],
-            ['name' => 'UrXeD', 'email' => 'urxed@royalludo.test'],
-            ['name' => 'ExzaW', 'email' => 'exzaw@royalludo.test'],
-            ['name' => 'SEzgE', 'email' => 'sezge@royalludo.test'],
-            ['name' => 'eliRB', 'email' => 'elirb@royalludo.test'],
-            ['name' => 'ICOrG', 'email' => 'icorg@royalludo.test'],
-            ['name' => 'No Th...', 'email' => 'noth@royalludo.test'],
-            ['name' => 'TABHH', 'email' => 'tabhh@royalludo.test'],
+            ['name' => 'Rahul Sharma', 'email' => 'rahul.sharma@ludoking.test', 'phone' => '9820112233'],
+            ['name' => 'Aman Verma', 'email' => 'aman.verma@ludoking.test', 'phone' => '9820112234'],
+            ['name' => 'Vikram Singh', 'email' => 'vikram.singh@ludoking.test', 'phone' => '9820112235'],
+            ['name' => 'Rohit Kumar', 'email' => 'rohit.kumar@ludoking.test', 'phone' => '9820112236'],
+            ['name' => 'Deepak Patel', 'email' => 'deepak.patel@ludoking.test', 'phone' => '9820112237'],
+            ['name' => 'Sachin Yadav', 'email' => 'sachin.yadav@ludoking.test', 'phone' => '9820112238'],
+            ['name' => 'Aditya Raj', 'email' => 'aditya.raj@ludoking.test', 'phone' => '9820112239'],
+            ['name' => 'Suresh Gupta', 'email' => 'suresh.gupta@ludoking.test', 'phone' => '9820112240'],
+            ['name' => 'Ankit Mishra', 'email' => 'ankit.mishra@ludoking.test', 'phone' => '9820112241'],
+            ['name' => 'Pooja Singh', 'email' => 'pooja.singh@ludoking.test', 'phone' => '9820112242'],
+            ['name' => 'Sunil Kumar', 'email' => 'sunil.kumar@ludoking.test', 'phone' => '9820112243'],
+            ['name' => 'Vikas Meena', 'email' => 'vikas.meena@ludoking.test', 'phone' => '9820112244'],
+            ['name' => 'Manoj Joshi', 'email' => 'manoj.joshi@ludoking.test', 'phone' => '9820112245'],
+            ['name' => 'Karan Singh', 'email' => 'karan.singh@ludoking.test', 'phone' => '9820112246'],
         ];
 
         $userIds = [];
@@ -38,21 +38,29 @@ class LudoBattlesSeeder extends Seeder
                 ['email' => $p['email']],
                 [
                     'name' => $p['name'],
+                    'phone' => $p['phone'],
                     'password' => bcrypt('secret123'),
-                    'coins' => 5000,
+                    'coins' => 10000,
                     'referral_code' => strtoupper(Str::random(6)),
+                    'status' => 'active',
+                    'role' => 'normal',
                 ]
             );
+
+            if (empty($user->player_uid)) {
+                $user->update(['player_uid' => 'LUDO' . str_pad($user->id, 5, '0', STR_PAD_LEFT)]);
+            }
+
             $userIds[$p['name']] = $user->id;
         }
 
-        // Open Battles from reference screenshots
+        // Open Battles (₹50, ₹100, ₹250, ₹1550, ₹3350)
         $openData = [
-            ['creator' => 'UEsBa', 'fee' => 250],
-            ['creator' => 'Hello...', 'fee' => 1600],
-            ['creator' => 'mlEhr', 'fee' => 2400],
-            ['creator' => 'Ztrmk...', 'fee' => 19700],
-            ['creator' => 'Kmyil...', 'fee' => 36250],
+            ['creator' => 'Rahul Sharma', 'fee' => 50],
+            ['creator' => 'Aman Verma', 'fee' => 100],
+            ['creator' => 'Vikram Singh', 'fee' => 250],
+            ['creator' => 'Deepak Patel', 'fee' => 1550],
+            ['creator' => 'Sachin Yadav', 'fee' => 3350],
         ];
 
         foreach ($openData as $b) {
@@ -74,11 +82,11 @@ class LudoBattlesSeeder extends Seeder
 
         // Running Battles from reference screenshots
         $runningData = [
-            ['p1' => 'UEsBa', 'p2' => 'Lalla...', 'fee' => 200, 'room' => '10492841'],
-            ['p1' => 'MlqwZ', 'p2' => 'UrXeD', 'fee' => 250, 'room' => '73910482'],
-            ['p1' => 'ExzaW', 'p2' => 'SEzgE', 'fee' => 100, 'room' => '58190248'],
-            ['p1' => 'eliRB', 'p2' => 'ICOrG', 'fee' => 1500, 'room' => '49201948'],
-            ['p1' => 'No Th...', 'p2' => 'TABHH', 'fee' => 350, 'room' => '83920194'],
+            ['p1' => 'Rohit Kumar', 'p2' => 'Suresh Gupta', 'fee' => 100, 'room' => '10492841'],
+            ['p1' => 'Aditya Raj', 'p2' => 'Ankit Mishra', 'fee' => 200, 'room' => '73910482'],
+            ['p1' => 'Sunil Kumar', 'p2' => 'Vikas Meena', 'fee' => 250, 'room' => '58190248'],
+            ['p1' => 'Manoj Joshi', 'p2' => 'Karan Singh', 'fee' => 1500, 'room' => '49201948'],
+            ['p1' => 'Pooja Singh', 'p2' => 'Deepak Patel', 'fee' => 500, 'room' => '83920194'],
         ];
 
         foreach ($runningData as $rb) {

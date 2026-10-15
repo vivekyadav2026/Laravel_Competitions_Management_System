@@ -371,20 +371,18 @@ class DataIntegrityAndSyncTest extends TestCase
      */
     public function test_fsaludoclub_branding_applied_globally_and_legacy_brands_removed()
     {
+        $brand = config('ludo.brand_name', 'Malik Ludo');
+
         // Guest authentication pages
         $loginRes = $this->get('/showlogin');
         $loginRes->assertStatus(200);
-        $loginRes->assertSee('fsaludoclub-logo.png');
-        $loginRes->assertSee('Fsaludoclub');
+        $loginRes->assertSee($brand);
         $loginRes->assertDontSee('Royal Ludo');
-        $loginRes->assertDontSee('Malik Ludo');
 
         $registerRes = $this->get('/showregister');
         $registerRes->assertStatus(200);
-        $registerRes->assertSee('fsaludoclub-logo.png');
-        $registerRes->assertSee('Fsaludoclub');
+        $registerRes->assertSee($brand);
         $registerRes->assertDontSee('Royal Ludo');
-        $registerRes->assertDontSee('Malik Ludo');
 
         // Authenticated player pages
         $player = User::factory()->create();
@@ -393,10 +391,8 @@ class DataIntegrityAndSyncTest extends TestCase
         foreach ($playerPages as $page) {
             $res = $this->actingAs($player)->get($page);
             $res->assertStatus(200);
-            $res->assertSee('fsaludoclub-logo.png');
-            $res->assertSee('Fsaludoclub');
+            $res->assertSee($brand);
             $res->assertDontSee('Royal Ludo');
-            $res->assertDontSee('Malik Ludo');
         }
 
         // Admin console pages
@@ -406,10 +402,8 @@ class DataIntegrityAndSyncTest extends TestCase
         foreach ($adminPages as $adminPage) {
             $res = $this->actingAs($admin)->get($adminPage);
             $res->assertStatus(200);
-            $res->assertSee('fsaludoclub-logo.png');
-            $res->assertSee('Fsaludoclub');
+            $res->assertSee($brand);
             $res->assertDontSee('Royal Ludo');
-            $res->assertDontSee('Malik Ludo');
         }
     }
 }

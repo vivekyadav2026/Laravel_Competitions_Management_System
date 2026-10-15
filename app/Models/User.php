@@ -153,4 +153,14 @@ class User extends Authenticatable
     {
         return $this->hasMany(LudoDispute::class, 'opened_by_user_id')->latest('id');
     }
+
+    public function withdrawalRequests()
+    {
+        return $this->hasMany(LudoWithdrawalRequest::class, 'user_id')->latest('id');
+    }
+
+    public function upiDeposits()
+    {
+        return $this->hasMany(LudoUpiDeposit::class, 'user_id')->latest('id');
+    }
 }

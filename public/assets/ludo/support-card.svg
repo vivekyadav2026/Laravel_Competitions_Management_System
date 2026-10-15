@@ -17,6 +17,30 @@
     <filter id="shadow">
       <feDropShadow dx="0" dy="4" stdDeviation="4" flood-color="#000" flood-opacity="0.8"/>
     </filter>
+    <style>
+      @keyframes phoneRinging {
+        0%, 65%, 100% { transform: rotate(0deg); }
+        68%, 76%, 84% { transform: rotate(-7deg); }
+        72%, 80%, 88% { transform: rotate(7deg); }
+        92% { transform: rotate(0deg); }
+      }
+      @keyframes goldRingSpin {
+        from { stroke-dashoffset: 0; }
+        to { stroke-dashoffset: 36; }
+      }
+      @keyframes auraBreath {
+        0%, 100% { opacity: 0.3; transform: scale(0.9); }
+        50% { opacity: 0.75; transform: scale(1.15); }
+      }
+      @keyframes goldPulse {
+        0%, 100% { filter: drop-shadow(0 0 2px rgba(255, 215, 0, 0.4)); }
+        50% { filter: drop-shadow(0 0 10px rgba(255, 215, 0, 0.9)); }
+      }
+      #animHandset { animation: phoneRinging 3.5s ease-in-out infinite; transform-origin: 0px 0px; }
+      #animDashRing { animation: goldRingSpin 10s linear infinite; }
+      #animAura { animation: auraBreath 3s ease-in-out infinite; transform-origin: 150px 115px; }
+      #animSupportTitle { animation: goldPulse 3s ease-in-out infinite; }
+    </style>
   </defs>
 
   <!-- Background -->
@@ -24,24 +48,26 @@
   <rect x="2" y="2" width="296" height="296" rx="18" fill="none" stroke="#FFD700" stroke-width="1.2" stroke-opacity="0.3"/>
 
   <!-- Golden Ambient Glow behind Icon -->
-  <circle cx="150" cy="115" r="80" fill="url(#goldGlow)"/>
+  <circle id="animAura" cx="150" cy="115" r="80" fill="url(#goldGlow)"/>
 
   <!-- Ornate Golden Ring with WhatsApp Icon -->
   <g transform="translate(150, 115)" filter="url(#shadow)">
     <!-- Outer gold ring -->
     <circle cx="0" cy="0" r="54" fill="#0A0806" stroke="url(#goldText)" stroke-width="3.5"/>
-    <circle cx="0" cy="0" r="48" fill="#140E05" stroke="#FFE066" stroke-width="1" stroke-dasharray="4 2"/>
+    <circle id="animDashRing" cx="0" cy="0" r="48" fill="#140E05" stroke="#FFE066" stroke-width="1.5" stroke-dasharray="6 3"/>
     
     <!-- WhatsApp / Headset bubble -->
-    <path d="M -24,8 C -26,1 -24,-7 -18,-14 C -12,-21 -3,-25 6,-25 C 16,-25 25,-21 31,-14 C 37,-7 39,2 37,11 C 34,20 27,27 18,29 C 14,30 9,30 5,29 L -10,34 L -6,21 C -15,19 -21,14 -24,8 Z"
-          fill="url(#goldText)"/>
-    <!-- Phone handset inside -->
-    <path d="M -8,-6 C -6,-10 -3,-10 -1,-7 L 3,-1 C 5,2 4,4 1,6 C 0,7 6,14 12,16 C 14,14 16,13 19,16 L 23,21 C 25,24 24,27 21,28 C 17,30 11,29 3,21 C -5,14 -8,8 -8,-6 Z"
-          fill="#0D0904"/>
+    <g id="animHandset">
+      <path d="M -24,8 C -26,1 -24,-7 -18,-14 C -12,-21 -3,-25 6,-25 C 16,-25 25,-21 31,-14 C 37,-7 39,2 37,11 C 34,20 27,27 18,29 C 14,30 9,30 5,29 L -10,34 L -6,21 C -15,19 -21,14 -24,8 Z"
+            fill="url(#goldText)"/>
+      <!-- Phone handset inside -->
+      <path d="M -8,-6 C -6,-10 -3,-10 -1,-7 L 3,-1 C 5,2 4,4 1,6 C 0,7 6,14 12,16 C 14,14 16,13 19,16 L 23,21 C 25,24 24,27 21,28 C 17,30 11,29 3,21 C -5,14 -8,8 -8,-6 Z"
+            fill="#0D0904"/>
+    </g>
   </g>
 
   <!-- Title & Subtitle -->
-  <g filter="url(#shadow)">
+  <g id="animSupportTitle" filter="url(#shadow)">
     <text x="150" y="222" font-family="'Poppins', sans-serif" font-weight="900" font-size="24"
           fill="url(#goldText)" text-anchor="middle" letter-spacing="1">
       24x7 SUPPORT

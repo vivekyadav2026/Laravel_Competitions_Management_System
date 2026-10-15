@@ -254,6 +254,21 @@
             border-radius: 6px;
         }
 
+        .admin-notification-pulse {
+            animation: pulseNotificationBadge 2s infinite;
+        }
+        @keyframes pulseNotificationBadge {
+            0% { transform: scale(1); box-shadow: 0 0 0 0 rgba(239, 68, 68, 0.7); }
+            70% { transform: scale(1.08); box-shadow: 0 0 0 6px rgba(239, 68, 68, 0); }
+            100% { transform: scale(1); box-shadow: 0 0 0 0 rgba(239, 68, 68, 0); }
+        }
+        .admin-notification-item {
+            transition: background 0.15s ease;
+        }
+        .admin-notification-item:hover {
+            background: rgba(56, 189, 248, 0.1) !important;
+        }
+
         @media (max-width: 991px) {
             .admin-sidebar {
                 position: fixed;
@@ -308,24 +323,51 @@
                 <a href="{{ route('admin.ludo.disputes.index') }}" class="admin-nav-link {{ ($activeSection ?? '') === 'disputes' ? 'active' : '' }}">
                     <i class="fa-solid fa-gavel text-danger"></i>
                     <span>Dispute Desk</span>
+                    @if(($pendingDisputesCount ?? 0) > 0)
+                        <span class="badge bg-danger admin-nav-badge">{{ $pendingDisputesCount }}</span>
+                    @endif
                 </a>
             </li>
             <li>
                 <a href="{{ route('admin.ludo.kyc.index') }}" class="admin-nav-link {{ ($activeSection ?? '') === 'kyc' ? 'active' : '' }}">
                     <i class="fa-solid fa-id-card text-warning"></i>
                     <span>KYC Verifications</span>
+                    @if(($pendingKycCount ?? 0) > 0)
+                        <span class="badge bg-warning text-dark admin-nav-badge">{{ $pendingKycCount }}</span>
+                    @endif
                 </a>
             </li>
             <li>
                 <a href="{{ route('admin.ludo.tickets.index') }}" class="admin-nav-link {{ ($activeSection ?? '') === 'tickets' ? 'active' : '' }}">
                     <i class="fa-solid fa-headset text-info"></i>
                     <span>Support Desk</span>
+                    @if(($pendingTicketsCount ?? 0) > 0)
+                        <span class="badge bg-info text-dark admin-nav-badge">{{ $pendingTicketsCount }}</span>
+                    @endif
                 </a>
             </li>
             <li>
                 <a href="{{ route('admin.ludo.ledger.index') }}" class="admin-nav-link {{ ($activeSection ?? '') === 'ledger' ? 'active' : '' }}">
                     <i class="fa-solid fa-coins text-warning"></i>
                     <span>Virtual Points Ledger</span>
+                </a>
+            </li>
+            <li>
+                <a href="{{ route('admin.ludo.deposits.index') }}" class="admin-nav-link {{ ($activeSection ?? '') === 'deposits' ? 'active' : '' }}">
+                    <i class="fa-solid fa-qrcode text-success"></i>
+                    <span>UPI QR Deposits</span>
+                    @if(($pendingDepositsCount ?? 0) > 0)
+                        <span class="badge bg-danger admin-nav-badge">{{ $pendingDepositsCount }}</span>
+                    @endif
+                </a>
+            </li>
+            <li>
+                <a href="{{ route('admin.ludo.withdrawals.index') }}" class="admin-nav-link {{ ($activeSection ?? '') === 'withdrawals' ? 'active' : '' }}">
+                    <i class="fa-solid fa-money-bill-transfer text-warning"></i>
+                    <span>Player Withdrawals</span>
+                    @if(($pendingWithdrawalsCount ?? 0) > 0)
+                        <span class="badge bg-warning text-dark admin-nav-badge">{{ $pendingWithdrawalsCount }}</span>
+                    @endif
                 </a>
             </li>
             <li>
@@ -380,6 +422,86 @@
             </div>
 
             <div class="d-flex align-items-center gap-3">
+                {{-- Pending Activities Notification Bell Dropdown --}}
+                <div class="dropdown me-1">
+                    <button class="btn btn-outline-secondary position-relative rounded-pill px-3 py-1 d-flex align-items-center gap-2" id="adminNotificationsMenuBtn" data-bs-toggle="dropdown" aria-expanded="false" title="Pending Operational Activities">
+                        <i class="fa-solid fa-bell text-warning"></i>
+                        <span class="d-none d-sm-inline small text-light fw-semibold">Alerts</span>
+                        @if(($totalPendingNotifications ?? 0) > 0)
+                            <span class="badge rounded-pill bg-danger shadow-sm admin-notification-pulse" id="adminPendingBadge">
+                                {{ $totalPendingNotifications }}
+                            </span>
+                        @else
+                            <span class="badge rounded-pill bg-secondary bg-opacity-50 text-white" id="adminPendingBadge" style="font-size: 10px;">0</span>
+                        @endif
+                    </button>
+                    <div class="dropdown-menu dropdown-menu-end p-0 shadow-lg border-warning border-opacity-25" style="width: 380px; max-width: 92vw; background: #0c1427; border-radius: 14px; overflow: hidden;" aria-labelledby="adminNotificationsMenuBtn">
+                        {{-- Dropdown Header --}}
+                        <div class="p-3 border-bottom border-secondary border-opacity-25 d-flex justify-content-between align-items-center" style="background: rgba(212, 175, 55, 0.08);">
+                            <div>
+                                <h6 class="mb-0 fw-bold text-warning small text-uppercase" style="letter-spacing: 0.5px;">
+                                    <i class="fa-solid fa-bell me-1"></i> Pending Activities
+                                </h6>
+                                <span class="text-secondary" style="font-size: 11px;">Admin action required</span>
+                            </div>
+                            <span class="badge bg-danger rounded-pill px-2 py-1" style="font-size: 11px;" id="adminDropdownBadgeCount">
+                                {{ $totalPendingNotifications ?? 0 }} Pending
+                            </span>
+                        </div>
+
+                        {{-- Categorized Summary Chips --}}
+                        <div class="p-2 border-bottom border-secondary border-opacity-25 d-flex gap-1 flex-wrap" style="background: rgba(0, 0, 0, 0.25);">
+                            <a href="{{ route('admin.ludo.deposits.index') }}" class="badge bg-dark border border-success border-opacity-50 text-success text-decoration-none py-1 px-2" style="font-size: 10.5px;">
+                                Deposits: {{ $pendingDepositsCount ?? 0 }}
+                            </a>
+                            <a href="{{ route('admin.ludo.withdrawals.index') }}" class="badge bg-dark border border-warning border-opacity-50 text-warning text-decoration-none py-1 px-2" style="font-size: 10.5px;">
+                                Payouts: {{ $pendingWithdrawalsCount ?? 0 }}
+                            </a>
+                            <a href="{{ route('admin.ludo.kyc.index') }}" class="badge bg-dark border border-primary border-opacity-50 text-primary text-decoration-none py-1 px-2" style="font-size: 10.5px;">
+                                KYC: {{ $pendingKycCount ?? 0 }}
+                            </a>
+                            <a href="{{ route('admin.ludo.disputes.index') }}" class="badge bg-dark border border-danger border-opacity-50 text-danger text-decoration-none py-1 px-2" style="font-size: 10.5px;">
+                                Disputes: {{ $pendingDisputesCount ?? 0 }}
+                            </a>
+                            <a href="{{ route('admin.ludo.tickets.index') }}" class="badge bg-dark border border-info border-opacity-50 text-info text-decoration-none py-1 px-2" style="font-size: 10.5px;">
+                                Tickets: {{ $pendingTicketsCount ?? 0 }}
+                            </a>
+                        </div>
+
+                        {{-- Notification Items List --}}
+                        <div style="max-height: 330px; overflow-y: auto;" id="adminNotificationItemsList">
+                            @forelse(($recentPendingActivities ?? []) as $act)
+                                <a href="{{ $act['url'] }}" class="d-flex align-items-start gap-2 p-2 px-3 border-bottom border-secondary border-opacity-10 text-decoration-none text-light admin-notification-item">
+                                    <div class="rounded-circle p-2 mt-1 d-flex align-items-center justify-content-center" style="width: 32px; height: 32px; background: rgba(255, 255, 255, 0.05); flex-shrink: 0;">
+                                        <i class="{{ $act['icon'] }}"></i>
+                                    </div>
+                                    <div class="flex-grow-1 min-w-0">
+                                        <div class="d-flex justify-content-between align-items-center">
+                                            <strong class="small text-white text-truncate">{{ $act['title'] }}</strong>
+                                            <span class="badge {{ $act['badge_class'] ?? 'bg-secondary' }}" style="font-size: 9px;">{{ $act['badge'] ?? 'Notice' }}</span>
+                                        </div>
+                                        <div class="text-secondary small text-truncate" style="font-size: 11.5px;">{{ $act['description'] }}</div>
+                                        <div class="text-muted" style="font-size: 10px;">{{ $act['created_at'] ? $act['created_at']->diffForHumans() : 'Recently' }}</div>
+                                    </div>
+                                </a>
+                            @empty
+                                <div class="p-4 text-center text-secondary">
+                                    <i class="fa-solid fa-circle-check fs-2 text-success opacity-75 mb-2 d-block"></i>
+                                    <strong class="text-white small d-block">All Caught Up!</strong>
+                                    <span class="small" style="font-size: 11px;">No pending deposits, payouts, KYC, or disputes.</span>
+                                </div>
+                            @endforelse
+                        </div>
+
+                        {{-- Dropdown Footer --}}
+                        <div class="p-2 text-center border-top border-secondary border-opacity-25" style="background: rgba(0, 0, 0, 0.35);">
+                            <span class="text-secondary small" style="font-size: 10.5px;">
+                                <i class="fa-solid fa-arrows-rotate me-1 text-warning"></i> Auto-refreshes every 20 seconds
+                            </span>
+                        </div>
+                    </div>
+                </div>
+
                 <div class="text-end d-none d-md-block">
                     <div class="text-white small fw-bold">{{ Auth::user()->name ?? 'Administrator' }}</div>
                     <div class="text-info" style="font-size: 11px;">{{ strtoupper(Auth::user()->role ?? 'ADMIN') }}</div>
@@ -424,6 +546,32 @@
         document.getElementById('sidebarToggleBtn')?.addEventListener('click', function() {
             document.getElementById('adminSidebar')?.classList.toggle('show');
         });
+
+        // Real-time live polling for Admin pending notifications
+        function pollAdminPendingActivities() {
+            fetch('{{ route('admin.ludo.notifications.live') }}', { credentials: 'same-origin' })
+                .then(function(res) { return res.json(); })
+                .then(function(data) {
+                    if (data && data.success) {
+                        var total = data.total_pending;
+                        var badge = document.getElementById('adminPendingBadge');
+                        var dropBadge = document.getElementById('adminDropdownBadgeCount');
+                        if (badge) {
+                            badge.textContent = total;
+                            if (total > 0) {
+                                badge.className = 'badge rounded-pill bg-danger shadow-sm admin-notification-pulse';
+                            } else {
+                                badge.className = 'badge rounded-pill bg-secondary bg-opacity-50 text-white';
+                            }
+                        }
+                        if (dropBadge) {
+                            dropBadge.textContent = total + ' Pending';
+                        }
+                    }
+                })
+                .catch(function() {});
+        }
+        setInterval(pollAdminPendingActivities, 20000);
     </script>
     @stack('scripts')
 </body>

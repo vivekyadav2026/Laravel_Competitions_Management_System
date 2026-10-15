@@ -8,7 +8,7 @@
     <a href="{{ url('/wallet') }}" class="ludo-balance-card ludo-balance-coins" title="View Coins Wallet">
         <img src="{{ asset('assets/ludo/coins-sack.svg') }}" alt="Coins" class="ludo-balance-icon">
         <div class="ludo-balance-info">
-            <span class="ludo-balance-amount">{{ $coins }}</span>
+            <span class="ludo-balance-amount user-coins-display">{{ number_format($coins) }}</span>
             <span class="ludo-balance-label">Coins</span>
         </div>
     </a>

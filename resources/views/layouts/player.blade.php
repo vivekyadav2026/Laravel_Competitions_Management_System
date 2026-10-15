@@ -29,11 +29,15 @@
     <div class="ludo-desktop-wrapper">
         {{-- Left / Centered Mobile App Container --}}
         <div class="ludo-mobile-frame">
+            @php
+                $headerCoins = auth()->check() ? auth()->user()->fresh()->coins : ($coins ?? 0);
+                $headerReferral = auth()->check() ? auth()->user()->fresh()->referral_balance : ($referral ?? '0.00');
+            @endphp
             {{-- Navigation Drawer --}}
-            <x-ludo.drawer :coins="$coins ?? 0" :referral="$referral ?? '0.00'" />
+            <x-ludo.drawer :coins="$headerCoins" :referral="$headerReferral" />
 
             {{-- Top Sticky Header --}}
-            <x-ludo.header :coins="$coins ?? 0" :referral="$referral ?? '0.00'" />
+            <x-ludo.header :coins="$headerCoins" :referral="$headerReferral" />
 
             {{-- Main Content Container (Padded so header & bottom nav never overlap) --}}
             <main class="ludo-page-content">

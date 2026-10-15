@@ -215,6 +215,38 @@
                 </div>
             </a>
         </div>
+
+        {{-- 13. UPI QR Payment Requests --}}
+        <div class="col-6 col-md-4 col-xl-3">
+            <a href="{{ route('admin.ludo.deposits.index') }}" class="text-decoration-none">
+                <div class="admin-stat-card h-100">
+                    <div class="admin-stat-title">UPI QR Deposits</div>
+                    <div class="admin-stat-val text-info">₹{{ number_format($metrics['deposits_approved_amount'] ?? 0) }}</div>
+                    <div class="small text-secondary mt-1" style="font-size: 11px;">
+                        <span class="text-warning fw-bold">{{ $metrics['pending_deposits'] ?? 0 }} Pending</span> &bull;
+                        <span class="text-success fw-bold">{{ $metrics['approved_deposits'] ?? 0 }} Approved</span> &bull;
+                        <span class="text-danger fw-bold">{{ $metrics['rejected_deposits'] ?? 0 }} Rejected</span>
+                    </div>
+                    <i class="fa-solid fa-qrcode admin-stat-icon text-info"></i>
+                </div>
+            </a>
+        </div>
+
+        {{-- 14. Player Withdrawals & Settlements --}}
+        <div class="col-6 col-md-4 col-xl-3">
+            <a href="{{ route('admin.ludo.withdrawals.index') }}" class="text-decoration-none">
+                <div class="admin-stat-card h-100">
+                    <div class="admin-stat-title">Player Withdrawals</div>
+                    <div class="admin-stat-val text-warning">₹{{ number_format($metrics['settled_withdrawals_amount'] ?? 0) }}</div>
+                    <div class="small text-secondary mt-1" style="font-size: 11px;">
+                        <span class="text-warning fw-bold">{{ $metrics['pending_withdrawals'] ?? 0 }} Pending</span> &bull;
+                        <span class="text-success fw-bold">{{ $metrics['approved_withdrawals'] ?? 0 }} Settled</span> &bull;
+                        <span class="text-danger fw-bold">{{ $metrics['rejected_withdrawals'] ?? 0 }} Rejected</span>
+                    </div>
+                    <i class="fa-solid fa-money-bill-transfer admin-stat-icon text-warning"></i>
+                </div>
+            </a>
+        </div>
     </div>
 
     {{-- Two Column Section: Live Urgent Disputes & Audit Activity Trail --}}
@@ -413,6 +445,65 @@
                             @empty
                                 <tr>
                                     <td colspan="5" class="text-center text-secondary py-3 small">No recent matches recorded.</td>
+                                </tr>
+                            @endforelse
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    {{-- Recent UPI QR Deposit Requests Stream --}}
+    <div class="row g-4 mt-1">
+        <div class="col-12">
+            <div class="admin-card">
+                <div class="admin-card-header">
+                    <h6 class="text-white fw-bold mb-0">
+                        <i class="fa-solid fa-qrcode text-info me-2"></i> Recent UPI QR Deposit Requests
+                    </h6>
+                    <a href="{{ route('admin.ludo.deposits.index') }}" class="btn btn-sm btn-outline-info rounded-pill py-0 px-2" style="font-size: 11px;">
+                        All Deposit Requests
+                    </a>
+                </div>
+                <div class="table-responsive">
+                    <table class="table admin-table mb-0">
+                        <thead>
+                            <tr>
+                                <th>Txn Ref</th>
+                                <th>Player</th>
+                                <th>Amount</th>
+                                <th>UTR / Ref #</th>
+                                <th>Status</th>
+                                <th>Date</th>
+                                <th>Action</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            @forelse($recentDeposits ?? [] as $dep)
+                                <tr>
+                                    <td class="font-monospace text-info small">{{ $dep->transaction_ref }}</td>
+                                    <td class="small">
+                                        <span class="text-white fw-bold">{{ $dep->user->name ?? 'Player #' . $dep->user_id }}</span>
+                                        <span class="text-secondary small d-block">{{ $dep->user->phone ?? '' }}</span>
+                                    </td>
+                                    <td class="text-warning small fw-bold">₹{{ number_format($dep->amount) }}</td>
+                                    <td class="font-monospace small text-light">{{ $dep->utr_number }}</td>
+                                    <td>
+                                        <span class="badge {{ $dep->status === 'approved' ? 'bg-success' : ($dep->status === 'pending' ? 'bg-warning text-dark' : 'bg-danger') }}" style="font-size: 9.5px; text-transform: uppercase;">
+                                            {{ $dep->status }}
+                                        </span>
+                                    </td>
+                                    <td class="text-secondary small">{{ $dep->created_at->format('d M, H:i') }}</td>
+                                    <td>
+                                        <a href="{{ route('admin.ludo.deposits.index', ['search' => $dep->utr_number]) }}" class="btn btn-sm btn-outline-info rounded-pill py-0 px-2" style="font-size: 10.5px;">
+                                            Review
+                                        </a>
+                                    </td>
+                                </tr>
+                            @empty
+                                <tr>
+                                    <td colspan="7" class="text-center text-secondary py-3 small">No UPI deposit requests submitted yet.</td>
                                 </tr>
                             @endforelse
                         </tbody>

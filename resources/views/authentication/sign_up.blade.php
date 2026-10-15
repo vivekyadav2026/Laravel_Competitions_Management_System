@@ -234,6 +234,14 @@
                 <span>Get <strong>100 Free Welcome Coins</strong> on registration!</span>
             </div>
 
+            {{-- Fast Mobile OTP Registration / Login --}}
+            <a href="{{ route('login', request()->only('ref')) }}" class="btn btn-gold-action w-100 py-2 mb-3 rounded-3 text-uppercase fw-bold small text-decoration-none d-flex align-items-center justify-content-center gap-2">
+                <i class="fa-solid fa-mobile-screen"></i> Instant Sign In / Register with Mobile OTP
+            </a>
+
+            <div class="fsaludo-divider">Or With Email & Password</div>
+
+
             {{-- Flash Messages --}}
             @if(session('error'))
                 <div class="alert alert-danger py-2 px-3 small rounded-3 mb-3 border-0 bg-danger bg-opacity-25 text-danger-emphasis">
@@ -277,6 +285,20 @@
                         <input type="email" class="form-control" id="emailInput"
                                placeholder="e.g. rahul@example.com" name="email"
                                value="{{ old('email') }}" required>
+                    </div>
+                </div>
+
+                {{-- Mobile Number (Optional) --}}
+                <div class="mb-3">
+                    <label for="phoneInput" class="form-label text-warning-emphasis small fw-semibold text-uppercase" style="letter-spacing: 0.5px;">
+                        Mobile Number <span class="text-secondary fw-normal">(Optional for OTP / Quick Login)</span>
+                    </label>
+                    <div class="input-group">
+                        <span class="input-group-text"><i class="fa-solid fa-mobile-screen text-warning me-1"></i> +91</span>
+                        <input type="tel" class="form-control" id="phoneInput"
+                               placeholder="10-digit mobile number" name="phone"
+                               maxlength="10" inputmode="numeric" pattern="[0-9]*"
+                               value="{{ old('phone') }}">
                     </div>
                 </div>
 

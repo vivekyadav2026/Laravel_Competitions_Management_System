@@ -18,7 +18,7 @@ return new class extends Migration
             $table->foreignId('joiner_id')->nullable()->constrained('users')->onDelete('set null');
             $table->unsignedInteger('entry_fee')->default(50); // Virtual tournament points
             $table->unsignedInteger('prize')->default(95); // Calculated virtual prize
-            $table->enum('status', ['open', 'running', 'completed', 'cancelled'])->default('open')->index();
+            $table->enum('status', ['open', 'requested', 'running', 'completed', 'cancelled'])->default('open')->index();
             $table->string('room_code', 30)->nullable();
             $table->foreignId('winner_id')->nullable()->constrained('users')->onDelete('set null');
             $table->timestamp('started_at')->nullable();
