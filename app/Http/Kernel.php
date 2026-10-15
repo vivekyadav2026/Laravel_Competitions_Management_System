@@ -36,12 +36,14 @@ class Kernel extends HttpKernel
             \Illuminate\View\Middleware\ShareErrorsFromSession::class,
             \App\Http\Middleware\VerifyCsrfToken::class,
             \Illuminate\Routing\Middleware\SubstituteBindings::class,
+            \App\Http\Middleware\PreventBrowserCacheMiddleware::class,
         ],
 
         'api' => [
             // \Laravel\Sanctum\Http\Middleware\EnsureFrontendRequestsAreStateful::class,
             \Illuminate\Routing\Middleware\ThrottleRequests::class.':api',
             \Illuminate\Routing\Middleware\SubstituteBindings::class,
+            \App\Http\Middleware\PreventBrowserCacheMiddleware::class,
         ],
     ];
 
@@ -67,5 +69,6 @@ class Kernel extends HttpKernel
         'admin' => \App\Http\Middleware\AdminMiddleware::class,
         'superadmin' => \App\Http\Middleware\SuperAdminMiddleware::class,
         'ludo.admin' => \App\Http\Middleware\LudoAdminRoleMiddleware::class,
+        'no.cache' => \App\Http\Middleware\PreventBrowserCacheMiddleware::class,
     ];
 }

@@ -1213,10 +1213,13 @@
                 isPolling = true;
 
                 try {
-                    const res = await fetch("{{ route('ludo.battles.syncState') }}?battle_id=" + battleId, {
+                    const res = await fetch("{{ route('ludo.battles.syncState') }}?battle_id=" + battleId + "&_t=" + Date.now(), {
+                        cache: 'no-store',
                         headers: {
                             'Accept': 'application/json',
-                            'X-Requested-With': 'XMLHttpRequest'
+                            'X-Requested-With': 'XMLHttpRequest',
+                            'Cache-Control': 'no-cache, no-store, must-revalidate',
+                            'Pragma': 'no-cache'
                         }
                     });
 
@@ -1374,8 +1377,14 @@
 
             document.addEventListener('visibilitychange', function() {
                 if (!document.hidden && !isPolling) {
-                    fetch("{{ route('ludo.battles.syncState') }}?battle_id=" + battleId, {
-                        headers: { 'Accept': 'application/json', 'X-Requested-With': 'XMLHttpRequest' }
+                    fetch("{{ route('ludo.battles.syncState') }}?battle_id=" + battleId + "&_t=" + Date.now(), {
+                        cache: 'no-store',
+                        headers: {
+                            'Accept': 'application/json',
+                            'X-Requested-With': 'XMLHttpRequest',
+                            'Cache-Control': 'no-cache, no-store, must-revalidate',
+                            'Pragma': 'no-cache'
+                        }
                     }).then(r => r.json()).then(d => {
                         if (d.battle) {
                             if (!hasRoomCode && d.battle.room_code) {

@@ -14,7 +14,7 @@ class AppServiceProvider extends ServiceProvider
      */
     public function register(): void
     {
-        //
+        require_once __DIR__ . '/../Helpers/CacheBuster.php';
     }
 
     /**
@@ -23,6 +23,10 @@ class AppServiceProvider extends ServiceProvider
     public function boot(): void
     {
         Paginator::useBootstrapFive();
+
+        \Illuminate\Support\Facades\Blade::directive('versionedAsset', function ($expression) {
+            return "<?php echo \\App\\Helpers\\CacheBuster::asset({$expression}); ?>";
+        });
 
         View::composer('components.navbar', function ($view) {
             $competitions = Competition::get(['id', 'competition_name']);

@@ -124,10 +124,13 @@ document.addEventListener('DOMContentLoaded', function() {
         isFetchingMatches = true;
 
         try {
-            const res = await fetch("{{ route('admin.ludo.matches.liveFeed') }}", {
+            const res = await fetch("{{ route('admin.ludo.matches.liveFeed') }}?_t=" + Date.now(), {
+                cache: 'no-store',
                 headers: {
                     'Accept': 'application/json',
-                    'X-Requested-With': 'XMLHttpRequest'
+                    'X-Requested-With': 'XMLHttpRequest',
+                    'Cache-Control': 'no-cache, no-store, must-revalidate',
+                    'Pragma': 'no-cache'
                 }
             });
 

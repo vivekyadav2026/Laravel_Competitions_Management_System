@@ -622,12 +622,15 @@ document.addEventListener('DOMContentLoaded', function () {
                 if (this.cursor) {
                     url.searchParams.set('cursor', this.cursor);
                 }
-                url.searchParams.set('per_page', this.perPage);
+                url.searchParams.set('_t', Date.now());
 
                 const response = await fetch(url.toString(), {
+                    cache: 'no-store',
                     headers: {
                         'Accept': 'application/json',
-                        'X-Requested-With': 'XMLHttpRequest'
+                        'X-Requested-With': 'XMLHttpRequest',
+                        'Cache-Control': 'no-cache, no-store, must-revalidate',
+                        'Pragma': 'no-cache'
                     }
                 });
 
@@ -1214,10 +1217,13 @@ document.addEventListener('DOMContentLoaded', function () {
         isLobbyPolling = true;
 
         try {
-            const res = await fetch("{{ route('ludo.battles.syncState') }}", {
+            const res = await fetch("{{ route('ludo.battles.syncState') }}?_t=" + Date.now(), {
+                cache: 'no-store',
                 headers: {
                     'Accept': 'application/json',
-                    'X-Requested-With': 'XMLHttpRequest'
+                    'X-Requested-With': 'XMLHttpRequest',
+                    'Cache-Control': 'no-cache, no-store, must-revalidate',
+                    'Pragma': 'no-cache'
                 }
             });
 

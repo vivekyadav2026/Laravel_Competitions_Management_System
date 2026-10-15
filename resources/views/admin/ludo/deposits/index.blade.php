@@ -266,10 +266,15 @@ document.addEventListener('DOMContentLoaded', function() {
             const curParams = new URLSearchParams(window.location.search);
             if (curParams.has('status')) url.searchParams.set('status', curParams.get('status'));
 
+            url.searchParams.set('_t', Date.now());
+
             const res = await fetch(url.toString(), {
+                cache: 'no-store',
                 headers: {
                     'Accept': 'application/json',
-                    'X-Requested-With': 'XMLHttpRequest'
+                    'X-Requested-With': 'XMLHttpRequest',
+                    'Cache-Control': 'no-cache, no-store, must-revalidate',
+                    'Pragma': 'no-cache'
                 }
             });
 

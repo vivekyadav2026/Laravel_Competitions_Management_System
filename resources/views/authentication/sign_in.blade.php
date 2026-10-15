@@ -4,12 +4,15 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
     <meta http-equiv="X-UA-Compatible" content="ie=edge">
+    <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
+    <meta http-equiv="Pragma" content="no-cache">
+    <meta http-equiv="Expires" content="0">
     <meta name="csrf-token" content="{{ csrf_token() }}">
     <title>Sign In & Play — {{ config('ludo.brand_name', 'Fsaludoclub') }}</title>
     <link rel="icon" type="image/png" href="{{ asset('assets/images/fsaludoclub-icon.png') }}">
 
     {{-- Local Bootstrap 5 --}}
-    <link rel="stylesheet" href="{{ asset('css/bootstrap.min.css') }}">
+    <link rel="stylesheet" href="{{ versioned_asset('css/bootstrap.min.css') }}">
     
     {{-- FontAwesome 6 --}}
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
@@ -20,7 +23,7 @@
     <link href="https://fonts.googleapis.com/css2?family=Cinzel:wght@700;900&family=Poppins:wght@400;500;600;700;800;900&display=swap" rel="stylesheet">
 
     {{-- Ludo Core Theme --}}
-    <link rel="stylesheet" href="{{ asset('css/ludo-theme.css') }}">
+    <link rel="stylesheet" href="{{ versioned_asset('css/ludo-theme.css') }}">
 
     <style>
         body.fsaludo-auth-body {
