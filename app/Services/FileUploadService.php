@@ -175,4 +175,16 @@ class FileUploadService
 
         return asset($path);
     }
+
+    /**
+     * Delete a stored file from the filesystem.
+     */
+    public static function deleteFile(?string $path): bool
+    {
+        $resolved = self::resolvePath($path);
+        if ($resolved && file_exists($resolved)) {
+            return @unlink($resolved);
+        }
+        return false;
+    }
 }

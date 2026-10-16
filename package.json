@@ -11,6 +11,7 @@
         "vite": "^5.0.0"
     },
     "dependencies": {
-        "puppeteer-core": "^25.14.0"
+        "puppeteer-core": "^25.14.0",
+        "qrcode": "^1.5.4"
     }
 }

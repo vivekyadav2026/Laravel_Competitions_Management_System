@@ -78,11 +78,22 @@
                     </div>
                 </div>
 
-                <div class="row g-3">
-                    <div class="col-12 col-md-6">
+                <div class="row g-3 mb-3">
+                    <div class="col-12 col-md-4">
                         <label class="form-label text-white small fw-bold">Support Contact Email <span class="text-danger">*</span></label>
                         <input type="email" name="support_email" class="form-control bg-dark text-light border-secondary small" value="{{ $settings['support_email'] }}" required>
                     </div>
+                    <div class="col-12 col-md-4">
+                        <label class="form-label text-white small fw-bold">Support WhatsApp Number</label>
+                        <input type="text" name="support_whatsapp" class="form-control bg-dark text-light border-secondary small" value="{{ $settings['support_whatsapp'] ?? '7303859007' }}" placeholder="7303859007">
+                    </div>
+                    <div class="col-12 col-md-4">
+                        <label class="form-label text-white small fw-bold">Official Instagram URL / Handle</label>
+                        <input type="text" name="support_instagram" class="form-control bg-dark text-light border-secondary small" value="{{ $settings['support_instagram'] ?? 'https://www.instagram.com/fsa.ludo.club' }}" placeholder="https://www.instagram.com/fsa.ludo.club">
+                    </div>
+                </div>
+
+                <div class="row g-3">
                     <div class="col-12 col-md-6">
                         <label class="form-label text-white small fw-bold">Platform Maintenance Mode</label>
                         <select name="maintenance_mode" class="form-select bg-dark text-light border-secondary small">
@@ -210,19 +221,27 @@
                         <label class="form-label text-white small fw-bold">Upload Custom QR Code Image</label>
                         <input type="file" name="upi_qr_image" class="form-control bg-dark text-light border-secondary small" accept=".png,.jpg,.jpeg,.webp">
                         <small class="text-secondary d-block mt-1">
-                            Recommended size: 500x500px, PNG or JPG (Max 5MB). If left empty, a dynamic UPI QR is auto-generated.
+                            Recommended size: 500x500px, PNG or JPG (Max 5MB). If left empty, a dynamic UPI QR is auto-generated based on your UPI ID and Payee Name.
                         </small>
+                        @if(!empty($settings['upi_qr_image']))
+                            <div class="form-check mt-2 p-2 rounded bg-dark border border-danger border-opacity-50">
+                                <input class="form-check-input ms-0 me-2" type="checkbox" name="remove_upi_qr_image" value="1" id="removeQrCheckbox">
+                                <label class="form-check-label text-warning small fw-bold" for="removeQrCheckbox">
+                                    <i class="fa-solid fa-trash-can text-danger me-1"></i> Remove Custom QR &amp; Switch to Auto-Generated QR
+                                </label>
+                                <div class="text-secondary" style="font-size: 10.5px; padding-left: 24px;">Check this box and click Save to clear the uploaded image and generate QR directly from your UPI ID.</div>
+                            </div>
+                        @endif
                     </div>
                     <div class="col-12 col-md-5 text-center">
-                        <div class="p-2 bg-white rounded-3 d-inline-block shadow" style="max-width: 140px;">
+                        <div class="p-2 bg-white rounded-3 d-inline-flex align-items-center justify-content-center shadow" style="min-width: 140px; min-height: 140px;">
                             @if(!empty($settings['upi_qr_image']))
-                                <img src="{{ \App\Services\FileUploadService::url($settings['upi_qr_image']) }}" alt="Active QR Code" class="img-fluid rounded" style="max-height: 120px;">
-                            @else
-                                <img src="https://api.qrserver.com/v1/create-qr-code/?size=120x120&data={{ urlencode('upi://pay?pa=' . $settings['upi_id'] . '&pn=' . $settings['upi_payee_name']) }}" alt="Dynamic QR" class="img-fluid rounded" style="max-height: 120px;">
+                                <img id="adminActiveQrImg" src="{{ \App\Services\FileUploadService::url($settings['upi_qr_image']) }}" alt="Active QR Code" class="img-fluid rounded" style="max-height: 120px; max-width: 120px; object-fit: contain;">
                             @endif
+                            <canvas id="adminDynamicQrCanvas" width="120" height="120" style="{{ !empty($settings['upi_qr_image']) ? 'display: none;' : 'display: block;' }} width: 120px; height: 120px; border-radius: 4px;"></canvas>
                         </div>
-                        <div class="small text-secondary mt-1" style="font-size: 11px;">
-                            {{ !empty($settings['upi_qr_image']) ? 'Custom Uploaded QR' : 'Auto-generated UPI QR' }}
+                        <div id="adminQrBadgeLabel" class="small text-secondary mt-1 fw-bold" style="font-size: 11px;">
+                            {{ !empty($settings['upi_qr_image']) ? 'Custom Uploaded QR' : 'Auto-generated Scannable UPI QR' }}
                         </div>
                     </div>
                 </div>
@@ -339,6 +358,51 @@
             testFeeInput?.addEventListener('input', updateCalculator);
 
             updateCalculator();
+
+            // Live Admin QR Preview
+            const upiIdInput = document.querySelector('input[name="upi_id"]');
+            const payeeInput = document.querySelector('input[name="upi_payee_name"]');
+            const adminCanvas = document.getElementById('adminDynamicQrCanvas');
+            const adminActiveImg = document.getElementById('adminActiveQrImg');
+            const removeQrCheckbox = document.getElementById('removeQrCheckbox');
+            const adminBadge = document.getElementById('adminQrBadgeLabel');
+
+            function renderAdminQr() {
+                const vpa = (upiIdInput ? upiIdInput.value.trim() : '') || 'fsaludoclub@upi';
+                const payee = (payeeInput ? payeeInput.value.trim() : '') || 'FSALUDOCLUB';
+                const upiUri = `upi://pay?pa=${encodeURIComponent(vpa)}&pn=${encodeURIComponent(payee)}&cu=INR`;
+
+                const isRemoving = removeQrCheckbox && removeQrCheckbox.checked;
+
+                if (adminActiveImg && !isRemoving) {
+                    adminActiveImg.style.display = 'block';
+                    if (adminCanvas) adminCanvas.style.display = 'none';
+                    if (adminBadge) adminBadge.textContent = 'Custom Uploaded QR';
+                } else {
+                    if (adminActiveImg) adminActiveImg.style.display = 'none';
+                    if (adminCanvas) {
+                        adminCanvas.style.display = 'block';
+                        if (window.QRCode) {
+                            try {
+                                window.QRCode.toCanvas(adminCanvas, upiUri, {
+                                    width: 120,
+                                    margin: 1,
+                                    color: { dark: '#000000', light: '#ffffff' }
+                                });
+                            } catch(e) {
+                                console.error('Admin QR render error:', e);
+                            }
+                        }
+                    }
+                    if (adminBadge) adminBadge.textContent = 'Auto-generated Scannable UPI QR';
+                }
+            }
+
+            upiIdInput?.addEventListener('input', renderAdminQr);
+            payeeInput?.addEventListener('input', renderAdminQr);
+            removeQrCheckbox?.addEventListener('change', renderAdminQr);
+            renderAdminQr();
         });
     </script>
+    <script src="{{ versioned_asset('js/qrcode.min.js') }}"></script>
 @endsection

@@ -13,6 +13,8 @@
             $bannerImg = versioned_asset('assets/ludo/banner-running-battles.jpg');
         } elseif ($cleanTitle === 'OUR TOURNAMENTS') {
             $bannerImg = versioned_asset('assets/ludo/banner-our-tournaments.jpg');
+        } elseif ($cleanTitle === 'OPEN BATTLES') {
+            $bannerImg = versioned_asset('assets/ludo/banner-open-battles.jpg');
         }
     }
 @endphp

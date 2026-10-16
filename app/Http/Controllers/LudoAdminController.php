@@ -2368,7 +2368,8 @@ class LudoAdminController extends Controller
             'welcome_bonus_points' => LudoSetting::get('welcome_bonus_points', '100'),
             'maintenance_mode' => LudoSetting::get('maintenance_mode', 'off'),
             'support_email' => LudoSetting::get('support_email', 'support@fsaludoclub.test'),
-            'support_whatsapp' => LudoSetting::get('support_whatsapp', '+91 9876543210'),
+            'support_whatsapp' => LudoSetting::get('support_whatsapp', config('ludo.support.whatsapp_number', '7303859007')),
+            'support_instagram' => LudoSetting::get('support_instagram', config('ludo.support.instagram_url', 'https://www.instagram.com/fsa.ludo.club')),
             'support_telegram' => LudoSetting::get('support_telegram', 'https://t.me/fsaludoclub'),
             'support_hours' => LudoSetting::get('support_hours', 'Mon-Sun 10:00 AM - 10:00 PM IST'),
             'minimum_battle_amount' => LudoSetting::get('minimum_battle_amount', '50'),
@@ -2385,7 +2386,7 @@ class LudoAdminController extends Controller
             'upi_id' => LudoSetting::get('upi_id', config('ludo.upi.id', '9631608403@paytm')),
             'upi_min_deposit' => LudoSetting::get('upi_min_deposit', (string) config('ludo.upi.min_deposit', 50)),
             'upi_max_deposit' => LudoSetting::get('upi_max_deposit', (string) config('ludo.upi.max_deposit', 50000)),
-            'upi_qr_image' => LudoSetting::get('upi_qr_image', null),
+            'upi_qr_image' => ($rawQr = LudoSetting::get('upi_qr_image', null)) && FileUploadService::resolvePath($rawQr) ? $rawQr : null,
             'upi_instructions_en' => LudoSetting::get('upi_instructions_en', "1. Scan the QR code using Google Pay, PhonePe, Paytm, or BHIM.\n2. Pay the exact coins amount.\n3. Copy the 12-digit UTR/Reference number.\n4. Enter the UTR and upload payment screenshot below."),
             'upi_instructions_hi' => LudoSetting::get('upi_instructions_hi', "1. किसी भी UPI ऐप (Paytm, PhonePe, GPay) से QR कोड स्कैन करें।\n2. सटीक राशि का भुगतान करें।\n3. 12 अंकों का UTR / रेफ़रंस नंबर कॉपी करें।\n4. नीचे UTR दर्ज करें और रसीद अपलोड करें।"),
             'virtual_points_reload_enabled' => LudoSetting::get('virtual_points_reload_enabled', 'off'),
@@ -2414,6 +2415,7 @@ class LudoAdminController extends Controller
             'maintenance_mode' => ['required', 'in:on,off'],
             'support_email' => ['required', 'email'],
             'support_whatsapp' => ['nullable', 'string', 'max:30'],
+            'support_instagram' => ['nullable', 'string', 'max:255'],
             'support_telegram' => ['nullable', 'string', 'max:255'],
             'support_hours' => ['nullable', 'string', 'max:100'],
             'minimum_battle_amount' => ['required', 'integer', 'min:10', 'max:1000'],
@@ -2432,14 +2434,47 @@ class LudoAdminController extends Controller
             'upi_min_deposit' => ['nullable', 'integer', 'min:10', 'max:10000'],
             'upi_max_deposit' => ['nullable', 'integer', 'min:100', 'max:500000'],
             'upi_qr_image' => ['nullable', 'image', 'mimes:jpeg,png,jpg,webp', 'max:5120'],
+            'remove_upi_qr_image' => ['nullable'],
             'upi_instructions_en' => ['nullable', 'string', 'max:2000'],
             'upi_instructions_hi' => ['nullable', 'string', 'max:2000'],
         ]);
 
-        // Handle QR image upload if provided
-        if ($request->hasFile('upi_qr_image')) {
+        // Handle QR image removal or upload
+        if ($request->boolean('remove_upi_qr_image') || $request->input('remove_upi_qr_image') === '1') {
+            $oldPath = LudoSetting::get('upi_qr_image');
+            if ($oldPath) {
+                FileUploadService::deleteFile($oldPath);
+                try {
+                    \Illuminate\Support\Facades\Storage::disk('public')->delete($oldPath);
+                    $pubCopy = public_path('storage/' . $oldPath);
+                    if (file_exists($pubCopy)) {
+                        @unlink($pubCopy);
+                    }
+                } catch (\Throwable $e) {}
+            }
+            LudoSetting::set('upi_qr_image', null, 'payment');
+        } elseif ($request->hasFile('upi_qr_image')) {
+            $oldPath = LudoSetting::get('upi_qr_image');
+            if ($oldPath) {
+                FileUploadService::deleteFile($oldPath);
+                try {
+                    \Illuminate\Support\Facades\Storage::disk('public')->delete($oldPath);
+                } catch (\Throwable $e) {}
+            }
             $qrPath = $request->file('upi_qr_image')->store('qr', 'public');
             LudoSetting::set('upi_qr_image', $qrPath, 'payment');
+
+            // Also dual-sync to public/storage/qr for live servers without symbolic links
+            try {
+                $targetDir = public_path('storage/qr');
+                if (!file_exists($targetDir)) {
+                    @mkdir($targetDir, 0755, true);
+                }
+                $storedFullPath = \Illuminate\Support\Facades\Storage::disk('public')->path($qrPath);
+                if (file_exists($storedFullPath)) {
+                    @copy($storedFullPath, public_path('storage/' . $qrPath));
+                }
+            } catch (\Throwable $e) {}
         }
 
         // Validate slabs JSON if provided
@@ -2451,7 +2486,7 @@ class LudoAdminController extends Controller
         }
 
         foreach ($validated as $k => $v) {
-            if ($k !== 'upi_qr_image' && $k !== 'battle_commission_slabs' && !is_null($v)) {
+            if ($k !== 'upi_qr_image' && $k !== 'remove_upi_qr_image' && $k !== 'battle_commission_slabs' && !is_null($v)) {
                 LudoSetting::set($k, $v, 'system');
             }
         }

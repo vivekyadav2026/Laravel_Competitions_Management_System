@@ -32,27 +32,46 @@
 
     {{-- Official Channels Cards List (Matching reference design) --}}
     <div class="ludo-support-list d-flex flex-column gap-2 mb-4">
-        {{-- Card 1: Our Support Team --}}
-        <a href="{{ $supportConfig['team_whatsapp_url'] ?? '#' }}" 
+        {{-- Card 1: Our Support Team (WhatsApp) --}}
+        <a href="{{ $supportConfig['team_whatsapp_url'] ?? 'https://wa.me/917303859007?text=Hello%20Fsaludoclub%20Support' }}" 
            target="_blank" 
            class="ludo-support-item text-decoration-none d-flex align-items-center justify-content-between p-3 rounded-3"
-           style="background: linear-gradient(145deg, #0f1c3f, #081226); border: 1px solid rgba(56, 189, 248, 0.25); box-shadow: 0 4px 14px rgba(0,0,0,0.4);">
+           style="background: linear-gradient(145deg, #0f1c3f, #081226); border: 1px solid rgba(34, 197, 94, 0.3); box-shadow: 0 4px 14px rgba(0,0,0,0.4);">
             <div class="d-flex align-items-center gap-3">
-                <div class="d-flex align-items-center justify-content-center rounded-circle" style="width: 44px; height: 44px; background: rgba(56, 189, 248, 0.15); border: 1.5px solid #38bdf8;">
-                    <i class="fa-solid fa-headset text-info fs-5"></i>
+                <div class="d-flex align-items-center justify-content-center rounded-circle" style="width: 44px; height: 44px; background: rgba(34, 197, 94, 0.15); border: 1.5px solid #22c55e;">
+                    <i class="fa-brands fa-whatsapp text-success fs-5"></i>
                 </div>
                 <div>
-                    <div class="text-white fw-bold" style="font-size: 14.5px;">Our Support Team</div>
+                    <div class="text-white fw-bold" style="font-size: 14.5px;">WhatsApp Support: +91 {{ $supportConfig['whatsapp_number'] ?? '7303859007' }}</div>
                     <div class="text-success small fw-semibold" style="font-size: 11.5px;">
                         <span class="d-inline-block rounded-circle bg-success me-1" style="width: 6px; height: 6px;"></span>
-                        Verified Direct Desk
+                        Verified Direct Desk &bull; 7303859007
                     </div>
                 </div>
             </div>
-            <i class="fa-solid fa-chevron-right text-info"></i>
+            <i class="fa-solid fa-chevron-right text-success"></i>
         </a>
 
-        {{-- Card 2: Telegram Support --}}
+        {{-- Card 2: Official Instagram --}}
+        <a href="{{ $supportConfig['instagram_url'] ?? 'https://www.instagram.com/fsa.ludo.club' }}" 
+           target="_blank" 
+           class="ludo-support-item text-decoration-none d-flex align-items-center justify-content-between p-3 rounded-3"
+           style="background: linear-gradient(145deg, #0f1c3f, #081226); border: 1px solid rgba(225, 48, 108, 0.35); box-shadow: 0 4px 14px rgba(0,0,0,0.4);">
+            <div class="d-flex align-items-center gap-3">
+                <div class="d-flex align-items-center justify-content-center rounded-circle" style="width: 44px; height: 44px; background: rgba(225, 48, 108, 0.15); border: 1.5px solid #e1306c;">
+                    <i class="fa-brands fa-instagram fs-5" style="color: #e1306c;"></i>
+                </div>
+                <div>
+                    <div class="text-white fw-bold" style="font-size: 14.5px;">Instagram: @&#8203;{{ $supportConfig['instagram_handle'] ?? 'fsa.ludo.club' }}</div>
+                    <div class="small fw-semibold" style="font-size: 11.5px; color: #f472b6;">
+                        <i class="fa-solid fa-circle-check me-1"></i> Official Community &bull; fsa.ludo.club
+                    </div>
+                </div>
+            </div>
+            <i class="fa-solid fa-chevron-right" style="color: #e1306c;"></i>
+        </a>
+
+        {{-- Card 3: Telegram Support --}}
         <a href="{{ $supportConfig['telegram_url'] ?? '#' }}" 
            target="_blank" 
            class="ludo-support-item text-decoration-none d-flex align-items-center justify-content-between p-3 rounded-3"
@@ -69,13 +88,13 @@
             <i class="fa-solid fa-chevron-right text-info"></i>
         </a>
 
-        {{-- Card 3: Contact Us / Email & Ticket Helpdesk --}}
+        {{-- Card 4: Contact Us / Email & Ticket Helpdesk --}}
         <a href="{{ $supportConfig['contact_url'] ?? '#' }}" 
            class="ludo-support-item text-decoration-none d-flex align-items-center justify-content-between p-3 rounded-3"
-           style="background: linear-gradient(145deg, #0f1c3f, #081226); border: 1px solid rgba(34, 197, 94, 0.25); box-shadow: 0 4px 14px rgba(0,0,0,0.4);">
+           style="background: linear-gradient(145deg, #0f1c3f, #081226); border: 1px solid rgba(56, 189, 248, 0.25); box-shadow: 0 4px 14px rgba(0,0,0,0.4);">
             <div class="d-flex align-items-center gap-3">
-                <div class="d-flex align-items-center justify-content-center rounded-circle" style="width: 44px; height: 44px; background: rgba(34, 197, 94, 0.15); border: 1.5px solid #4ade80;">
-                    <i class="fa-solid fa-envelope text-success fs-5"></i>
+                <div class="d-flex align-items-center justify-content-center rounded-circle" style="width: 44px; height: 44px; background: rgba(56, 189, 248, 0.15); border: 1.5px solid #38bdf8;">
+                    <i class="fa-solid fa-envelope text-info fs-5"></i>
                 </div>
                 <div>
                     <div class="text-white fw-bold" style="font-size: 14.5px;">Contact Us</div>

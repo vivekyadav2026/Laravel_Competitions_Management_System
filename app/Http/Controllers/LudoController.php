@@ -1369,9 +1369,17 @@ class LudoController extends Controller
         if ($telegram = LudoSetting::get('support_telegram')) {
             $supportConfig['telegram_url'] = $telegram;
         }
-        if ($whatsapp = LudoSetting::get('support_whatsapp')) {
+        if ($whatsapp = LudoSetting::get('support_whatsapp', config('ludo.support.whatsapp_number', '7303859007'))) {
             $digits = preg_replace('/[^0-9]/', '', $whatsapp);
-            $supportConfig['team_whatsapp_url'] = "https://wa.me/{$digits}?text=" . urlencode('Hello ' . config('ludo.brand_name', 'Fsaludoclub') . ' Support');
+            $cleanDigits = (strlen($digits) === 10) ? '91' . $digits : $digits;
+            $displayNumber = (strlen($digits) === 12 && str_starts_with($digits, '91')) ? substr($digits, 2) : $digits;
+            $supportConfig['whatsapp_number'] = $displayNumber;
+            $supportConfig['team_whatsapp_url'] = "https://wa.me/{$cleanDigits}?text=" . urlencode('Hello ' . config('ludo.brand_name', 'Fsaludoclub') . ' Support');
+        }
+        if ($instagram = LudoSetting::get('support_instagram', config('ludo.support.instagram_url', 'https://www.instagram.com/fsa.ludo.club'))) {
+            $supportConfig['instagram_url'] = str_starts_with($instagram, 'http') ? $instagram : 'https://www.instagram.com/' . ltrim($instagram, '@/');
+            $cleanHandle = trim(parse_url($supportConfig['instagram_url'], PHP_URL_PATH) ?? '', '/');
+            $supportConfig['instagram_handle'] = $cleanHandle ?: 'fsa.ludo.club';
         }
         if ($email = LudoSetting::get('support_email')) {
             $supportConfig['contact_url'] = "mailto:{$email}";
@@ -1433,12 +1441,13 @@ class LudoController extends Controller
         $isUpiEnabled = self::isUpiDepositsEnabled();
         $upiId = LudoSetting::get('upi_id', config('ludo.upi.id', '9631608403@paytm'));
         $payeeName = LudoSetting::get('upi_payee_name', config('ludo.upi.payee_name', 'FSALUDOCLUB ENTERPRISES'));
-        $supportWhatsapp = LudoSetting::get('upi_whatsapp', config('ludo.upi.whatsapp', '9631608403'));
+        $supportWhatsapp = LudoSetting::get('upi_whatsapp', config('ludo.upi.whatsapp', '7303859007'));
         $minDeposit = (int) LudoSetting::get('upi_min_deposit', config('ludo.upi.min_deposit', 50));
         $maxDeposit = (int) LudoSetting::get('upi_max_deposit', config('ludo.upi.max_deposit', 50000));
         $minWithdrawal = (int) LudoSetting::get('min_withdrawal_amount', 100);
         $maxWithdrawal = (int) LudoSetting::get('max_withdrawal_amount', 50000);
-        $qrImage = LudoSetting::get('upi_qr_image', null);
+        $rawQr = LudoSetting::get('upi_qr_image', null);
+        $qrImage = ($rawQr && \App\Services\FileUploadService::resolvePath($rawQr)) ? $rawQr : null;
         $instructionsEn = LudoSetting::get('upi_instructions_en', "1. Scan QR with Google Pay, PhonePe, Paytm, or BHIM.\n2. Pay the exact coins amount.\n3. Enter the 12-digit UTR/Reference number.\n4. Upload payment screenshot below.");
         $instructionsHi = LudoSetting::get('upi_instructions_hi', "1. किसी भी UPI ऐप (Paytm, PhonePe, GPay) से QR कोड स्कैन करें।\n2. सटीक राशि का भुगतान करें।\n3. 12 अंकों का UTR / रेफ़रंस नंबर दर्ज करें।\n4. पेमेंट का स्क्रीनशॉट अपलोड करें।");
 

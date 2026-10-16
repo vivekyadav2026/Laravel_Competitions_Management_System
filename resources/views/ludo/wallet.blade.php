@@ -90,22 +90,20 @@
                     2. Scan &amp; Pay ₹<span id="qrAmountDisplay" class="text-warning fs-5 fw-bold">{{ max($minDeposit ?? 50, 50) }}</span>
                 </div>
 
-                <div class="ludo-qr-image-wrapper p-2 d-inline-block bg-white rounded-3 shadow-lg mb-2">
+                <div class="ludo-qr-image-wrapper p-2 d-inline-flex align-items-center justify-content-center bg-white rounded-3 shadow-lg mb-2" style="min-width: 216px; min-height: 216px;">
                     @if(!empty($qrImage))
                         <img 
                             id="activeUpiQr" 
                             src="{{ \App\Services\FileUploadService::url($qrImage) }}" 
                             alt="Official UPI QR Code" 
                             style="width: 200px; height: 200px; object-fit: contain; display: block;"
-                        >
-                    @else
-                        <img 
-                            id="dynamicUpiQr" 
-                            src="https://api.qrserver.com/v1/create-qr-code/?size=220x220&data={{ urlencode('upi://pay?pa=' . ($upiId ?? '9631608403@paytm') . '&pn=' . ($payeeName ?? 'FSALUDOCLUB ENTERPRISES') . '&am=' . max($minDeposit ?? 50, 50) . '&cu=INR&tn=Deposit User ' . (auth()->id() ?? '')) }}" 
-                            alt="UPI Payment QR Code" 
-                            style="width: 200px; height: 200px; display: block;"
+                            onerror="this.style.display='none'; document.getElementById('dynamicUpiQrWrapper').style.display='block'; if(window.renderDynamicQr) window.renderDynamicQr();"
                         >
                     @endif
+                    <div id="dynamicUpiQrWrapper" style="{{ !empty($qrImage) ? 'display: none;' : 'display: block;' }}">
+                        <canvas id="upiQrCanvas" width="200" height="200" style="width: 200px; height: 200px; display: block; border-radius: 4px;"></canvas>
+                        <img id="dynamicUpiQr" style="display: none; width: 200px; height: 200px;" alt="UPI Payment QR Code">
+                    </div>
                 </div>
 
                 <div class="mb-2">
@@ -586,9 +584,10 @@
     </div>
 
     @push('scripts')
+    <script src="{{ versioned_asset('js/qrcode.min.js') }}"></script>
     <script>
         document.addEventListener('DOMContentLoaded', function() {
-            const upiId = "{{ $upiId ?? '9631608403@paytm' }}";
+            const upiId = "{{ $upiId ?? '7303859007@paytm' }}";
             const payeeName = "{{ $payeeName ?? 'FSALUDOCLUB' }}";
             const userId = "{{ auth()->id() ?? '' }}";
 
@@ -597,8 +596,49 @@
             const formAmountInput = document.getElementById('formDepositAmount');
             const qrAmountDisplay = document.getElementById('qrAmountDisplay');
             const qrImg = document.getElementById('dynamicUpiQr');
+            const qrCanvas = document.getElementById('upiQrCanvas');
             const mobileIntentBtn = document.getElementById('mobileUpiIntentBtn');
             const pills = document.querySelectorAll('.ludo-amount-pill');
+
+            window.renderDynamicQr = function(amount) {
+                const num = parseInt(amount || (amountInput ? amountInput.value : 50), 10);
+                const safeAmt = (!isNaN(num) && num >= 1) ? num : 50;
+                const upiUri = `upi://pay?pa=${encodeURIComponent(upiId)}&pn=${encodeURIComponent(payeeName)}&am=${safeAmt}&cu=INR&tn=Deposit%20User%20${userId}`;
+
+                if (window.QRCode && qrCanvas) {
+                    try {
+                        window.QRCode.toCanvas(qrCanvas, upiUri, {
+                            width: 200,
+                            margin: 1,
+                            color: {
+                                dark: '#000000',
+                                light: '#ffffff'
+                            }
+                        }, function(error) {
+                            if (error) {
+                                console.warn('Canvas QR render error, using fallback DataURL', error);
+                                if (window.QRCode.toDataURL) {
+                                    window.QRCode.toDataURL(upiUri, { width: 200, margin: 1 }, function(err, url) {
+                                        if (!err && qrImg) {
+                                            qrCanvas.style.display = 'none';
+                                            qrImg.src = url;
+                                            qrImg.style.display = 'block';
+                                        }
+                                    });
+                                }
+                            } else {
+                                qrCanvas.style.display = 'block';
+                                if (qrImg) qrImg.style.display = 'none';
+                            }
+                        });
+                    } catch (e) {
+                        console.error('QR code generation error:', e);
+                    }
+                } else if (qrImg) {
+                    qrImg.src = `https://api.qrserver.com/v1/create-qr-code/?size=220x220&data=${encodeURIComponent(upiUri)}`;
+                    qrImg.style.display = 'block';
+                }
+            };
 
             function updateQrAndLinks(amount) {
                 const num = parseInt(amount, 10);
@@ -609,14 +649,15 @@
 
                 const upiUri = `upi://pay?pa=${encodeURIComponent(upiId)}&pn=${encodeURIComponent(payeeName)}&am=${safeAmt}&cu=INR&tn=Deposit%20User%20${userId}`;
                 
-                if (qrImg) {
-                    qrImg.src = `https://api.qrserver.com/v1/create-qr-code/?size=220x220&data=${encodeURIComponent(upiUri)}`;
-                }
+                window.renderDynamicQr(safeAmt);
 
                 if (mobileIntentBtn) {
                     mobileIntentBtn.href = upiUri;
                 }
             }
+
+            // Initial render
+            window.renderDynamicQr(amountInput ? amountInput.value : 50);
 
             // Sync active pill in card based on amount
             function syncCardPills(card, val) {
