@@ -21,11 +21,8 @@
         <a href="{{ url('/battles') }}" class="ludo-game-card ludo-card-ludo" aria-label="Play Fsaludoclub Classic Battles">
             <div class="ludo-border-beam-glow"></div>
             <div class="ludo-border-beam"></div>
-            <span class="ludo-badge-live">
-                <span class="live-dot"></span> LIVE
-            </span>
             <div class="ludo-card-body">
-                <img src="{{ asset('assets/ludo/ludo-board.svg') }}" alt="Fsaludoclub Classic">
+                <img src="{{ versioned_asset('assets/ludo/card-classic.jpg') }}" alt="Fsaludoclub Classic">
             </div>
         </a>
 
@@ -33,11 +30,8 @@
         <a href="{{ url('/support') }}" class="ludo-game-card ludo-card-support" aria-label="24x7 Ludo Support">
             <div class="ludo-border-beam-glow"></div>
             <div class="ludo-border-beam"></div>
-            <span class="ludo-badge-live ludo-badge-gold">
-                <span class="live-dot"></span> LIVE
-            </span>
             <div class="ludo-card-body">
-                <img src="{{ asset('assets/ludo/support-card.svg') }}" alt="Ludo Support 24x7">
+                <img src="{{ versioned_asset('assets/ludo/card-support.jpg') }}" alt="Ludo Support 24x7">
             </div>
         </a>
     </div>
